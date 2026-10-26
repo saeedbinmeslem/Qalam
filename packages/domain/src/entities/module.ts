@@ -6,7 +6,7 @@
  * (مثال: وحدة "الأساسيات والمدخلات"، وحدة "جمل التحكم والتكرار").
  */
 
-import { ModuleId } from '../value-objects/identifiers.js';
+import type { ModuleId } from '../value-objects/identifiers.js';
 import { Lesson } from './lesson.js';
 
 export interface ModuleProps {

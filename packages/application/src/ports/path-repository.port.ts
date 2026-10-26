@@ -6,7 +6,7 @@
  * طبقة التطبيق من عمليات الحفظ والاسترجاع، دون أن تهتم بكيفية التنفيذ (Supabase أو ذاكرة أو ملفات).
  */
 
-import { LearningPath, PathId } from '@qalam/domain';
+import type { LearningPath, PathId } from '@qalam/domain';
 
 export interface PathRepositoryPort {
   /**

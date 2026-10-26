@@ -6,8 +6,8 @@
  * تعتمد على المنافذ (Ports) عبر حقن التبعيات (Dependency Injection).
  */
 
-import { LearningPath, PathId } from '@qalam/domain';
-import { PathRepositoryPort } from '../ports/path-repository.port.js';
+import type { LearningPath, PathId } from '@qalam/domain';
+import type { PathRepositoryPort } from '../ports/path-repository.port.js';
 
 export interface GetLearningPathRequest {
   pathId: PathId;

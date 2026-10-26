@@ -6,7 +6,7 @@
  * ووقته المتاح أسبوعياً، ومستواه الحالي.
  */
 
-import { LearnerId, PathId } from '../value-objects/identifiers.js';
+import type { LearnerId, PathId } from '../value-objects/identifiers.js';
 
 export type LearnerLevel = 'beginner' | 'intermediate' | 'advanced';
 

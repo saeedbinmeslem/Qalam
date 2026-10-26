@@ -6,7 +6,7 @@
  * هذه الخدمة خالية تماماً من أي اتصال بقاعدة بيانات أو استدعاءات شبكة.
  */
 
-import { ConceptId } from '../value-objects/identifiers.js';
+import type { ConceptId } from '../value-objects/identifiers.js';
 import { MasteryState } from '../value-objects/mastery-state.js';
 
 export interface AdaptationDecision {

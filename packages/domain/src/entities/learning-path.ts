@@ -6,7 +6,7 @@
  * مقسم إلى وحدات ودروس مرتبة منطقياً حسب متطلبات الفهم المسبق.
  */
 
-import { PathId } from '../value-objects/identifiers.js';
+import type { PathId } from '../value-objects/identifiers.js';
 import { Module } from './module.js';
 
 export interface LearningPathProps {

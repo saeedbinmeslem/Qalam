@@ -5,7 +5,7 @@
  * يحدد العمليات المطلوبة للتعامل مع بيانات المتعلّم واسترجاعها وحفظها.
  */
 
-import { Learner, LearnerId } from '@qalam/domain';
+import type { Learner, LearnerId } from '@qalam/domain';
 
 export interface LearnerRepositoryPort {
   /**

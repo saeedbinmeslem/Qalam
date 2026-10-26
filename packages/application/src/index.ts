@@ -1,4 +1,11 @@
-// ملف التصدير الرئيسي لحزمة application
-// يتم تصدير حالات الاستخدام والمنافذ ومنطق الوكيل الذكي من هنا
-// حالياً فارغ — سيتم إضافة التصديرات مع تقدم العمل
-export {};
+/**
+ * @file index.ts
+ * @description نقطة التصدير الموحّدة لحزمة @qalam/application
+ */
+
+// المنافذ (Ports)
+export * from './ports/path-repository.port.js';
+export * from './ports/learner-repository.port.js';
+
+// حالات الاستخدام (Use Cases)
+export * from './use-cases/get-learning-path.usecase.js';

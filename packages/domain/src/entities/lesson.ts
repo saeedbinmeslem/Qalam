@@ -6,7 +6,7 @@
  * ويرتبط بمفهوم محدد، مع الالتزام التام بذكر المصدر وقناة اليوتيوب.
  */
 
-import { ConceptId, LessonId } from '../value-objects/identifiers.js';
+import type { ConceptId, LessonId } from '../value-objects/identifiers.js';
 import { VideoSegment } from '../value-objects/video-segment.js';
 
 export interface LessonProps {
