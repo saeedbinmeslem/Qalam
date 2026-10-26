@@ -1,4 +1,9 @@
-// ملف التصدير الرئيسي لحزمة infrastructure
-// يتم تصدير التنفيذات الفعلية (قواعد البيانات، APIs، إلخ) من هنا
-// حالياً فارغ — سيتم إضافة التصديرات مع تقدم العمل
-export {};
+/**
+ * @file index.ts
+ * @description نقطة التصدير الموحّدة لحزمة @qalam/infrastructure
+ */
+
+// محولات التخزين (Persistence Adapters)
+export * from './persistence/in-memory-path.repository.js';
+export * from './persistence/in-memory-learner.repository.js';
+export * from './persistence/seed-data.js';

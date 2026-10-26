@@ -1,0 +1,34 @@
+name: Qalam CI Pipeline
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  lint-test-build:
+    name: Lint, Test & Build (Clean Architecture Verification)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: فحص المستودع (Checkout code)
+        uses: actions/checkout@v4
+
+      - name: إعداد بيئة Node.js v22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: تثبيت التبعيات (Install dependencies)
+        run: npm ci
+
+      - name: التحقق من جودة الكود وقواعد العمارة النظيفة (ESLint)
+        run: npm run lint
+
+      - name: التحقق من الأنواع وبناء الحزم (TypeScript Build)
+        run: npm run build
+
+      - name: تشغيل الاختبارات التلقائية (Vitest)
+        run: npm run test
