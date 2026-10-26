@@ -1,0 +1,16 @@
+{
+  // إعدادات TypeScript لحزمة application
+  // تعتمد على حزمة domain فقط — لا يمكنها الوصول إلى infrastructure
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "paths": {},
+    "tsBuildInfoFile": "dist/.tsbuildinfo"
+  },
+  "include": ["src/**/*.ts"],
+  // مراجع المشاريع — تضمن بناء domain أولاً
+  "references": [
+    { "path": "../domain" }
+  ]
+}

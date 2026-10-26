@@ -1,0 +1,50 @@
+{
+  // الإعدادات الأساسية المشتركة لجميع الحزم في المشروع
+  // يتم توريث هذه الإعدادات في كل حزمة فرعية
+  "compilerOptions": {
+    // وضع الصرامة الكاملة — يفرض كتابة أنواع دقيقة ويمنع الأخطاء الشائعة
+    "strict": true,
+
+    // الهدف: ES2022 — يدعم أحدث ميزات جافاسكريبت مثل top-level await
+    "target": "ES2022",
+
+    // نظام الوحدات: NodeNext — يدعم ESM و CJS معاً في بيئة Node.js
+    "module": "NodeNext",
+
+    // طريقة حل الوحدات: NodeNext — تتوافق مع نظام الوحدات المختار
+    "moduleResolution": "NodeNext",
+
+    // إنشاء ملفات التعريف (.d.ts) — ضروري لمشاركة الأنواع بين الحزم
+    "declaration": true,
+
+    // الوضع التركيبي — يسمح ببناء الحزم بشكل تدريجي وسريع
+    "composite": true,
+
+    // إنشاء خرائط المصدر — تساعد في تتبع الأخطاء أثناء التطوير
+    "declarationMap": true,
+    "sourceMap": true,
+
+    // تخطي فحص مكتبات الطرف الثالث — يسرّع عملية البناء
+    "skipLibCheck": true,
+
+    // فرض الاستيراد المتسق للأنواع
+    "verbatimModuleSyntax": true,
+
+    // مجلد الإخراج الافتراضي
+    "outDir": "dist",
+    "rootDir": "src",
+
+    // المكتبات المتاحة
+    "lib": ["ES2022"],
+
+    // حصر الأنواع التلقائية لمنع تسرب تعريفات غير مطلوبة (مثل react) للـ domain
+    "types": [],
+
+    // اختصارات المسارات — تسهّل الاستيراد بين الحزم
+    "paths": {
+      "@qalam/domain": ["./packages/domain/src/index.ts"],
+      "@qalam/application": ["./packages/application/src/index.ts"],
+      "@qalam/infrastructure": ["./packages/infrastructure/src/index.ts"]
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "@qalam/web",
+  "version": "0.1.0",
+  "description": "واجهة الويب لمنصة قلم — سيتم تهيئتها في الخطوة 0.5",
+  "private": true,
+  "type": "module",
+  "scripts": {},
+  "dependencies": {
+    "@qalam/domain": "*",
+    "@qalam/application": "*",
+    "@qalam/infrastructure": "*"
+  }
+}

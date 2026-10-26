@@ -1,0 +1,20 @@
+{
+  "name": "@qalam/domain",
+  "version": "0.1.0",
+  "description": "طبقة النطاق — تحتوي على الكيانات وكائنات القيمة وقواعد العمل الأساسية",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc --build",
+    "clean": "tsc --build --clean && rimraf dist"
+  },
+  "files": ["dist", "src"],
+  "dependencies": {}
+}

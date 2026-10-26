@@ -1,0 +1,10 @@
+{
+  // ملف إعدادات TypeScript الرئيسي للمشروع (Monorepo Root)
+  // يربط الحزم معاً للبناء والتحقق من الأنواع بنظام Project References
+  "files": [],
+  "references": [
+    { "path": "packages/domain" },
+    { "path": "packages/application" },
+    { "path": "packages/infrastructure" }
+  ]
+}

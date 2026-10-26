@@ -1,0 +1,22 @@
+{
+  "name": "@qalam/application",
+  "version": "0.1.0",
+  "description": "طبقة التطبيق — تحتوي على حالات الاستخدام والمنافذ ومنطق الوكيل الذكي",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc --build",
+    "clean": "tsc --build --clean && rimraf dist"
+  },
+  "files": ["dist", "src"],
+  "dependencies": {
+    "@qalam/domain": "*"
+  }
+}

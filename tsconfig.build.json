@@ -1,0 +1,10 @@
+{
+  // ملف البناء الرئيسي — يربط جميع الحزم معاً للبناء التدريجي
+  // عند تشغيل `npm run build`، يقوم TypeScript ببناء كل الحزم بالترتيب الصحيح
+  "files": [],
+  "references": [
+    { "path": "packages/domain" },
+    { "path": "packages/application" },
+    { "path": "packages/infrastructure" }
+  ]
+}

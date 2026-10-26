@@ -1,0 +1,31 @@
+{
+  "name": "qalam",
+  "private": true,
+  "version": "0.1.0",
+  "description": "منصة قلم — منصة تعليمية ذكية تعتمد على الذكاء الاصطناعي، مصممة للغة العربية أولاً",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "tsc --build",
+    "test": "vitest run",
+    "lint": "eslint .",
+    "type-check": "tsc --build",
+    "clean": "tsc --build --clean && rimraf packages/*/dist apps/*/dist"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^9.0.0",
+    "prettier": "^3.3.0",
+    "rimraf": "^6.0.0",
+    "typescript": "^5.6.0",
+    "typescript-eslint": "^8.0.0",
+    "vitest": "^3.0.0"
+  }
+}

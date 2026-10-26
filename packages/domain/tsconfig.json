@@ -1,0 +1,14 @@
+{
+  // إعدادات TypeScript لحزمة domain
+  // هذه الطبقة مستقلة تماماً ولا تعتمد على أي حزمة أخرى
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    // إزالة المسارات المختصرة — كل حزمة تستخدم مراجع المشاريع بدلاً من ذلك
+    "paths": {},
+    "tsBuildInfoFile": "dist/.tsbuildinfo"
+  },
+  "include": ["src/**/*.ts"],
+  "references": []
+}
