@@ -22,3 +22,4 @@ export * from './value-objects/learning-event.js';
 export * from './value-objects/youtube.js';
 export * from './services/admin-policy.js';
 export * from './services/concept-graph.js';
+export * from './services/path-progress.js';

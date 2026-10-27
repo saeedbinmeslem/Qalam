@@ -26,7 +26,7 @@ export default async function LessonPage({
     redirect(`/login?next=${encodeURIComponent(`/paths/${pathId}/lessons/${lessonId}`)}`);
   }
 
-  const { getLesson, recordLearningEvent } = await getContainer();
+  const { getLesson, getPathProgress, recordLearningEvent } = await getContainer();
 
   const result = await getLesson
     .execute({ pathId: createPathId(pathId), lessonId: createLessonId(lessonId) })
@@ -39,6 +39,8 @@ export default async function LessonPage({
     type: 'lesson_opened',
     payload: { pathId, lessonId },
   });
+  const progress = await getPathProgress.execute({ userId: user.id, pathId: createPathId(pathId) });
+  const alreadyCompleted = progress.completedLessonIds.has(lessonId);
   const lessonHref = (id: string) => `/paths/${pathId}/lessons/${id}`;
 
   return (
@@ -73,7 +75,16 @@ export default async function LessonPage({
         </section>
       ) : null}
 
-      <form action={completeLessonAction} className="mt-10">
+      <p className="mt-8 text-sm text-muted">
+        تقدمك في المسار: {progress.completedCount} من {progress.totalCount} ({progress.percent}%)
+      </p>
+      {alreadyCompleted ? (
+        <p role="status" className="mt-2 inline-block rounded-full bg-sea/10 px-3 py-1 text-sm font-medium text-sea-dark">
+          ✓ أكملت هذا الدرس
+        </p>
+      ) : null}
+
+      <form action={completeLessonAction} className="mt-6">
         <input type="hidden" name="pathId" value={pathId} />
         <input type="hidden" name="lessonId" value={lessonId} />
         <input type="hidden" name="nextLessonId" value={next?.id ?? ''} />
@@ -81,7 +92,13 @@ export default async function LessonPage({
           type="submit"
           className="rounded-lg bg-ink px-6 py-3 font-medium text-white transition-colors hover:bg-ink-soft"
         >
-          {next ? 'أكملت الدرس، انتقل إلى التالي' : 'أكملت الدرس'}
+          {alreadyCompleted
+            ? next
+              ? 'الانتقال إلى الدرس التالي'
+              : 'العودة إلى المسار'
+            : next
+              ? 'أكملت الدرس، انتقل إلى التالي'
+              : 'أكملت الدرس'}
         </button>
       </form>
 

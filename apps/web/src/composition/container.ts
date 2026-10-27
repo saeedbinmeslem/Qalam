@@ -7,8 +7,10 @@
 import {
   GetLearningPathUseCase,
   GetLessonUseCase,
+  GetPathProgressUseCase,
   ListLearningPathsUseCase,
   RecordLearningEventUseCase,
+  type EventReaderPort,
   type EventRecorderPort,
   type PathRepositoryPort,
 } from '@qalam/application';
@@ -16,6 +18,7 @@ import {
   InMemoryConceptRepository,
   InMemoryEventRecorder,
   InMemoryPathRepository,
+  SupabaseEventReader,
   SupabaseEventRecorder,
   SupabasePathRepository,
   createInitialSeedPath,
@@ -26,14 +29,16 @@ import {
 import { createSupabaseServerClient, isSupabaseConfigured } from './auth';
 
 export interface Container {
+  getPathProgress: GetPathProgressUseCase;
   getLearningPath: GetLearningPathUseCase;
   getLesson: GetLessonUseCase;
   listLearningPaths: ListLearningPathsUseCase;
   recordLearningEvent: RecordLearningEventUseCase;
 }
 
-function assemble(paths: PathRepositoryPort, events: EventRecorderPort): Container {
+function assemble(paths: PathRepositoryPort, events: EventRecorderPort & EventReaderPort): Container {
   return {
+    getPathProgress: new GetPathProgressUseCase(paths, events),
     getLearningPath: new GetLearningPathUseCase(paths),
     getLesson: new GetLessonUseCase(paths),
     listLearningPaths: new ListLearningPathsUseCase(paths),
@@ -72,10 +77,12 @@ export async function getContainer(): Promise<Container> {
   if (isSupabaseConfigured()) {
     // عميل لكل طلب لأن الجلسة (RLS) مرتبطة بملفات ارتباط الطلب
     const client = await createSupabaseServerClient();
-    return assemble(
-      new SupabasePathRepository(client as unknown as SupabaseDataClient),
-      new SupabaseEventRecorder(client as unknown as SupabaseInsertClient),
-    );
+    const recorder = new SupabaseEventRecorder(client as unknown as SupabaseInsertClient);
+    const reader = new SupabaseEventReader(client as unknown as SupabaseDataClient);
+    return assemble(new SupabasePathRepository(client as unknown as SupabaseDataClient), {
+      record: (event) => recorder.record(event),
+      listByUser: (userId, types) => reader.listByUser(userId, types),
+    });
   }
   const local = await getLocalStore();
   return assemble(local.paths, local.events);

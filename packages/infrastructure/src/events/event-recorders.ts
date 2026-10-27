@@ -3,14 +3,50 @@
  * @description محوّلات تسجيل الأحداث: في الذاكرة (تطوير واختبار) وSupabase (جدول learning_events).
  */
 
-import type { ClockPort, EventRecorderPort } from '@qalam/application';
-import type { LearningEvent } from '@qalam/domain';
+import type { ClockPort, EventReaderPort, EventRecorderPort } from '@qalam/application';
+import { LearningEvent, type LearningEventType } from '@qalam/domain';
+import type { SupabaseDataClient } from '../persistence/supabase-path.repository.js';
 
-export class InMemoryEventRecorder implements EventRecorderPort {
+export class InMemoryEventRecorder implements EventRecorderPort, EventReaderPort {
   readonly events: LearningEvent[] = [];
 
   async record(event: LearningEvent): Promise<void> {
     this.events.push(event);
+  }
+
+  async listByUser(userId: string, types?: readonly LearningEventType[]): Promise<LearningEvent[]> {
+    return this.events.filter((e) => e.userId === userId && (!types || types.includes(e.type)));
+  }
+}
+
+interface EventRow {
+  user_id: string;
+  type: LearningEventType;
+  payload: Record<string, unknown> | null;
+  occurred_at: string;
+}
+
+/** قراءة أحداث المستخدم؛ سياسة RLS تحصر الصفوف بصاحبها، والتصفية بالمستخدم هنا للوضوح */
+export class SupabaseEventReader implements EventReaderPort {
+  constructor(private readonly client: SupabaseDataClient) {}
+
+  async listByUser(userId: string, types?: readonly LearningEventType[]): Promise<LearningEvent[]> {
+    const { data, error } = await this.client
+      .from('learning_events')
+      .select('user_id, type, payload, occurred_at')
+      .eq('user_id', userId);
+    if (error) throw new Error(`تعذّرت قراءة الأحداث: ${error.message}`);
+    return ((data ?? []) as EventRow[])
+      .filter((row) => !types || types.includes(row.type))
+      .map(
+        (row) =>
+          new LearningEvent({
+            userId: row.user_id,
+            type: row.type,
+            payload: row.payload ?? {},
+            occurredAt: new Date(row.occurred_at),
+          }),
+      );
   }
 }
 

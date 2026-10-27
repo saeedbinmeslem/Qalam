@@ -16,6 +16,10 @@ export * from './use-cases/auth.usecases.js';
 export * from './ports/event-recorder.port.js';
 export * from './use-cases/record-learning-event.usecase.js';
 
+// تقدم المتعلم
+export * from './ports/event-reader.port.js';
+export * from './use-cases/get-path-progress.usecase.js';
+
 // لوحة التحكم الإدارية
 export * from './errors.js';
 export * from './ports/concept-repository.port.js';

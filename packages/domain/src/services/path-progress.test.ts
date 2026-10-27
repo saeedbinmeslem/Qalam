@@ -1,0 +1,84 @@
+import { describe, expect, it } from 'vitest';
+import { LearningPath } from '../entities/learning-path.js';
+import { Lesson } from '../entities/lesson.js';
+import { Module } from '../entities/module.js';
+import {
+  createConceptId,
+  createLessonId,
+  createModuleId,
+  createPathId,
+} from '../value-objects/identifiers.js';
+import { LearningEvent } from '../value-objects/learning-event.js';
+import { VideoSegment } from '../value-objects/video-segment.js';
+import { calculatePathProgress } from './path-progress.js';
+
+const lesson = (id: string) =>
+  new Lesson({
+    id: createLessonId(id),
+    title: id,
+    conceptId: createConceptId('c'),
+    segment: new VideoSegment({ videoId: 'abcdefghijk', startSeconds: 0, endSeconds: 60 }),
+    sourceUrl: 'https://www.youtube.com/watch?v=abcdefghijk',
+    channelName: 'قناة',
+  });
+
+function buildPath(): LearningPath {
+  const path = new LearningPath({
+    id: createPathId('p'),
+    title: 'مسار',
+    description: '',
+    targetGoal: 'هدف',
+    subject: 'عام',
+  });
+  const m1 = new Module({ id: createModuleId('m1'), title: 'م1', description: '', orderIndex: 1 });
+  m1.addLesson(lesson('a'));
+  m1.addLesson(lesson('b'));
+  const m2 = new Module({ id: createModuleId('m2'), title: 'م2', description: '', orderIndex: 2 });
+  m2.addLesson(lesson('c'));
+  m2.addLesson(lesson('d'));
+  path.addModule(m1);
+  path.addModule(m2);
+  return path;
+}
+
+const event = (type: 'lesson_completed' | 'lesson_opened', lessonId: unknown) =>
+  new LearningEvent({ userId: 'u', type, payload: { lessonId }, occurredAt: new Date() });
+
+describe('calculatePathProgress (تقدم المتعلم)', () => {
+  it('بلا أحداث: صفر وأول درس هو التالي', () => {
+    const progress = calculatePathProgress(buildPath(), []);
+    expect(progress).toMatchObject({ completedCount: 0, totalCount: 4, percent: 0 });
+    expect(progress.nextLesson?.id).toBe('a');
+  });
+
+  it('يحتسب الإكمال فقط، لا الفتح', () => {
+    const progress = calculatePathProgress(buildPath(), [event('lesson_opened', 'a')]);
+    expect(progress.completedCount).toBe(0);
+  });
+
+  it('لا يعدّ الإكمال المكرر ولا دروس مسارات أخرى', () => {
+    const progress = calculatePathProgress(buildPath(), [
+      event('lesson_completed', 'a'),
+      event('lesson_completed', 'a'),
+      event('lesson_completed', 'من-مسار-آخر'),
+      event('lesson_completed', 42),
+    ]);
+    expect(progress.completedCount).toBe(1);
+    expect(progress.percent).toBe(25);
+  });
+
+  it('التالي هو أول غير مكتمل بترتيب المسار حتى لو أُكمل ما بعده', () => {
+    const progress = calculatePathProgress(buildPath(), [
+      event('lesson_completed', 'a'),
+      event('lesson_completed', 'c'),
+    ]);
+    expect(progress.nextLesson?.id).toBe('b');
+  });
+
+  it('عند اكتمال المسار: 100% ولا درس تالٍ', () => {
+    const all = ['a', 'b', 'c', 'd'].map((id) => event('lesson_completed', id));
+    const progress = calculatePathProgress(buildPath(), all);
+    expect(progress.percent).toBe(100);
+    expect(progress.nextLesson).toBeNull();
+  });
+});

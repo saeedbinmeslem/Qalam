@@ -6,18 +6,24 @@ import { createPathId } from '@qalam/domain';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { formatDuration, lessonsText, modulesText } from '../../../components/format';
+import { getAuth } from '../../../composition/auth';
 import { getContainer } from '../../../composition/container';
 
 export const dynamic = 'force-dynamic';
 
 export default async function PathPage({ params }: { params: Promise<{ pathId: string }> }) {
   const { pathId } = await params;
-  const { getLearningPath } = await getContainer();
+  const { getLearningPath, getPathProgress } = await getContainer();
 
   const result = await getLearningPath.execute({ pathId: createPathId(pathId) }).catch(() => null);
   if (!result) notFound();
 
   const { path, totalModulesCount, totalLessonsCount } = result;
+
+  // التقدم للمسجَّل فقط؛ الزائر يرى المسار بلا تتبع
+  const user = await (await getAuth()).getCurrentUser.execute();
+  const progress = user ? await getPathProgress.execute({ userId: user.id, pathId: path.id }) : null;
+  const lessonHref = (id: string) => `/paths/${path.id}/lessons/${id}`;
 
   return (
     <>
@@ -46,6 +52,37 @@ export default async function PathPage({ params }: { params: Promise<{ pathId: s
               <dd>{formatDuration(path.totalDurationSeconds)}</dd>
             </div>
           </dl>
+
+          {progress ? (
+            <div className="mt-8 max-w-md">
+              <div className="flex items-baseline justify-between text-sm text-white/80">
+                <span>
+                  أكملت {progress.completedCount} من {progress.totalCount}
+                </span>
+                <span>{progress.percent}%</span>
+              </div>
+              <div
+                role="progressbar"
+                aria-label="نسبة إكمال المسار"
+                aria-valuenow={progress.percent}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                className="mt-2 h-2 overflow-hidden rounded-full bg-white/20"
+              >
+                <div className="h-full rounded-full bg-highlighter" style={{ width: `${progress.percent}%` }} />
+              </div>
+              {progress.nextLesson ? (
+                <Link
+                  href={lessonHref(progress.nextLesson.id)}
+                  className="mt-5 inline-block rounded-lg bg-highlighter px-5 py-2.5 font-medium text-ink transition-opacity hover:opacity-90"
+                >
+                  {progress.completedCount === 0 ? 'ابدأ المسار' : 'تابع من حيث توقفت'}
+                </Link>
+              ) : (
+                <p className="mt-5 font-medium text-highlighter">أكملت هذا المسار 🎉</p>
+              )}
+            </div>
+          ) : null}
         </div>
       </section>
 
@@ -63,12 +100,14 @@ export default async function PathPage({ params }: { params: Promise<{ pathId: s
                 {module.lessons.map((lesson) => (
                   <li key={lesson.id} className="grid gap-1 p-4 md:grid-cols-[1fr_auto] md:gap-6">
                     <div>
-                      <Link
-                        href={`/paths/${path.id}/lessons/${lesson.id}`}
-                        className="font-medium text-ink hover:underline"
-                      >
+                      <Link href={lessonHref(lesson.id)} className="font-medium text-ink hover:underline">
                         {lesson.title}
                       </Link>
+                      {progress?.completedLessonIds.has(lesson.id) ? (
+                        <span className="ms-2 rounded-full bg-sea/10 px-2 py-0.5 text-xs font-medium text-sea-dark">
+                          ✓ مكتمل
+                        </span>
+                      ) : null}
                       {lesson.summary ? <p className="mt-1 text-sm text-muted">{lesson.summary}</p> : null}
                       <p className="mt-2 text-sm text-muted">
                         المصدر:{' '}
