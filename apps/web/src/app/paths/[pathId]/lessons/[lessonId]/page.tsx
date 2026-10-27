@@ -5,7 +5,7 @@
 import { createLessonId, createPathId } from '@qalam/domain';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import { completeLessonAction } from './actions';
+import { completeLessonAction, submitQuizAction } from './actions';
 import { formatDuration } from '../../../../../components/format';
 import { YouTubePlayer } from '../../../../../components/youtube-player';
 import { getAuth } from '../../../../../composition/auth';
@@ -26,7 +26,7 @@ export default async function LessonPage({
     redirect(`/login?next=${encodeURIComponent(`/paths/${pathId}/lessons/${lessonId}`)}`);
   }
 
-  const { getLesson, getPathProgress, recordLearningEvent } = await getContainer();
+  const { getLesson, getLessonQuiz, getPathProgress, recordLearningEvent } = await getContainer();
 
   const result = await getLesson
     .execute({ pathId: createPathId(pathId), lessonId: createLessonId(lessonId) })
@@ -41,6 +41,7 @@ export default async function LessonPage({
   });
   const progress = await getPathProgress.execute({ userId: user.id, pathId: createPathId(pathId) });
   const alreadyCompleted = progress.completedLessonIds.has(lessonId);
+  const quiz = await getLessonQuiz.execute({ lessonId });
   const lessonHref = (id: string) => `/paths/${pathId}/lessons/${id}`;
 
   return (
@@ -72,6 +73,40 @@ export default async function LessonPage({
         <section className="mt-8 max-w-[40rem]">
           <h2 className="font-display text-lg font-semibold text-ink">ما ستخرج به</h2>
           <p className="mt-2 text-muted">{lesson.summary}</p>
+        </section>
+      ) : null}
+
+      {quiz.length > 0 ? (
+        <section className="mt-10 max-w-[40rem]" aria-labelledby="quiz-title">
+          <h2 id="quiz-title" className="font-display text-xl font-semibold text-ink">
+            اختبر فهمك
+          </h2>
+          <p className="mt-1 text-sm text-muted">عدد الأسئلة: {quiz.length}. اختر إجابة واحدة لكل سؤال.</p>
+          <form action={submitQuizAction} className="mt-5 space-y-6">
+            <input type="hidden" name="pathId" value={pathId} />
+            <input type="hidden" name="lessonId" value={lessonId} />
+            {quiz.map((question, index) => (
+              <fieldset key={question.id} className="rounded-lg border border-rule bg-sheet p-4">
+                <legend className="px-1 font-medium text-ink">
+                  {index + 1}. {question.prompt}
+                </legend>
+                <div className="mt-2 space-y-2">
+                  {question.choices.map((choice, i) => (
+                    <label key={i} className="flex cursor-pointer items-start gap-3 rounded-md p-2 hover:bg-paper">
+                      <input type="radio" name={`q_${question.id}`} value={i} required className="mt-1.5" />
+                      <span>{choice}</span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+            ))}
+            <button
+              type="submit"
+              className="rounded-lg bg-sea px-6 py-3 font-medium text-white transition-colors hover:bg-sea-dark"
+            >
+              تسليم الإجابات
+            </button>
+          </form>
         </section>
       ) : null}
 

@@ -20,6 +20,13 @@ export * from './use-cases/record-learning-event.usecase.js';
 export * from './ports/event-reader.port.js';
 export * from './use-cases/get-path-progress.usecase.js';
 
+// الاختبارات القصيرة والذكاء الاصطناعي
+export * from './ports/llm-client.port.js';
+export * from './ports/question-repository.port.js';
+export * from './use-cases/admin/generated-questions.js';
+export * from './use-cases/admin/admin-quiz.usecases.js';
+export * from './use-cases/learner-quiz.usecases.js';
+
 // لوحة التحكم الإدارية
 export * from './errors.js';
 export * from './ports/concept-repository.port.js';

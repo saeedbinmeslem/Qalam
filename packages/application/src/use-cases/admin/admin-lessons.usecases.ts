@@ -31,6 +31,8 @@ export interface LessonFields {
   channelName: string;
   language: string;
   summary: string;
+  /** ملاحظات المالك عن المحتوى (أساس توليد الأسئلة؛ لا تُعرض للمتعلم) */
+  notes?: string;
 }
 
 async function buildLessonChanges(deps: AdminDeps, fields: LessonFields) {
@@ -50,6 +52,7 @@ async function buildLessonChanges(deps: AdminDeps, fields: LessonFields) {
     channelName: fields.channelName,
     language: fields.language,
     summary: fields.summary.trim() === '' ? undefined : fields.summary,
+    notes: fields.notes?.trim() ? fields.notes : undefined,
   };
 }
 

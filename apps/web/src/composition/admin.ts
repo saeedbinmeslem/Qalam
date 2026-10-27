@@ -8,7 +8,14 @@
 import {
   AddLessonUseCase,
   AddModuleUseCase,
+  AddQuestionUseCase,
+  ApproveQuestionUseCase,
   CheckAdminUseCase,
+  DeleteQuestionUseCase,
+  GenerateQuestionsUseCase,
+  ListLessonQuestionsUseCase,
+  UpdateQuestionUseCase,
+  type QuizAdminDeps,
   CreateConceptUseCase,
   CreatePathUseCase,
   DeleteConceptUseCase,
@@ -25,18 +32,19 @@ import {
   UpdateLessonUseCase,
   UpdateModuleUseCase,
   UpdatePathUseCase,
-  type AdminDeps,
   type AuthUser,
 } from '@qalam/application';
 import { AdminPolicy } from '@qalam/domain';
 import {
   SupabaseConceptRepository,
   SupabasePathRepository,
-  createSupabaseServiceClient,
+  SupabaseQuestionRepository,
   randomIdGenerator,
 } from '@qalam/infrastructure';
 import { getAuth, isSupabaseConfigured } from './auth';
 import { getLocalStore } from './container';
+import { getLlmClient } from './llm';
+import { getServiceClient } from './service-client';
 
 function buildPolicy(): AdminPolicy {
   return AdminPolicy.fromList(process.env.ADMIN_EMAILS);
@@ -47,21 +55,29 @@ export function isAdminUser(user: AuthUser | null): boolean {
   return user !== null && buildPolicy().isAdmin(user.email);
 }
 
-async function buildDeps(): Promise<AdminDeps> {
+async function buildDeps(): Promise<QuizAdminDeps> {
   const policy = buildPolicy();
+  const llm = getLlmClient();
   if (isSupabaseConfigured()) {
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!key) throw new Error('لوحة التحكم تحتاج SUPABASE_SERVICE_ROLE_KEY في إعدادات الخادم');
-    const client = createSupabaseServiceClient(process.env.NEXT_PUBLIC_SUPABASE_URL as string, key);
+    const client = getServiceClient();
     return {
       paths: new SupabasePathRepository(client),
       concepts: new SupabaseConceptRepository(client),
+      questions: new SupabaseQuestionRepository(client),
       ids: randomIdGenerator,
       policy,
+      llm,
     };
   }
   const local = await getLocalStore();
-  return { paths: local.paths, concepts: local.concepts, ids: randomIdGenerator, policy };
+  return {
+    paths: local.paths,
+    concepts: local.concepts,
+    questions: local.questions,
+    ids: randomIdGenerator,
+    policy,
+    llm,
+  };
 }
 
 export interface AdminContainer {
@@ -86,6 +102,12 @@ export interface AdminContainer {
   createConcept: CreateConceptUseCase;
   updateConcept: UpdateConceptUseCase;
   deleteConcept: DeleteConceptUseCase;
+  addQuestion: AddQuestionUseCase;
+  generateQuestions: GenerateQuestionsUseCase;
+  listLessonQuestions: ListLessonQuestionsUseCase;
+  approveQuestion: ApproveQuestionUseCase;
+  updateQuestion: UpdateQuestionUseCase;
+  deleteQuestion: DeleteQuestionUseCase;
 }
 
 export async function getAdminContainer(): Promise<AdminContainer> {
@@ -112,5 +134,11 @@ export async function getAdminContainer(): Promise<AdminContainer> {
     createConcept: new CreateConceptUseCase(deps),
     updateConcept: new UpdateConceptUseCase(deps),
     deleteConcept: new DeleteConceptUseCase(deps),
+    addQuestion: new AddQuestionUseCase(deps),
+    generateQuestions: new GenerateQuestionsUseCase(deps),
+    listLessonQuestions: new ListLessonQuestionsUseCase(deps),
+    approveQuestion: new ApproveQuestionUseCase(deps),
+    updateQuestion: new UpdateQuestionUseCase(deps),
+    deleteQuestion: new DeleteQuestionUseCase(deps),
   };
 }

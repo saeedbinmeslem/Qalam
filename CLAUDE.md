@@ -62,7 +62,7 @@ tests/                       # end-to-end
 ## حالة التنفيذ (حدّثها عند كل إنجاز؛ التفاصيل في @docs/IMPLEMENTATION_LOG.md)
 
 ### المنجز (المرحلة 0، تقريبًا 90%)
-- Monorepo (npm workspaces) + TypeScript + ESLint يفرض قواعد Clean Architecture + Vitest + CI. الاختبارات: 76 ناجحة.
+- Monorepo (npm workspaces) + TypeScript + ESLint يفرض قواعد Clean Architecture + Vitest + CI. الاختبارات: 95 ناجحة.
 - Domain: Concept, Lesson, Module, LearningPath (مع مدة المسار), Learner, VideoSegment, MasteryState, Email, LearningEvent، وقواعد التكيّف الأولية.
 - Application: ports (PathRepository, LearnerRepository, Auth, EventRecorder, Clock) + use cases (GetLearningPath, ListLearningPaths, GetLesson, RequestSignIn/GetCurrentUser/SignOut, RecordLearningEvent).
 - Infrastructure: مستودعات الذاكرة، SupabasePathRepository، محوّلات المصادقة (SupabaseAuth + DevCookieAuth للتطوير)، مسجّلات الأحداث، هجرتا SQL (001 و002)، بذرة مسار.
@@ -71,12 +71,12 @@ tests/                       # end-to-end
 
 ### المتبقي من المرحلة 0
 - **0.8 بذرة المحتوى (أُنجزت تقنيًا):** مسار «أساسيات الحاسوب للمبرمج» (13 درسًا من قائمة Programming Advices) يحل محل بذرة C++. كل الدروس `reviewedByHuman: false` بانتظار مراجعة المالك؛ المقاطع هي الفيديو كاملًا ويضيّقها المالك لاحقًا. لا تختلق معرّفات فيديو ولا تضع `true` قبل موافقته.
-- **لوحة التحكم الإدارية (أُنجزت، قبل المرحلة 1 بقرار المالك):** `/admin` لإدارة المسارات والوحدات والدروس والمفاهيم ووسم «مراجعة بشرية». الصلاحية بـ `ADMIN_EMAILS` وتُفحص داخل كل use case. لم تُجرَّب على Supabase حقيقي (انظر IMPLEMENTATION_LOG). الاختبارات: 76 ناجحة.
+- **لوحة التحكم الإدارية (أُنجزت، قبل المرحلة 1 بقرار المالك):** `/admin` لإدارة المسارات والوحدات والدروس والمفاهيم ووسم «مراجعة بشرية». الصلاحية بـ `ADMIN_EMAILS` وتُفحص داخل كل use case. لم تُجرَّب على Supabase حقيقي (انظر IMPLEMENTATION_LOG). الاختبارات: 95 ناجحة.
 - تجربة Supabase حقيقي: ضبط `apps/web/.env.local` (انظر `.env.example`، ومنه `ADMIN_EMAILS` و`SUPABASE_SERVICE_ROLE_KEY`)، تشغيل الهجرتين، وبذر المفاهيم والمسار بمفتاح الخدمة (سكربت البذر لم يُكتب بعد؛ جدول `concepts` يجب أن يُملأ قبل الدروس). محوّلات Supabase اختُبرت بعميل وهمي فقط.
 - Composition Root للـ Supabase يحوّل العميل بـ cast؛ راجعه عند أول تجربة حقيقية.
 
 ### القادم
-- المرحلة 1: **أُنجز تتبع الإكمال في الواجهة** (شريط تقدم، علامات إكمال، زر المتابعة). المتبقي: ملخصات مولّدة، اختبارات قصيرة، الاختبار التشخيصي. **قرار معلّق للمالك:** لا نفترض توفر النص المفرّغ، فالأسئلة والملخصات المولّدة بلا نص مصدر تخاطر بالهلوسة. الخيارات: (أ) يكتبها المالك من اللوحة، (ب) يقترحها Claude من ملاحظات يكتبها المالك عن كل درس ثم يراجعها، (ج) من النص المفرّغ حيث يتوفر بصورة مشروعة. يلزم أيضًا مفتاح Claude API.
+- المرحلة 1: **أُنجز تتبع الإكمال في الواجهة** (شريط تقدم، علامات إكمال، زر المتابعة). **أُنجزت الاختبارات القصيرة بالذكاء الاصطناعي** (قرار المالك): Claude يولّد مسودات من «ملاحظات المالك» عن الدرس فقط (لا نص مفرّغ)، والمالك يعتمد كل سؤال قبل أن يراه المتعلم؛ يلزم `ANTHROPIC_API_KEY` ولم يُجرَّب استدعاء Claude الحقيقي بعد. المتبقي: الاختبار التشخيصي، الملخصات المولّدة، عرض نتائج الاختبارات في التقدم.
 - المرحلة 2: محرر Monaco + خدمة `services/evaluator` (C++، isolate/Docker). قرار مطلوب: لغات المحرّك، لأن المسار الأول بايثون، فيلزم دعم Python لا C++ فقط.
 - المرحلة 3: الوكيل (`packages/application/src/agent`)، التكيّف، المراجعة المتباعدة، وخدمات C++ الأخرى (كل واحدة تحتاج `docs/<service>-contract.md` قبل التنفيذ).
 - المرحلتان 4 و5: التذكيرات (Resend)، التقارير، تجربة الأثر مع 20–30 متعلمًا.

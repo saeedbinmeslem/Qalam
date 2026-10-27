@@ -47,6 +47,7 @@ export interface LessonRow {
   language: string | null;
   summary: string | null;
   reviewed_by_human: boolean | null;
+  notes?: string | null;
   order_index: number;
 }
 
@@ -107,6 +108,7 @@ export function mapPathRow(row: PathRow): LearningPath {
           language: l.language ?? 'ar',
           summary: l.summary ?? undefined,
           reviewedByHuman: l.reviewed_by_human ?? false,
+          notes: l.notes ?? undefined,
         }),
       );
     }
@@ -155,6 +157,7 @@ export class SupabasePathRepository implements PathRepositoryPort {
           language: l.language,
           summary: l.summary ?? null,
           reviewed_by_human: l.reviewedByHuman,
+          notes: l.notes ?? null,
           order_index: index + 1,
         })),
       ),

@@ -48,6 +48,7 @@ const lessonFields = (data: FormData) => ({
   channelName: text(data, 'channelName'),
   language: text(data, 'language'),
   summary: text(data, 'summary'),
+  notes: text(data, 'notes'),
 });
 
 const conceptFields = (data: FormData) => ({
@@ -194,6 +195,68 @@ export async function setLessonReviewAction(data: FormData): Promise<void> {
       lessonId,
       reviewed: text(data, 'reviewed') === 'true',
     }),
+  );
+}
+
+// ───── أسئلة الاختبارات ─────
+
+const lessonPage = (pathId: string, lessonId: string) => `${pathPage(pathId)}/lessons/${lessonId}`;
+
+export async function generateQuestionsAction(data: FormData): Promise<void> {
+  const pathId = text(data, 'pathId');
+  const lessonId = text(data, 'lessonId');
+  await run(lessonPage(pathId, lessonId), async (admin) => {
+    await admin.generateQuestions.execute({
+      actor: admin.actor,
+      pathId,
+      lessonId,
+      count: Number(text(data, 'count')) || 3,
+    });
+  });
+}
+
+export async function addQuestionAction(data: FormData): Promise<void> {
+  const pathId = text(data, 'pathId');
+  const lessonId = text(data, 'lessonId');
+  await run(lessonPage(pathId, lessonId), async (admin) => {
+    const choices = data.getAll('choice').map(String);
+    const correct = Number(text(data, 'correctIndex'));
+    // الخيارات الفارغة تُحذف، فيُعاد حساب رقم الصحيحة ليبقى مشيرًا لنفس الخيار
+    const kept = choices.map((c, i) => ({ c: c.trim(), i })).filter((x) => x.c !== '');
+    await admin.addQuestion.execute({
+      actor: admin.actor,
+      pathId,
+      lessonId,
+      prompt: text(data, 'prompt'),
+      choices: kept.map((x) => x.c),
+      correctIndex: kept.findIndex((x) => x.i === correct),
+      explanation: text(data, 'explanation'),
+    });
+  });
+}
+
+export async function approveQuestionAction(data: FormData): Promise<void> {
+  await run(lessonPage(text(data, 'pathId'), text(data, 'lessonId')), (admin) =>
+    admin.approveQuestion.execute({ actor: admin.actor, questionId: text(data, 'questionId') }),
+  );
+}
+
+export async function updateQuestionAction(data: FormData): Promise<void> {
+  await run(lessonPage(text(data, 'pathId'), text(data, 'lessonId')), (admin) =>
+    admin.updateQuestion.execute({
+      actor: admin.actor,
+      questionId: text(data, 'questionId'),
+      prompt: text(data, 'prompt'),
+      choices: data.getAll('choice').map(String).filter((c) => c.trim() !== ''),
+      correctIndex: Number(text(data, 'correctIndex')),
+      explanation: text(data, 'explanation'),
+    }),
+  );
+}
+
+export async function deleteQuestionAction(data: FormData): Promise<void> {
+  await run(lessonPage(text(data, 'pathId'), text(data, 'lessonId')), (admin) =>
+    admin.deleteQuestion.execute({ actor: admin.actor, questionId: text(data, 'questionId') }),
   );
 }
 

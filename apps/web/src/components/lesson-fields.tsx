@@ -14,6 +14,7 @@ export interface LessonDefaults {
   channelName?: string;
   language?: string;
   summary?: string;
+  notes?: string;
 }
 
 export function LessonFields({
@@ -73,6 +74,15 @@ export function LessonFields({
       </div>
       <div className="md:col-span-2">
         <Field label="ملخص قصير" name="summary" defaultValue={defaults.summary} rows={3} />
+      </div>
+      <div className="md:col-span-2">
+        <Field
+          label="ملاحظاتك عن محتوى الدرس (لا تظهر للمتعلم)"
+          name="notes"
+          defaultValue={defaults.notes}
+          rows={6}
+          hint="اكتب النقاط والتعريفات التي شرحها الفيديو. هذه المصدر الوحيد الذي يبني عليه الذكاء الاصطناعي أسئلة الاختبار، فكلما كانت أدق كانت الأسئلة أصح."
+        />
       </div>
     </div>
   );

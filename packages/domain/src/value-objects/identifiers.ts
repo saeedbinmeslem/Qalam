@@ -63,6 +63,16 @@ export function createLearnerId(id: string): LearnerId {
   return id as LearnerId;
 }
 
+/** معرّف سؤال الاختبار */
+export type QuestionId = Brand<string, 'QuestionId'>;
+
+export function createQuestionId(id: string): QuestionId {
+  if (!id || id.trim().length === 0) {
+    throw new Error('معرّف السؤال لا يمكن أن يكون فارغاً');
+  }
+  return id as QuestionId;
+}
+
 /** معرّف التمرين */
 export type ExerciseId = Brand<string, 'ExerciseId'>;
 

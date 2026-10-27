@@ -17,3 +17,6 @@ export * from './persistence/in-memory-concept.repository.js';
 export * from './persistence/supabase-concept.repository.js';
 export * from './persistence/random-id-generator.js';
 export * from './persistence/supabase-service-client.js';
+export * from './persistence/in-memory-question.repository.js';
+export * from './persistence/supabase-question.repository.js';
+export * from './llm/anthropic-llm-client.js';

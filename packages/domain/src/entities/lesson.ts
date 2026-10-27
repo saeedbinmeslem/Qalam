@@ -27,6 +27,11 @@ export interface LessonProps {
   summary?: string;
   /** هل تمت مراجعة الدرس واعتماده بشرياً لضمان الجودة؟ */
   reviewedByHuman?: boolean;
+  /**
+   * ملاحظات المالك عن محتوى الدرس (لا تُعرض للمتعلم). هي المصدر الوحيد الذي يُبنى عليه توليد
+   * الأسئلة بالذكاء الاصطناعي، لأننا لا نفترض توفر النص المفرّغ للفيديو.
+   */
+  notes?: string;
 }
 
 export class Lesson {
@@ -39,6 +44,7 @@ export class Lesson {
   readonly language: string;
   readonly summary?: string;
   readonly reviewedByHuman: boolean;
+  readonly notes?: string;
 
   constructor(props: LessonProps) {
     if (!props.title || props.title.trim().length === 0) {
@@ -62,6 +68,8 @@ export class Lesson {
     this.language = props.language ?? 'ar';
     this.summary = props.summary?.trim();
     this.reviewedByHuman = props.reviewedByHuman ?? false;
+    const notes = props.notes?.trim();
+    if (notes) this.notes = notes;
   }
 
   /** نسخة جديدة بالتعديلات (الكيان غير قابل للتعديل). المعرّف لا يتغيّر. */
@@ -76,6 +84,7 @@ export class Lesson {
       language: this.language,
       summary: this.summary,
       reviewedByHuman: this.reviewedByHuman,
+      notes: this.notes,
       ...changes,
     });
   }
