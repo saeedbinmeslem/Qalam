@@ -3,8 +3,7 @@
  * @description Composition Root للوحة التحكم: يربط use cases الإدارية بالمستودعات.
  * - مع Supabase: عميل بمفتاح الخدمة (SUPABASE_SERVICE_ROLE_KEY) للكتابة، ويبقى على الخادم فقط.
  * - بدونه: نفس مخزن الذاكرة الذي تقرأ منه الصفحات العامة.
- * - المديرون: ADMIN_EMAILS (قائمة بريد مفصولة بفواصل). في التطوير المحلي بلا Supabase وبلا قائمة،
- *   يُعامل أي مستخدم مسجَّل كمدير لتسهيل التجربة، ولا يصح هذا أبدًا في الإنتاج.
+ * - المديرون: ADMIN_EMAILS (قائمة بريد مفصولة بفواصل) في كل البيئات؛ بدونها لا يدخل أحد.
  */
 import {
   AddLessonUseCase,
@@ -40,9 +39,7 @@ import { getAuth, isSupabaseConfigured } from './auth';
 import { getLocalStore } from './container';
 
 function buildPolicy(): AdminPolicy {
-  const list = process.env.ADMIN_EMAILS;
-  const devOpen = process.env.NODE_ENV !== 'production' && !isSupabaseConfigured() && !list?.trim();
-  return AdminPolicy.fromList(list, devOpen);
+  return AdminPolicy.fromList(process.env.ADMIN_EMAILS);
 }
 
 /** فحص خفيف لإظهار رابط اللوحة في الترويسة (لا يبني مستودعات ولا يحتاج مفتاح الخدمة) */

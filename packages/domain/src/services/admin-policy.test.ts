@@ -9,13 +9,16 @@ describe('AdminPolicy (سياسة المديرين)', () => {
     expect(policy.isAdmin('other@x.com')).toBe(false);
   });
 
-  it('يرفض الجميع عند غياب القائمة، ويرفض الزائر دائمًا', () => {
+  it('يرفض الجميع عند غياب القائمة', () => {
     expect(AdminPolicy.fromList(undefined).isAdmin('a@x.com')).toBe(false);
     expect(AdminPolicy.fromList('').isAdmin('a@x.com')).toBe(false);
-    expect(AdminPolicy.fromList('a@x.com', true).isAdmin(null)).toBe(false);
+    expect(AdminPolicy.fromList(' , ,').isAdmin('a@x.com')).toBe(false);
   });
 
-  it('وضع التطوير يسمح لأي مستخدم مسجَّل', () => {
-    expect(AdminPolicy.fromList(undefined, true).isAdmin('anyone@x.com')).toBe(true);
+  it('يرفض الزائر (بلا بريد) دائمًا', () => {
+    const policy = AdminPolicy.fromList('a@x.com');
+    expect(policy.isAdmin(null)).toBe(false);
+    expect(policy.isAdmin(undefined)).toBe(false);
+    expect(policy.isAdmin('')).toBe(false);
   });
 });
