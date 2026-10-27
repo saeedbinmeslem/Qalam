@@ -58,7 +58,7 @@ tests/                       # end-to-end
 ## حالة التنفيذ (حدّثها عند كل إنجاز؛ التفاصيل في @docs/IMPLEMENTATION_LOG.md)
 
 ### المنجز (المرحلة 0، تقريبًا 90%)
-- Monorepo (npm workspaces) + TypeScript + ESLint يفرض قواعد Clean Architecture + Vitest + CI. الاختبارات: 65 ناجحة.
+- Monorepo (npm workspaces) + TypeScript + ESLint يفرض قواعد Clean Architecture + Vitest + CI. الاختبارات: 76 ناجحة.
 - Domain: Concept, Lesson, Module, LearningPath (مع مدة المسار), Learner, VideoSegment, MasteryState, Email, LearningEvent، وقواعد التكيّف الأولية.
 - Application: ports (PathRepository, LearnerRepository, Auth, EventRecorder, Clock) + use cases (GetLearningPath, ListLearningPaths, GetLesson, RequestSignIn/GetCurrentUser/SignOut, RecordLearningEvent).
 - Infrastructure: مستودعات الذاكرة، SupabasePathRepository، محوّلات المصادقة (SupabaseAuth + DevCookieAuth للتطوير)، مسجّلات الأحداث، هجرتا SQL (001 و002)، بذرة مسار.
@@ -67,7 +67,7 @@ tests/                       # end-to-end
 
 ### المتبقي من المرحلة 0
 - **0.8 بذرة المحتوى (أُنجزت تقنيًا):** مسار «أساسيات الحاسوب للمبرمج» (13 درسًا من قائمة Programming Advices) يحل محل بذرة C++. كل الدروس `reviewedByHuman: false` بانتظار مراجعة المالك؛ المقاطع هي الفيديو كاملًا ويضيّقها المالك لاحقًا. لا تختلق معرّفات فيديو ولا تضع `true` قبل موافقته.
-- **لوحة التحكم الإدارية (أُنجزت، قبل المرحلة 1 بقرار المالك):** `/admin` لإدارة المسارات والوحدات والدروس والمفاهيم ووسم «مراجعة بشرية». الصلاحية بـ `ADMIN_EMAILS` وتُفحص داخل كل use case. لم تُجرَّب على Supabase حقيقي (انظر IMPLEMENTATION_LOG). الاختبارات: 65 ناجحة.
+- **لوحة التحكم الإدارية (أُنجزت، قبل المرحلة 1 بقرار المالك):** `/admin` لإدارة المسارات والوحدات والدروس والمفاهيم ووسم «مراجعة بشرية». الصلاحية بـ `ADMIN_EMAILS` وتُفحص داخل كل use case. لم تُجرَّب على Supabase حقيقي (انظر IMPLEMENTATION_LOG). الاختبارات: 76 ناجحة.
 - تجربة Supabase حقيقي: ضبط `apps/web/.env.local` (انظر `.env.example`، ومنه `ADMIN_EMAILS` و`SUPABASE_SERVICE_ROLE_KEY`)، تشغيل الهجرتين، وبذر المفاهيم والمسار بمفتاح الخدمة (سكربت البذر لم يُكتب بعد؛ جدول `concepts` يجب أن يُملأ قبل الدروس). محوّلات Supabase اختُبرت بعميل وهمي فقط.
 - Composition Root للـ Supabase يحوّل العميل بـ cast؛ راجعه عند أول تجربة حقيقية.
 
