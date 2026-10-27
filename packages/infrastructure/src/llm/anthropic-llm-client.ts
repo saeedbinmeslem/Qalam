@@ -81,6 +81,8 @@ export function createAnthropicLlmClient(apiKey: string, model?: string): Anthro
 /** عند غياب المفتاح: يفشل بوضوح بدل أخطاء غامضة، فتعمل بقية المنصة بلا Claude */
 export const unconfiguredLlmClient: LlmClient = {
   generateJson: async () => {
-    throw new Error('ميزة الذكاء الاصطناعي غير مفعّلة: اضبط ANTHROPIC_API_KEY في إعدادات الخادم');
+    throw new Error(
+      'ميزة الذكاء الاصطناعي غير مفعّلة: اضبط GEMINI_API_KEY (مفتاح مجاني من aistudio.google.com/apikey) أو ANTHROPIC_API_KEY في إعدادات الخادم',
+    );
   },
 };

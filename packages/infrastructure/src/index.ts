@@ -20,3 +20,4 @@ export * from './persistence/supabase-service-client.js';
 export * from './persistence/in-memory-question.repository.js';
 export * from './persistence/supabase-question.repository.js';
 export * from './llm/anthropic-llm-client.js';
+export * from './llm/gemini-llm-client.js';
