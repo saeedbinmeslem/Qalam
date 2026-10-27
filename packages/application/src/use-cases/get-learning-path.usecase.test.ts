@@ -20,6 +20,8 @@ import { GetLearningPathUseCase } from './get-learning-path.usecase.js';
 class InMemoryPathRepository implements PathRepositoryPort {
   private paths = new Map<string, LearningPath>();
 
+  async delete(): Promise<void> {}
+
   async save(path: LearningPath): Promise<void> {
     this.paths.set(path.id, path);
   }

@@ -1,0 +1,41 @@
+/**
+ * @file youtube-player.tsx
+ * @description مشغّل يوتيوب المضمّن للمقطع المحدد فقط (start/end). لا نسخ ولا إعادة استضافة:
+ * الفيديو يُعرض عبر المشغّل الرسمي، مع اسم القناة ورابط المصدر ظاهرين دائمًا.
+ */
+interface YouTubePlayerProps {
+  /** رابط التضمين الجاهز من Domain (VideoSegment.toEmbedUrl) */
+  embedUrl: string;
+  title: string;
+  channelName: string;
+  sourceUrl: string;
+}
+
+export function YouTubePlayer({ embedUrl, title, channelName, sourceUrl }: YouTubePlayerProps) {
+  return (
+    <figure>
+      <div className="aspect-video overflow-hidden rounded-lg bg-ink">
+        <iframe
+          src={embedUrl}
+          title={title}
+          className="h-full w-full"
+          loading="lazy"
+          allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+          allowFullScreen
+          referrerPolicy="strict-origin-when-cross-origin"
+        />
+      </div>
+      <figcaption className="mt-3 text-sm text-muted">
+        القناة: <span className="font-medium text-ink">{channelName}</span> ·{' '}
+        <a
+          href={sourceUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-sea underline underline-offset-2 hover:text-sea-dark"
+        >
+          شاهد الفيديو الأصلي على يوتيوب
+        </a>
+      </figcaption>
+    </figure>
+  );
+}

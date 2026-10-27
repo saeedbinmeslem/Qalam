@@ -12,13 +12,17 @@ describe('InMemoryPathRepository & SeedData (المستودع وبيانات ا�
     const retrieved = await repo.findById(path.id);
 
     expect(retrieved).not.toBeNull();
-    expect(retrieved?.title).toContain('أساسيات البرمجة');
-    expect(retrieved?.modules.length).toBe(2);
-    expect(retrieved?.totalLessonsCount).toBe(4);
-    expect(concepts.length).toBe(5);
+    expect(retrieved?.title).toContain('أساسيات الحاسوب');
+    expect(retrieved?.modules.length).toBe(3);
+    expect(retrieved?.totalLessonsCount).toBe(13);
+    expect(concepts.length).toBe(10);
+
+    // لا درس يُعتبر مراجَعًا قبل موافقة المالك
+    const lessons = retrieved?.modules.flatMap((m) => m.lessons) ?? [];
+    expect(lessons.every((l) => !l.reviewedByHuman)).toBe(true);
 
     // التحقق من المتطلبات السابقة
-    const loopsConcept = concepts.find((c) => c.name.includes('حلقات التكرار'));
-    expect(loopsConcept?.prerequisiteIds.length).toBeGreaterThan(0);
+    const compiler = concepts.find((c) => c.name.includes('الكومبايلر'));
+    expect(compiler?.prerequisiteIds.length).toBeGreaterThan(0);
   });
 });

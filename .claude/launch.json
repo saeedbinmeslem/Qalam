@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "start", "-w", "@qalam/web", "--", "-p", "3111"],
+      "port": 3111
+    },
+    {
+      "name": "web-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "-w", "@qalam/web", "--", "-p", "3112"],
+      "port": 3112
+    }
+  ]
+}

@@ -52,4 +52,17 @@ export class Concept {
   hasPrerequisite(prerequisiteId: ConceptId): boolean {
     return this.prerequisiteIds.includes(prerequisiteId);
   }
+
+  /** نسخة جديدة بالتعديلات (المعرّف وتاريخ الإنشاء ثابتان) */
+  update(changes: Partial<Omit<ConceptProps, 'id' | 'createdAt'>>): Concept {
+    return new Concept({
+      id: this.id,
+      name: this.name,
+      description: this.description,
+      level: this.level,
+      prerequisiteIds: [...this.prerequisiteIds],
+      createdAt: this.createdAt,
+      ...changes,
+    });
+  }
 }

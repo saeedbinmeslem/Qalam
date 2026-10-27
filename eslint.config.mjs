@@ -13,7 +13,7 @@ export default tseslint.config(
 
   // تجاهل مجلدات البناء والتبعيات
   {
-    ignores: ['**/dist/**', '**/node_modules/**', '**/.next/**', 'coverage/**'],
+    ignores: ['**/dist/**', '**/node_modules/**', '**/.next/**', '**/next-env.d.ts', 'coverage/**'],
   },
 
   // إعدادات عامة لجميع ملفات TypeScript

@@ -15,6 +15,11 @@ export interface PathRepositoryPort {
   save(path: LearningPath): Promise<void>;
 
   /**
+   * حذف مسار مع وحداته ودروسه (لا يخطئ إن لم يوجد)
+   */
+  delete(id: PathId): Promise<void>;
+
+  /**
    * البحث عن مسار بواسطة معرّفه الفريد
    */
   findById(id: PathId): Promise<LearningPath | null>;

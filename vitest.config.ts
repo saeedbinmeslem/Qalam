@@ -7,7 +7,7 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     // البحث عن ملفات الاختبار في جميع الحزم
-    include: ['packages/*/src/**/*.test.ts'],
+    include: ['packages/*/src/**/*.test.ts', 'apps/web/src/**/*.test.ts'],
 
     // بيئة التشغيل: Node.js
     environment: 'node',

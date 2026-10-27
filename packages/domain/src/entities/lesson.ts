@@ -63,4 +63,20 @@ export class Lesson {
     this.summary = props.summary?.trim();
     this.reviewedByHuman = props.reviewedByHuman ?? false;
   }
+
+  /** نسخة جديدة بالتعديلات (الكيان غير قابل للتعديل). المعرّف لا يتغيّر. */
+  update(changes: Partial<Omit<LessonProps, 'id'>>): Lesson {
+    return new Lesson({
+      id: this.id,
+      title: this.title,
+      conceptId: this.conceptId,
+      segment: this.segment,
+      sourceUrl: this.sourceUrl,
+      channelName: this.channelName,
+      language: this.language,
+      summary: this.summary,
+      reviewedByHuman: this.reviewedByHuman,
+      ...changes,
+    });
+  }
 }

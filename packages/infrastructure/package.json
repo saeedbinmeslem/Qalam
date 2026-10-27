@@ -15,9 +15,13 @@
     "build": "tsc --build",
     "clean": "tsc --build --clean && rimraf dist"
   },
-  "files": ["dist", "src"],
+  "files": [
+    "dist",
+    "src"
+  ],
   "dependencies": {
+    "@qalam/application": "*",
     "@qalam/domain": "*",
-    "@qalam/application": "*"
+    "@supabase/supabase-js": "^2.118.0"
   }
 }

@@ -15,6 +15,10 @@ export class InMemoryPathRepository implements PathRepositoryPort {
     this.paths.set(path.id, path);
   }
 
+  async delete(id: PathId): Promise<void> {
+    this.paths.delete(id);
+  }
+
   async findById(id: PathId): Promise<LearningPath | null> {
     return this.paths.get(id) ?? null;
   }
