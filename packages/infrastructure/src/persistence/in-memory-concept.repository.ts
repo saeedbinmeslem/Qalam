@@ -9,8 +9,16 @@ import type { ConceptRepositoryPort } from '@qalam/application';
 export class InMemoryConceptRepository implements ConceptRepositoryPort {
   private readonly concepts = new Map<string, Concept>();
 
+  constructor(private readonly onChange?: () => void) {}
+
   async save(concept: Concept): Promise<void> {
     this.concepts.set(concept.id, concept);
+    this.onChange?.();
+  }
+
+  /** نسخة متزامنة من كل المفاهيم (للّقطة المحلية) */
+  list(): Concept[] {
+    return [...this.concepts.values()];
   }
 
   async findById(id: ConceptId): Promise<Concept | null> {
@@ -23,5 +31,6 @@ export class InMemoryConceptRepository implements ConceptRepositoryPort {
 
   async delete(id: ConceptId): Promise<void> {
     this.concepts.delete(id);
+    this.onChange?.();
   }
 }

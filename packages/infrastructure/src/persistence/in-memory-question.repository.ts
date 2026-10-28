@@ -9,8 +9,16 @@ import type { LessonId, QuestionId, QuizQuestion } from '@qalam/domain';
 export class InMemoryQuestionRepository implements QuestionRepositoryPort {
   private readonly questions = new Map<string, QuizQuestion>();
 
+  constructor(private readonly onChange?: () => void) {}
+
   async save(question: QuizQuestion): Promise<void> {
     this.questions.set(question.id, question);
+    this.onChange?.();
+  }
+
+  /** نسخة متزامنة من كل الأسئلة (للّقطة المحلية) */
+  list(): QuizQuestion[] {
+    return [...this.questions.values()];
   }
 
   async findById(id: QuestionId): Promise<QuizQuestion | null> {
@@ -23,5 +31,6 @@ export class InMemoryQuestionRepository implements QuestionRepositoryPort {
 
   async delete(id: QuestionId): Promise<void> {
     this.questions.delete(id);
+    this.onChange?.();
   }
 }

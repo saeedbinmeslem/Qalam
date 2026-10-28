@@ -23,6 +23,7 @@ import {
   addQuestionAction,
   approveQuestionAction,
   deleteQuestionAction,
+  draftNotesAction,
   generateQuestionsAction,
   setLessonReviewAction,
   updateLessonAction,
@@ -83,6 +84,20 @@ export default async function AdminLessonPage({
               <button type="submit" className={lesson.reviewedByHuman ? ghostButton : primaryButton}>
                 {lesson.reviewedByHuman ? 'سحب الاعتماد' : 'شاهدت المقطع وأعتمد الدرس'}
               </button>
+            </form>
+          </Card>
+          <Card title="ملاحظات المصدر">
+            <p className="mb-3 text-sm text-muted">
+              تُبنى عليها أسئلة الاختبار. يقرأ الذكاء الاصطناعي المقطع من يوتيوب ويكتب مسودة بما قيل فيه فقط؛
+              <strong> راجعها وصحّحها بعد مشاهدة المقطع</strong> قبل توليد الأسئلة.
+            </p>
+            <form action={draftNotesAction}>
+              <input type="hidden" name="pathId" value={pathId} />
+              <input type="hidden" name="lessonId" value={lessonId} />
+              <button type="submit" className={ghostButton} disabled={Boolean(lesson.notes)} title={lesson.notes ? 'للدرس ملاحظات بالفعل' : undefined}>
+                ولّد مسودة الملاحظات من الفيديو
+              </button>
+              {lesson.notes ? <span className="ms-3 text-xs text-muted">مكتوبة (عدّلها من «بيانات الدرس»)</span> : null}
             </form>
           </Card>
         </div>

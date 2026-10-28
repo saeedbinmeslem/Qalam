@@ -17,3 +17,6 @@ coverage/
 
 # ملفات بناء TypeScript التدريجية
 *.tsbuildinfo
+
+# لقطة المخزن المحلي (وضع التطوير)
+.data/

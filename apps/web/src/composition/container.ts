@@ -23,6 +23,8 @@ import {
   InMemoryEventRecorder,
   InMemoryPathRepository,
   InMemoryQuestionRepository,
+  FileSnapshotStore,
+  takeSnapshot,
   SupabaseEventReader,
   SupabaseQuestionRepository,
   SupabaseEventRecorder,
@@ -32,6 +34,7 @@ import {
   type SupabaseDataClient,
   type SupabaseInsertClient,
 } from '@qalam/infrastructure';
+import { join } from 'node:path';
 import { createSupabaseServerClient, isSupabaseConfigured } from './auth';
 import { getServiceClient } from './service-client';
 
@@ -74,16 +77,47 @@ export interface LocalStore {
 // على globalThis لأن Next في وضع التطوير قد يحمّل الوحدة أكثر من مرة (صفحات وإجراءات الخادم)
 const globalForQalam = globalThis as typeof globalThis & { __qalamLocalStore?: Promise<LocalStore> };
 
+/**
+ * المخزن المحلي يُحفظ كلقطة JSON بعد كل تعديل (لا تضيع المسودات عند إعادة التشغيل)،
+ * ويُقرأ منها عند البدء؛ فإن لم توجد نبدأ من البذرة. المسار بـ QALAM_LOCAL_STORE أو .data/ (مستثنى من git).
+ */
+export function localStorePath(): string {
+  return process.env.QALAM_LOCAL_STORE || join(process.cwd(), '.data', 'local-store.json');
+}
+
 async function buildLocal(): Promise<LocalStore> {
-  const { path, concepts } = createInitialSeedPath();
-  const store: LocalStore = {
-    paths: new InMemoryPathRepository(),
-    concepts: new InMemoryConceptRepository(),
-    questions: new InMemoryQuestionRepository(),
-    events: new InMemoryEventRecorder(),
+  const file = new FileSnapshotStore(localStorePath());
+  let ready = false;
+  const store: LocalStore = {} as LocalStore;
+  const persist = () => {
+    if (!ready) return;
+    file.save(
+      takeSnapshot({
+        paths: store.paths.list(),
+        concepts: store.concepts.list(),
+        questions: store.questions.list(),
+        events: store.events.events,
+      }),
+    );
   };
-  await store.paths.save(path);
-  for (const concept of concepts) await store.concepts.save(concept);
+  store.paths = new InMemoryPathRepository(persist);
+  store.concepts = new InMemoryConceptRepository(persist);
+  store.questions = new InMemoryQuestionRepository(persist);
+  store.events = new InMemoryEventRecorder(persist);
+
+  const saved = file.load();
+  if (saved) {
+    for (const path of saved.paths) await store.paths.save(path);
+    for (const concept of saved.concepts) await store.concepts.save(concept);
+    for (const question of saved.questions) await store.questions.save(question);
+    for (const event of saved.events) await store.events.record(event);
+  } else {
+    const { path, concepts } = createInitialSeedPath();
+    await store.paths.save(path);
+    for (const concept of concepts) await store.concepts.save(concept);
+  }
+  ready = true;
+  if (!saved) persist();
   return store;
 }
 

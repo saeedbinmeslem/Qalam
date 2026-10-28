@@ -13,7 +13,20 @@ export interface LlmJsonRequest {
   schema: Record<string, unknown>;
 }
 
+export interface LlmVideoRequest {
+  /** رابط يوتيوب العام للفيديو (يقرؤه المزوّد بنفسه؛ لا ننسخ الفيديو ولا نعيد استضافته) */
+  videoUrl: string;
+  startSeconds: number;
+  endSeconds: number;
+  instructions: string;
+}
+
 export interface LlmClient {
   /** يعيد القيمة المحللة من JSON؛ يرمي خطأ عربيًا عند الفشل أو الرفض */
   generateJson(request: LlmJsonRequest): Promise<unknown>;
+  /**
+   * يقرأ مقطع الفيديو ويعيد نصًا (اختياري: لا يدعمه كل مزوّد). الناتج مسودة تُراجَع بشريًا،
+   * ولا يُعتمد عليه كمصدر نهائي.
+   */
+  describeVideo?(request: LlmVideoRequest): Promise<string>;
 }

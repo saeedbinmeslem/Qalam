@@ -202,6 +202,14 @@ export async function setLessonReviewAction(data: FormData): Promise<void> {
 
 const lessonPage = (pathId: string, lessonId: string) => `${pathPage(pathId)}/lessons/${lessonId}`;
 
+export async function draftNotesAction(data: FormData): Promise<void> {
+  const pathId = text(data, 'pathId');
+  const lessonId = text(data, 'lessonId');
+  await run(lessonPage(pathId, lessonId), async (admin) => {
+    await admin.draftLessonNotes.execute({ actor: admin.actor, pathId, lessonId });
+  });
+}
+
 export async function generateQuestionsAction(data: FormData): Promise<void> {
   const pathId = text(data, 'pathId');
   const lessonId = text(data, 'lessonId');

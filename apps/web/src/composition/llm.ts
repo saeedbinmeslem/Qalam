@@ -18,6 +18,7 @@ export function getLlmClient(): LlmClient {
   const anthropic = process.env.ANTHROPIC_API_KEY;
   const provider = process.env.LLM_PROVIDER || (gemini ? 'gemini' : anthropic ? 'anthropic' : '');
 
+  // GEMINI_MODEL قائمة اختيارية مفصولة بفواصل؛ بدونها تُستعمل قائمة النماذج الافتراضية مع الانتقال عند الضغط
   if (provider === 'gemini' && gemini) return new GeminiLlmClient(gemini, process.env.GEMINI_MODEL || undefined);
   if (provider === 'anthropic' && anthropic) {
     return createAnthropicLlmClient(anthropic, process.env.ANTHROPIC_MODEL || undefined);

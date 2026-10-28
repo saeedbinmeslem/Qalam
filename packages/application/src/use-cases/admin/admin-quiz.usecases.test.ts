@@ -13,7 +13,8 @@ import {
 } from '@qalam/domain';
 import { ForbiddenError } from '../../errors.js';
 import type { ConceptRepositoryPort } from '../../ports/concept-repository.port.js';
-import type { LlmClient, LlmJsonRequest } from '../../ports/llm-client.port.js';
+import type { LlmClient, LlmJsonRequest, LlmVideoRequest } from '../../ports/llm-client.port.js';
+import { SetLessonReviewUseCase } from './admin-lessons.usecases.js';
 import type { QuestionRepositoryPort } from '../../ports/question-repository.port.js';
 import { AddLessonUseCase, UpdateLessonUseCase } from './admin-lessons.usecases.js';
 import { AddModuleUseCase, CreatePathUseCase } from './admin-paths.usecases.js';
@@ -21,6 +22,7 @@ import {
   AddQuestionUseCase,
   ApproveQuestionUseCase,
   DeleteQuestionUseCase,
+  DraftLessonNotesUseCase,
   GenerateQuestionsUseCase,
   ListLessonQuestionsUseCase,
   UpdateQuestionUseCase,
@@ -150,6 +152,43 @@ describe('GenerateQuestionsUseCase (توليد الأسئلة)', () => {
     const failing = await setup(new Error('تعذّر الاتصال بالنموذج'));
     await expect(new GenerateQuestionsUseCase(failing.deps).execute({ actor: admin, pathId: failing.pathId, lessonId: failing.lessonId, count: 2 })).rejects.toThrow('تعذّر الاتصال');
     await expect(new GenerateQuestionsUseCase(deps).execute({ actor: stranger, pathId, lessonId, count: 2 })).rejects.toBeInstanceOf(ForbiddenError);
+  });
+});
+
+describe('DraftLessonNotesUseCase (مسودة ملاحظات من الفيديو)', () => {
+  const withVideo = (describeVideo?: LlmClient['describeVideo']) => async () => {
+    const ctx = await setup();
+    // نبدأ بدرس بلا ملاحظات
+    await new UpdateLessonUseCase(ctx.deps).execute({ actor: admin, pathId: ctx.pathId, lessonId: ctx.lessonId, ...ctx.fields, notes: '' });
+    const llm: LlmClient = { generateJson: async () => ({}), ...(describeVideo ? { describeVideo } : {}) };
+    return { ...ctx, deps: { ...ctx.deps, llm } as QuizAdminDeps };
+  };
+
+  it('يقرأ مقطع الدرس ويحفظ المسودة كملاحظات، ويسقط اعتماد المراجعة', async () => {
+    const seen: LlmVideoRequest[] = [];
+    const { deps, pathId, lessonId } = await withVideo(async (r) => (seen.push(r), '  1. البت أصغر وحدة.  '))();
+    await new SetLessonReviewUseCase(deps).execute({ actor: admin, pathId, lessonId, reviewed: true });
+
+    await new DraftLessonNotesUseCase(deps).execute({ actor: admin, pathId, lessonId });
+
+    const lesson = (await deps.paths.findById(pathId as never))!.findLesson(lessonId as never)!.lesson;
+    expect(lesson.notes).toBe('1. البت أصغر وحدة.');
+    expect(lesson.reviewedByHuman).toBe(false);
+    expect(seen[0]).toMatchObject({ videoUrl: 'https://www.youtube.com/watch?v=qTVRs1wTwho', startSeconds: 0, endSeconds: 300 });
+    expect(seen[0]?.instructions).toContain('ما قيل في المقطع فقط');
+  });
+
+  it('يرفض عند وجود ملاحظات، أو مزوّد لا يقرأ الفيديو، أو ردّ فارغ، أو غير مدير', async () => {
+    const ctx = await setup(); // للدرس ملاحظات أصلًا
+    const withDescribe = { ...ctx.deps, llm: { generateJson: async () => ({}), describeVideo: async () => 'x' } } as QuizAdminDeps;
+    await expect(new DraftLessonNotesUseCase(withDescribe).execute({ actor: admin, pathId: ctx.pathId, lessonId: ctx.lessonId })).rejects.toThrow('ملاحظات بالفعل');
+
+    const noVideo = await withVideo()();
+    await expect(new DraftLessonNotesUseCase(noVideo.deps).execute({ actor: admin, pathId: noVideo.pathId, lessonId: noVideo.lessonId })).rejects.toThrow('لا يقرأ الفيديو');
+
+    const empty = await withVideo(async () => '   ')();
+    await expect(new DraftLessonNotesUseCase(empty.deps).execute({ actor: admin, pathId: empty.pathId, lessonId: empty.lessonId })).rejects.toThrow('لم يُرجع');
+    await expect(new DraftLessonNotesUseCase(empty.deps).execute({ actor: stranger, pathId: empty.pathId, lessonId: empty.lessonId })).rejects.toBeInstanceOf(ForbiddenError);
   });
 });
 

@@ -10,8 +10,11 @@ import type { SupabaseDataClient } from '../persistence/supabase-path.repository
 export class InMemoryEventRecorder implements EventRecorderPort, EventReaderPort {
   readonly events: LearningEvent[] = [];
 
+  constructor(private readonly onChange?: () => void) {}
+
   async record(event: LearningEvent): Promise<void> {
     this.events.push(event);
+    this.onChange?.();
   }
 
   async listByUser(userId: string, types?: readonly LearningEventType[]): Promise<LearningEvent[]> {
