@@ -1,0 +1,4 @@
+{
+  "installCommand": "cd ../.. && npm install",
+  "buildCommand": "cd ../.. && npx tsc --build && cd apps/web && npx next build"
+}
