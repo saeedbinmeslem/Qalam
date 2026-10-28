@@ -96,3 +96,17 @@ describe('calculatePathProgress (تقدم المتعلم)', () => {
     expect(progress.nextLesson).toBeNull();
   });
 });
+
+describe('نتائج الاختبارات في التقدم', () => {
+  it('يعرض آخر نسبة لكل درس ويتجاهل غير الاختبارات', () => {
+    const path = buildPath();
+    const mk = (payload: Record<string, unknown>, s: number) =>
+      new LearningEvent({ userId: 'u', type: 'attempt_submitted', payload, occurredAt: new Date(2026, 0, 1, 0, 0, s) });
+    const progress = calculatePathProgress(path, [
+      mk({ kind: 'quiz', lessonId: 'a', percent: 40 }, 1),
+      mk({ kind: 'quiz', lessonId: 'a', percent: 80 }, 2),
+      mk({ kind: 'exercise', lessonId: 'a', percent: 5 }, 3),
+    ]);
+    expect(progress.quizPercentByLesson.get('a')).toBe(80);
+  });
+});

@@ -8,7 +8,9 @@
  *     - فشل واحد            ← `retake_quiz` (راجع الملاحظات ثم أعد الاختبار)
  *     - فشلان متتاليان      ← `review_lesson` (راجع الدرس ثم أعد الاختبار قبل المتابعة) — مثال SPEC §7
  *     - ثلاثة فأكثر         ← `alternative_lesson` (درس آخر على نفس المفهوم؛ وإن لم يوجد فمراجعة الدرس)
- *  2. غير ذلك ← `proceed` إلى أول درس غير مكتمل ولا متخطى (null إذا انتهى المسار).
+ *  2. مراجعة متباعدة (إن مُرّر `now`): درس اجتاز اختباره وحان موعد مراجعته ← `spaced_review` (الأكثر تأخرًا أولًا).
+ *     الفواصل بالأيام 1، 3، 7، 14، 30 حسب عدد مرات النجاح في أيام مختلفة؛ ونجاح المراجعة يطيل الفاصل.
+ *  3. غير ذلك ← `proceed` إلى أول درس غير مكتمل ولا متخطى (null إذا انتهى المسار).
  * النجاح يمسح سلسلة الفشل لذلك الدرس.
  */
 
@@ -20,7 +22,11 @@ import { calculatePathProgress } from './path-progress.js';
 /** نسبة النجاح في الاختبار القصير (٪) */
 export const QUIZ_PASS_PERCENT = 70;
 
-export type AgentAction = 'proceed' | 'review_lesson' | 'retake_quiz' | 'alternative_lesson';
+export type AgentAction = 'proceed' | 'review_lesson' | 'retake_quiz' | 'alternative_lesson' | 'spaced_review';
+
+/** فواصل المراجعة المتباعدة بالأيام؛ بعد آخر فاصل يبقى الأخير */
+export const REVIEW_INTERVAL_DAYS = [1, 3, 7, 14, 30] as const;
+const DAY_MS = 86_400_000;
 
 export interface AgentDecision {
   action: AgentAction;
@@ -56,7 +62,24 @@ function quizAttempts(events: readonly LearningEvent[], inPath: ReadonlySet<stri
   return attempts.sort((a, b) => a.at - b.at);
 }
 
-export function decideNextStep(path: LearningPath, events: readonly LearningEvent[]): AgentDecision | null {
+/** أكثر درس متأخر عن موعد مراجعته (اجتاز اختباره ومرّ الفاصل المستحق بعد آخر نجاح) */
+function mostOverdueReview(attempts: readonly QuizAttempt[], now: number) {
+  const passes = new Map<string, QuizAttempt[]>();
+  for (const a of attempts) if (a.percent >= QUIZ_PASS_PERCENT) passes.set(a.lessonId, [...(passes.get(a.lessonId) ?? []), a]);
+  let best: { lessonId: string; overdueMs: number; daysSince: number } | undefined;
+  for (const [lessonId, list] of passes) {
+    const days = new Set(list.map((a) => Math.floor(a.at / DAY_MS)));
+    const interval = REVIEW_INTERVAL_DAYS[Math.min(days.size, REVIEW_INTERVAL_DAYS.length) - 1]!;
+    const last = list[list.length - 1]!;
+    const overdueMs = now - (last.at + interval * DAY_MS);
+    if (overdueMs >= 0 && (!best || overdueMs > best.overdueMs)) {
+      best = { lessonId, overdueMs, daysSince: Math.floor((now - last.at) / DAY_MS) };
+    }
+  }
+  return best;
+}
+
+export function decideNextStep(path: LearningPath, events: readonly LearningEvent[], now?: Date): AgentDecision | null {
   const lessons = path.modules.flatMap((m) => m.lessons);
   const byId = new Map<string, Lesson>(lessons.map((l) => [l.id as string, l]));
   const progress = calculatePathProgress(path, events);
@@ -113,6 +136,19 @@ export function decideNextStep(path: LearningPath, events: readonly LearningEven
       action: 'retake_quiz',
       reason: `حصلتَ على ${blocked.percent}% في اختبار «${lesson.title}» والنجاح ${QUIZ_PASS_PERCENT}%. راجع الأسئلة التي أخطأتَ فيها ثم أعد الاختبار.`,
       evidenceKey: `retake_quiz:${lesson.id}::${tail}`,
+    };
+  }
+
+  const due = now ? mostOverdueReview(attempts, now.getTime()) : undefined;
+  if (due) {
+    const lesson = byId.get(due.lessonId)!;
+    const since = due.daysSince === 0 ? 'اليوم' : `منذ ${due.daysSince} يومًا`;
+    return {
+      action: 'spaced_review',
+      lessonId: lesson.id as string,
+      consecutiveFailures: 0,
+      reason: `اجتزتَ اختبار «${lesson.title}» ${since}، وحسب جدول المراجعة المتباعدة حان وقت مراجعته لتثبيت ما تعلمته. أعد اختباره قبل المتابعة.`,
+      evidenceKey: `spaced_review:${lesson.id}::${tail}`,
     };
   }
 

@@ -39,6 +39,7 @@ export default async function PathPage({ params }: { params: Promise<{ pathId: s
     review_lesson: 'مراجعة الدرس',
     retake_quiz: 'إعادة الاختبار',
     alternative_lesson: 'درس بديل',
+    spaced_review: 'مراجعة متباعدة',
   } as const;
   const lessonHref = (id: string) => `/paths/${path.id}/lessons/${id}`;
 
@@ -182,6 +183,11 @@ export default async function PathPage({ params }: { params: Promise<{ pathId: s
                       {progress?.completedLessonIds.has(lesson.id) ? (
                         <span className="ms-2 rounded-full bg-sea/10 px-2 py-0.5 text-xs font-medium text-sea-dark">
                           ✓ مكتمل
+                        </span>
+                      ) : null}
+                      {progress?.quizPercentByLesson.has(lesson.id) ? (
+                        <span className="ms-2 rounded-full bg-ink/5 px-2 py-0.5 text-xs font-medium text-ink">
+                          آخر اختبار: {progress.quizPercentByLesson.get(lesson.id)}%
                         </span>
                       ) : null}
                       {lesson.summary ? <p className="mt-1 text-sm text-muted">{lesson.summary}</p> : null}

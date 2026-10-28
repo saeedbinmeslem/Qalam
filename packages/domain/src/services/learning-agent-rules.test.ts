@@ -122,3 +122,42 @@ describe('decideNextStep', () => {
     expect(decideNextStep(buildPath(), [odd, noPercent])!.action).toBe('proceed');
   });
 });
+
+describe('المراجعة المتباعدة', () => {
+  const DAY = 86_400_000;
+  const base = new Date(2026, 5, 1, 12).getTime();
+  const pass = (lessonId: string, offsetDays: number) =>
+    new LearningEvent({ userId: 'u', type: 'attempt_submitted', payload: { kind: 'quiz', lessonId, percent: 90 }, occurredAt: new Date(base + offsetDays * DAY) });
+  const day = (n: number) => new Date(base + n * DAY);
+
+  it('لا مراجعة قبل حلول الفاصل (يوم واحد بعد أول نجاح)', () => {
+    expect(decideNextStep(buildPath(), [pass('l1', 0)], day(0.5))!.action).toBe('proceed');
+  });
+
+  it('بعد يوم من أول نجاح ← مراجعة متباعدة للدرس', () => {
+    const d = decideNextStep(buildPath(), [pass('l1', 0)], day(1.2))!;
+    expect(d.action).toBe('spaced_review');
+    expect(d.lessonId).toBe('l1');
+    expect(d.reason).toContain('منذ 1 يومًا');
+  });
+
+  it('نجاح المراجعة يطيل الفاصل إلى 3 أيام', () => {
+    const events = [pass('l1', 0), pass('l1', 1.2)];
+    expect(decideNextStep(buildPath(), events, day(3))!.action).toBe('proceed');
+    expect(decideNextStep(buildPath(), events, day(1.2 + 3.1))!.action).toBe('spaced_review');
+  });
+
+  it('الأكثر تأخرًا أولًا', () => {
+    const d = decideNextStep(buildPath(), [pass('l2', 0), pass('l1', 2)], day(20))!;
+    expect(d.lessonId).toBe('l2');
+  });
+
+  it('فشل المراجعة يسبق المراجعة المتباعدة (إعادة اختبار)', () => {
+    const fail = new LearningEvent({ userId: 'u', type: 'attempt_submitted', payload: { kind: 'quiz', lessonId: 'l1', percent: 20 }, occurredAt: day(2) });
+    expect(decideNextStep(buildPath(), [pass('l1', 0), fail], day(30))!.action).toBe('retake_quiz');
+  });
+
+  it('بلا now لا تُطبَّق المراجعة', () => {
+    expect(decideNextStep(buildPath(), [pass('l1', 0)])!.action).toBe('proceed');
+  });
+});

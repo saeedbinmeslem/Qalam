@@ -13,7 +13,8 @@
     "lint": "eslint .",
     "type-check": "tsc --build",
     "clean": "tsc --build --clean && rimraf packages/*/dist apps/*/dist",
-    "draft-content": "node scripts/draft-content.mjs"
+    "draft-content": "node scripts/draft-content.mjs",
+    "seed-supabase": "node scripts/seed-supabase.mjs"
   },
   "engines": {
     "node": ">=22"

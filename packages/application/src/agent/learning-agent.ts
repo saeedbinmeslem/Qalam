@@ -43,7 +43,7 @@ export interface LearningAgentDeps {
 }
 
 const OBSERVED = ['lesson_completed', 'plan_decision', 'attempt_submitted', 'diagnostic_completed'] as const;
-const ACTIONS: readonly AgentAction[] = ['proceed', 'review_lesson', 'retake_quiz', 'alternative_lesson'];
+const ACTIONS: readonly AgentAction[] = ['proceed', 'review_lesson', 'retake_quiz', 'alternative_lesson', 'spaced_review'];
 
 function toRecord(event: LearningEvent): (AgentDecisionRecord & { pathId: string; evidenceKey: string }) | null {
   const p = event.payload;
@@ -89,7 +89,7 @@ export class LearningAgent {
     const observed = await events.listByUser(request.userId, OBSERVED);
 
     // decide
-    const decision = decideNextStep(path, observed);
+    const decision = decideNextStep(path, observed, clock.now());
     if (!decision) return null;
     const title = (id: string) => path.modules.flatMap((m) => m.lessons).find((l) => l.id === id)?.title ?? id;
     const view = {

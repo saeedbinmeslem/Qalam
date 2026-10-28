@@ -13,6 +13,8 @@ export interface PathProgress {
   completedLessonIds: ReadonlySet<string>;
   /** دروس تخطّاها الاختبار التشخيصي (قرار خطة مسجَّل بسببه)؛ لا تُحتسب «مكتملة» لئلا تتضخم أرقام الأثر */
   skippedLessonIds: ReadonlySet<string>;
+  /** آخر نسبة في اختبار كل درس (0..100) من المحاولات المسجَّلة */
+  quizPercentByLesson: ReadonlyMap<string, number>;
   completedCount: number;
   skippedCount: number;
   totalCount: number;
@@ -29,10 +31,13 @@ export function calculatePathProgress(path: LearningPath, events: readonly Learn
   // أي إكمال لدرس من المسار يُحتسب مرة واحدة مهما تكرّر الحدث
   const completed = new Set<string>();
   const skipped = new Set<string>();
+  const quizPercent = new Map<string, number>();
   for (const event of events) {
     const lessonId = event.payload['lessonId'];
     if (typeof lessonId !== 'string' || !inPath.has(lessonId)) continue;
-    if (event.type === 'lesson_completed') completed.add(lessonId);
+    if (event.type === 'attempt_submitted' && event.payload['kind'] === 'quiz' && typeof event.payload['percent'] === 'number') {
+      quizPercent.set(lessonId, event.payload['percent']);
+    } else if (event.type === 'lesson_completed') completed.add(lessonId);
     else if (event.type === 'plan_decision' && event.payload['decision'] === 'skip_lesson') skipped.add(lessonId);
   }
   // الإكمال الفعلي أقوى من التخطي: درس أُكمل لا يُعدّ متخطى
@@ -43,6 +48,7 @@ export function calculatePathProgress(path: LearningPath, events: readonly Learn
   return {
     completedLessonIds: completed,
     skippedLessonIds: skipped,
+    quizPercentByLesson: quizPercent,
     completedCount: completed.size,
     skippedCount: skipped.size,
     totalCount,

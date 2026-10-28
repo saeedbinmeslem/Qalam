@@ -16,7 +16,7 @@ export class GetPathProgressUseCase {
   async execute(request: { userId: string; pathId: PathId }): Promise<PathProgress> {
     const path = await this.paths.findById(request.pathId);
     if (!path) throw new Error(`المسار التعليمي ذو المعرّف "${request.pathId}" غير موجود`);
-    const events = await this.events.listByUser(request.userId, ['lesson_completed', 'plan_decision']);
+    const events = await this.events.listByUser(request.userId, ['lesson_completed', 'plan_decision', 'attempt_submitted']);
     return calculatePathProgress(path, events);
   }
 }
