@@ -26,6 +26,7 @@ export * from './ports/question-repository.port.js';
 export * from './use-cases/admin/generated-questions.js';
 export * from './use-cases/admin/admin-quiz.usecases.js';
 export * from './use-cases/learner-quiz.usecases.js';
+export * from './use-cases/diagnostic.usecases.js';
 
 // لوحة التحكم الإدارية
 export * from './errors.js';

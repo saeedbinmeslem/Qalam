@@ -25,3 +25,4 @@ export * from './services/concept-graph.js';
 export * from './services/path-progress.js';
 export * from './entities/quiz-question.js';
 export * from './services/quiz-grading.js';
+export * from './services/diagnostic.js';

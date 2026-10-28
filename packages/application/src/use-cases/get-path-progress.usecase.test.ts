@@ -67,7 +67,7 @@ describe('GetPathProgressUseCase (تقدم المسار)', () => {
     expect(progress.completedCount).toBe(1);
     expect(progress.percent).toBe(50);
     expect(progress.nextLesson?.id).toBe('b');
-    expect(reader.askedFor).toEqual([{ userId: 'u1', types: ['lesson_completed'] }]);
+    expect(reader.askedFor).toEqual([{ userId: 'u1', types: ['lesson_completed', 'plan_decision'] }]);
   });
 
   it('يرفض مسارًا غير موجود', async () => {

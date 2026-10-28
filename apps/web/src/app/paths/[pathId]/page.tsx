@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function PathPage({ params }: { params: Promise<{ pathId: string }> }) {
   const { pathId } = await params;
-  const { getLearningPath, getPathProgress } = await getContainer();
+  const { getLearningPath, getPathProgress, getDiagnostic } = await getContainer();
 
   const result = await getLearningPath.execute({ pathId: createPathId(pathId) }).catch(() => null);
   if (!result) notFound();
@@ -23,6 +23,11 @@ export default async function PathPage({ params }: { params: Promise<{ pathId: s
   // التقدم للمسجَّل فقط؛ الزائر يرى المسار بلا تتبع
   const user = await (await getAuth()).getCurrentUser.execute();
   const progress = user ? await getPathProgress.execute({ userId: user.id, pathId: path.id }) : null;
+  // الاختبار التشخيصي يُعرض قبل بدء التعلم، وعند توفر أسئلة معتمدة فقط
+  const diagnosticAvailable =
+    progress !== null &&
+    progress.completedCount + progress.skippedCount === 0 &&
+    ((await getDiagnostic.execute({ pathId: path.id }).catch(() => [])).length > 0);
   const lessonHref = (id: string) => `/paths/${path.id}/lessons/${id}`;
 
   return (
@@ -57,7 +62,8 @@ export default async function PathPage({ params }: { params: Promise<{ pathId: s
             <div className="mt-8 max-w-md">
               <div className="flex items-baseline justify-between text-sm text-white/80">
                 <span>
-                  أكملت {progress.completedCount} من {progress.totalCount}
+                  أكملت {progress.completedCount}
+                  {progress.skippedCount > 0 ? ` وتخطّيت ${progress.skippedCount}` : ''} من {progress.totalCount}
                 </span>
                 <span>{progress.percent}%</span>
               </div>
@@ -71,6 +77,14 @@ export default async function PathPage({ params }: { params: Promise<{ pathId: s
               >
                 <div className="h-full rounded-full bg-highlighter" style={{ width: `${progress.percent}%` }} />
               </div>
+              {diagnosticAvailable ? (
+                <Link
+                  href={`/paths/${path.id}/diagnostic`}
+                  className="mt-5 me-3 inline-block rounded-lg border border-white/40 px-5 py-2.5 font-medium text-white transition-colors hover:bg-white/10"
+                >
+                  اختبار تشخيصي: تخطَّ ما تعرفه
+                </Link>
+              ) : null}
               {progress.nextLesson ? (
                 <Link
                   href={lessonHref(progress.nextLesson.id)}
@@ -103,6 +117,11 @@ export default async function PathPage({ params }: { params: Promise<{ pathId: s
                       <Link href={lessonHref(lesson.id)} className="font-medium text-ink hover:underline">
                         {lesson.title}
                       </Link>
+                      {progress?.skippedLessonIds.has(lesson.id) ? (
+                        <span className="ms-2 rounded-full bg-highlighter/25 px-2 py-0.5 text-xs font-medium text-ink">
+                          تم تخطيه (أتقنتَ مفهومه)
+                        </span>
+                      ) : null}
                       {progress?.completedLessonIds.has(lesson.id) ? (
                         <span className="ms-2 rounded-full bg-sea/10 px-2 py-0.5 text-xs font-medium text-sea-dark">
                           ✓ مكتمل

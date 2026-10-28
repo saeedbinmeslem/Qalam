@@ -104,4 +104,16 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    // سكربتات Node المساعدة (خارج الطبقات): تحتاج globals بيئة Node
+    files: ['scripts/**/*.mjs'],
+    languageOptions: {
+      globals: {
+        console: 'readonly',
+        process: 'readonly',
+        setTimeout: 'readonly',
+        URL: 'readonly',
+      },
+    },
+  },
 );

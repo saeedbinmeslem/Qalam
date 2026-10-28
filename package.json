@@ -12,7 +12,8 @@
     "test": "vitest run",
     "lint": "eslint .",
     "type-check": "tsc --build",
-    "clean": "tsc --build --clean && rimraf packages/*/dist apps/*/dist"
+    "clean": "tsc --build --clean && rimraf packages/*/dist apps/*/dist",
+    "draft-content": "node scripts/draft-content.mjs"
   },
   "engines": {
     "node": ">=22"

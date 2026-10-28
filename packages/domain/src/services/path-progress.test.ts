@@ -75,6 +75,20 @@ describe('calculatePathProgress (تقدم المتعلم)', () => {
     expect(progress.nextLesson?.id).toBe('b');
   });
 
+  it('الدروس المتخطاة بقرار خطة تُحتسب في التقدم لا في الإكمال، ويتخطاها «التالي»', () => {
+    const skip = (lessonId: string) =>
+      new LearningEvent({
+        userId: 'u',
+        type: 'plan_decision',
+        payload: { decision: 'skip_lesson', lessonId, reason: 'أتقن المفهوم' },
+        occurredAt: new Date(),
+      });
+    const progress = calculatePathProgress(buildPath(), [skip('a'), skip('b'), event('lesson_completed', 'b'), skip('خارج')]);
+    expect(progress).toMatchObject({ completedCount: 1, skippedCount: 1, percent: 50 });
+    expect([...progress.skippedLessonIds]).toEqual(['a']); // b أُكمل فعلًا فلا يُعدّ متخطى
+    expect(progress.nextLesson?.id).toBe('c');
+  });
+
   it('عند اكتمال المسار: 100% ولا درس تالٍ', () => {
     const all = ['a', 'b', 'c', 'd'].map((id) => event('lesson_completed', id));
     const progress = calculatePathProgress(buildPath(), all);

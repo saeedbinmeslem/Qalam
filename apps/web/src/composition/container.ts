@@ -5,6 +5,10 @@
  * مع مفاتيح Supabase: قاعدة البيانات الفعلية. بدونها: ذاكرة + بذرة (للتطوير والاختبار).
  */
 import {
+  GetDiagnosticResultUseCase,
+  GetDiagnosticUseCase,
+  SubmitDiagnosticUseCase,
+  type ConceptRepositoryPort,
   GetLearningPathUseCase,
   GetLessonQuizUseCase,
   GetLessonUseCase,
@@ -25,6 +29,7 @@ import {
   InMemoryQuestionRepository,
   FileSnapshotStore,
   takeSnapshot,
+  SupabaseConceptRepository,
   SupabaseEventReader,
   SupabaseQuestionRepository,
   SupabaseEventRecorder,
@@ -39,6 +44,9 @@ import { createSupabaseServerClient, isSupabaseConfigured } from './auth';
 import { getServiceClient } from './service-client';
 
 export interface Container {
+  getDiagnostic: GetDiagnosticUseCase;
+  getDiagnosticResult: GetDiagnosticResultUseCase;
+  submitDiagnostic: SubmitDiagnosticUseCase;
   getLessonQuiz: GetLessonQuizUseCase;
   getQuizResult: GetQuizResultUseCase;
   submitQuiz: SubmitQuizUseCase;
@@ -53,8 +61,13 @@ function assemble(
   paths: PathRepositoryPort,
   events: EventRecorderPort & EventReaderPort,
   questions: QuestionRepositoryPort,
+  concepts: ConceptRepositoryPort,
 ): Container {
+  const diagnosticDeps = { paths, questions, concepts };
   return {
+    getDiagnostic: new GetDiagnosticUseCase(diagnosticDeps),
+    getDiagnosticResult: new GetDiagnosticResultUseCase(diagnosticDeps),
+    submitDiagnostic: new SubmitDiagnosticUseCase(diagnosticDeps, events, systemClock),
     getLessonQuiz: new GetLessonQuizUseCase(questions),
     getQuizResult: new GetQuizResultUseCase(questions),
     submitQuiz: new SubmitQuizUseCase(questions, events, systemClock),
@@ -140,8 +153,9 @@ export async function getContainer(): Promise<Container> {
         listByUser: (userId, types) => reader.listByUser(userId, types),
       },
       new SupabaseQuestionRepository(getServiceClient()),
+      new SupabaseConceptRepository(client as unknown as SupabaseDataClient),
     );
   }
   const local = await getLocalStore();
-  return assemble(local.paths, local.events, local.questions);
+  return assemble(local.paths, local.events, local.questions, local.concepts);
 }
