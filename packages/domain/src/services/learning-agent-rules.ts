@@ -62,6 +62,14 @@ function quizAttempts(events: readonly LearningEvent[], inPath: ReadonlySet<stri
   return attempts.sort((a, b) => a.at - b.at);
 }
 
+/** «منذ …» بعدّ عربي صحيح (مفرد/مثنى/جمع) */
+function daysAgo(days: number): string {
+  if (days === 0) return 'اليوم';
+  if (days === 1) return 'منذ يوم';
+  if (days === 2) return 'منذ يومين';
+  return days <= 10 ? `منذ ${days} أيام` : `منذ ${days} يومًا`;
+}
+
 /** أكثر درس متأخر عن موعد مراجعته (اجتاز اختباره ومرّ الفاصل المستحق بعد آخر نجاح) */
 function mostOverdueReview(attempts: readonly QuizAttempt[], now: number) {
   const passes = new Map<string, QuizAttempt[]>();
@@ -142,7 +150,7 @@ export function decideNextStep(path: LearningPath, events: readonly LearningEven
   const due = now ? mostOverdueReview(attempts, now.getTime()) : undefined;
   if (due) {
     const lesson = byId.get(due.lessonId)!;
-    const since = due.daysSince === 0 ? 'اليوم' : `منذ ${due.daysSince} يومًا`;
+    const since = daysAgo(due.daysSince);
     return {
       action: 'spaced_review',
       lessonId: lesson.id as string,

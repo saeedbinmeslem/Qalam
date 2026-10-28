@@ -138,7 +138,7 @@ describe('المراجعة المتباعدة', () => {
     const d = decideNextStep(buildPath(), [pass('l1', 0)], day(1.2))!;
     expect(d.action).toBe('spaced_review');
     expect(d.lessonId).toBe('l1');
-    expect(d.reason).toContain('منذ 1 يومًا');
+    expect(d.reason).toContain('منذ يوم');
   });
 
   it('نجاح المراجعة يطيل الفاصل إلى 3 أيام', () => {
