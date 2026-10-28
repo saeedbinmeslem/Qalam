@@ -4,6 +4,7 @@
  * @file actions.ts
  * @description إكمال الدرس: يسجّل حدث الإكمال عبر use case ثم ينتقل للدرس التالي أو للمسار.
  */
+import { createPathId } from '@qalam/domain';
 import { redirect } from 'next/navigation';
 import { getAuth } from '../../../../../composition/auth';
 import { getContainer } from '../../../../../composition/container';
@@ -21,8 +22,10 @@ export async function submitQuizAction(formData: FormData): Promise<void> {
     if (key.startsWith('q_')) answers[key.slice(2)] = Number(value);
   }
 
-  const { submitQuiz } = await getContainer();
+  const { submitQuiz, learningAgent } = await getContainer();
   await submitQuiz.execute({ userId: user.id, pathId, lessonId, answers });
+  // الوكيل يقرأ النتيجة الجديدة ويسجّل قراره؛ فشله لا يمنع عرض نتيجة الاختبار
+  await learningAgent.run({ userId: user.id, pathId: createPathId(pathId) }).catch(() => null);
 
   const encoded = Object.entries(answers)
     .map(([id, index]) => `${id}:${index}`)

@@ -14,6 +14,7 @@ import {
   GetLessonUseCase,
   GetPathProgressUseCase,
   GetQuizResultUseCase,
+  LearningAgent,
   ListLearningPathsUseCase,
   RecordLearningEventUseCase,
   SubmitQuizUseCase,
@@ -41,6 +42,7 @@ import {
 } from '@qalam/infrastructure';
 import { join } from 'node:path';
 import { createSupabaseServerClient, isSupabaseConfigured } from './auth';
+import { getAgentLlmClient } from './llm';
 import { getServiceClient } from './service-client';
 
 export interface Container {
@@ -55,6 +57,8 @@ export interface Container {
   getLesson: GetLessonUseCase;
   listLearningPaths: ListLearningPathsUseCase;
   recordLearningEvent: RecordLearningEventUseCase;
+  /** وكيل التعلّم: القواعد حتمية، والنموذج اللغوي اختياري لصياغة الشرح فقط */
+  learningAgent: LearningAgent;
 }
 
 function assemble(
@@ -76,6 +80,7 @@ function assemble(
     getLesson: new GetLessonUseCase(paths),
     listLearningPaths: new ListLearningPathsUseCase(paths),
     recordLearningEvent: new RecordLearningEventUseCase(events, systemClock),
+    learningAgent: new LearningAgent({ paths, events, recorder: events, clock: systemClock, llm: getAgentLlmClient() }),
   };
 }
 

@@ -36,3 +36,7 @@ export * from './use-cases/admin/admin-deps.js';
 export * from './use-cases/admin/admin-paths.usecases.js';
 export * from './use-cases/admin/admin-lessons.usecases.js';
 export * from './use-cases/admin/admin-concepts.usecases.js';
+
+// وكيل التعلّم
+export * from './agent/decision-explanation.js';
+export * from './agent/learning-agent.js';

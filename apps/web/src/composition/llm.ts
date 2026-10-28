@@ -25,3 +25,21 @@ export function getLlmClient(): LlmClient {
   }
   return unconfiguredLlmClient;
 }
+
+/** مهلة صياغة شرح القرار: الشرح اختياري فلا يُبطئ التسليم أكثر من هذا */
+const AGENT_EXPLAIN_TIMEOUT_MS = 8000;
+
+/** عميل للوكيل: بلا مفتاح يعيد undefined (الوكيل يعمل بالقواعد وحدها)، ومعه يُحدّ بمهلة */
+export function getAgentLlmClient(): LlmClient | undefined {
+  const client = getLlmClient();
+  if (client === unconfiguredLlmClient) return undefined;
+  return {
+    generateJson: (request) =>
+      Promise.race([
+        client.generateJson(request),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('انتهت مهلة صياغة الشرح')), AGENT_EXPLAIN_TIMEOUT_MS),
+        ),
+      ]),
+  };
+}

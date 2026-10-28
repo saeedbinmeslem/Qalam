@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function PathPage({ params }: { params: Promise<{ pathId: string }> }) {
   const { pathId } = await params;
-  const { getLearningPath, getPathProgress, getDiagnostic } = await getContainer();
+  const { getLearningPath, getPathProgress, getDiagnostic, learningAgent } = await getContainer();
 
   const result = await getLearningPath.execute({ pathId: createPathId(pathId) }).catch(() => null);
   if (!result) notFound();
@@ -28,6 +28,18 @@ export default async function PathPage({ params }: { params: Promise<{ pathId: s
     progress !== null &&
     progress.completedCount + progress.skippedCount === 0 &&
     ((await getDiagnostic.execute({ pathId: path.id }).catch(() => [])).length > 0);
+  // وكيل التعلّم: قراره الحالي بسببه، وقراراته السابقة (شفافية «لماذا اقترحنا هذا؟»)
+  const advice = user ? await learningAgent.run({ userId: user.id, pathId: path.id }).catch(() => null) : null;
+  const history = user
+    ? (await learningAgent.history({ userId: user.id, pathId: path.id, limit: 6 }).catch(() => [])).slice(1)
+    : [];
+  const lessonTitles = new Map(path.modules.flatMap((m) => m.lessons).map((l) => [l.id as string, l.title]));
+  const actionLabels = {
+    proceed: 'تقدّم',
+    review_lesson: 'مراجعة الدرس',
+    retake_quiz: 'إعادة الاختبار',
+    alternative_lesson: 'درس بديل',
+  } as const;
   const lessonHref = (id: string) => `/paths/${path.id}/lessons/${id}`;
 
   return (
@@ -99,6 +111,51 @@ export default async function PathPage({ params }: { params: Promise<{ pathId: s
           ) : null}
         </div>
       </section>
+
+      {advice ? (
+        <section aria-labelledby="why-title" className="mx-auto max-w-5xl px-5 pt-10">
+          <div className="rounded-lg border border-rule border-s-4 border-s-highlighter bg-sheet p-5">
+            <p className="text-sm font-medium text-muted">
+              اقتراح وكيل التعلّم: {actionLabels[advice.decision.action]}
+            </p>
+            <p className="mt-1 font-display text-lg font-semibold text-ink">
+              {advice.decision.action === 'proceed'
+                ? `الدرس التالي: ${advice.lessonTitle}`
+                : advice.decision.action === 'alternative_lesson'
+                  ? `جرّب: ${advice.alternativeLessonTitle ?? advice.lessonTitle}`
+                  : advice.lessonTitle}
+            </p>
+            <h2 id="why-title" className="mt-4 text-sm font-semibold text-ink">
+              لماذا اقترحنا هذا؟
+            </h2>
+            <p className="mt-1 text-ink">{advice.decision.reason}</p>
+            {advice.explanation ? <p className="mt-2 text-muted">{advice.explanation}</p> : null}
+            <Link
+              href={lessonHref(
+                advice.decision.action === 'alternative_lesson' && advice.decision.alternativeLessonId
+                  ? advice.decision.alternativeLessonId
+                  : advice.decision.lessonId,
+              )}
+              className="mt-4 inline-block text-sea underline underline-offset-2 hover:text-sea-dark"
+            >
+              افتح الدرس
+            </Link>
+            {history.length > 0 ? (
+              <details className="mt-4 text-sm text-muted">
+                <summary className="cursor-pointer text-ink">اقتراحات سابقة</summary>
+                <ul className="mt-2 space-y-2">
+                  {history.map((h) => (
+                    <li key={h.decidedAt.toISOString()}>
+                      <span className="font-medium text-ink">{actionLabels[h.action]}</span> —{' '}
+                      {lessonTitles.get(h.lessonId) ?? h.lessonId}: {h.reason}
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
 
       <div className="mx-auto max-w-5xl px-5 pt-14">
         <ol className="stroke-list">
