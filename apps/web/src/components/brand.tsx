@@ -38,7 +38,7 @@ export function QalamMark({ size = 36, className }: MarkProps) {
         strokeLinecap="round"
       />
       <g transform="translate(15 11)">
-        <polygon points={NIB_POINTS} fill="#fff" strokeLinejoin="round" stroke="#fff" strokeWidth="1.5" />
+        <polygon points={NIB_POINTS} fill="var(--color-on-primary)" strokeLinejoin="round" stroke="var(--color-on-primary)" strokeWidth="1.5" />
         <path d="M7.7 26.8 L1 35" stroke="var(--color-primary)" strokeWidth="1.6" strokeLinecap="round" />
         <circle cx="11.6" cy="22.2" r="1.9" fill="var(--color-primary)" />
       </g>

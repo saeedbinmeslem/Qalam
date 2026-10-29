@@ -4,6 +4,7 @@ import { isAdminUser } from '../composition/admin';
 import { getAuth } from '../composition/auth';
 import { QalamLogo } from './brand';
 import { NavLinks, type NavItem } from './nav-links';
+import { ThemeToggle } from './theme-toggle';
 
 /** أقسام المنصة بالترتيب الذي يتعلم به المتعلم: اكتشف، ادرس، افهم، طبّق، تابع */
 export const primaryNav: NavItem[] = [
@@ -29,6 +30,7 @@ export async function SiteHeader() {
         </div>
 
         <div className="flex items-center gap-2">
+          <ThemeToggle />
           {user ? (
             <>
               {isAdminUser(user) ? (

@@ -45,35 +45,35 @@ export default async function PathPage({ params }: { params: Promise<{ pathId: s
 
   return (
     <>
-      <section className="bg-ink text-white">
+      <section className="bg-ink text-on-primary">
         <div className="mx-auto max-w-6xl px-5 md:px-8 py-14">
-          <Link href="/paths" className="text-sm text-white/70 hover:text-white">
+          <Link href="/paths" className="text-sm text-on-primary/70 hover:text-on-primary">
             كل المسارات
           </Link>
           <h1 className="mt-4 font-display text-3xl font-extrabold leading-[1.5] md:text-4xl">
             {path.title}
           </h1>
-          <p className="mt-3 max-w-[40rem] text-lg text-white/80">{path.description}</p>
-          <dl className="mt-8 flex flex-wrap gap-x-10 gap-y-3 text-white/90">
+          <p className="mt-3 max-w-[40rem] text-lg text-on-primary/80">{path.description}</p>
+          <dl className="mt-8 flex flex-wrap gap-x-10 gap-y-3 text-on-primary/90">
             <div>
-              <dt className="text-sm text-white/60">الهدف</dt>
+              <dt className="text-sm text-on-primary/60">الهدف</dt>
               <dd>{path.targetGoal}</dd>
             </div>
             <div>
-              <dt className="text-sm text-white/60">المحتوى</dt>
+              <dt className="text-sm text-on-primary/60">المحتوى</dt>
               <dd>
                 {modulesText(totalModulesCount)}، {lessonsText(totalLessonsCount)}
               </dd>
             </div>
             <div>
-              <dt className="text-sm text-white/60">مدة المشاهدة</dt>
+              <dt className="text-sm text-on-primary/60">مدة المشاهدة</dt>
               <dd>{formatDuration(path.totalDurationSeconds)}</dd>
             </div>
           </dl>
 
           {progress ? (
             <div className="mt-8 max-w-md">
-              <div className="flex items-baseline justify-between text-sm text-white/80">
+              <div className="flex items-baseline justify-between text-sm text-on-primary/80">
                 <span>
                   أكملت {progress.completedCount}
                   {progress.skippedCount > 0 ? ` وتخطّيت ${progress.skippedCount}` : ''} من {progress.totalCount}
@@ -86,14 +86,14 @@ export default async function PathPage({ params }: { params: Promise<{ pathId: s
                 aria-valuenow={progress.percent}
                 aria-valuemin={0}
                 aria-valuemax={100}
-                className="mt-2 h-2 overflow-hidden rounded-full bg-white/20"
+                className="mt-2 h-2 overflow-hidden rounded-full bg-on-primary/20"
               >
                 <div className="h-full rounded-full bg-highlighter" style={{ width: `${progress.percent}%` }} />
               </div>
               {diagnosticAvailable ? (
                 <Link
                   href={`/paths/${path.id}/diagnostic`}
-                  className="mt-5 me-3 inline-block rounded-lg border border-white/40 px-5 py-2.5 font-medium text-white transition-colors hover:bg-white/10"
+                  className="mt-5 me-3 inline-block rounded-lg border border-on-primary/40 px-5 py-2.5 font-medium text-on-primary transition-colors hover:bg-on-primary/10"
                 >
                   اختبار تشخيصي: تخطَّ ما تعرفه
                 </Link>
