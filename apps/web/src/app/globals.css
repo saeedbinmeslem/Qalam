@@ -85,47 +85,6 @@ body {
   }
 }
 
-/*
- * مؤشر التحميل «القلم يكتب» (انظر components/brand.tsx).
- * المسار في offset-path مطابق لـQALAM_TRACE_PATH؛ غيّرهما معًا.
- * الدورة 2.2 ثانية: كتابة (0–68%)، ظهور النقطة (68–78%)، تلاشٍ ثم إعادة (90–100%).
- */
-.qalam-loader { position: relative; width: 120px; height: 64px; direction: ltr; transform-origin: top left; }
-.qalam-loader svg { position: absolute; inset: 0; overflow: visible; }
-.qalam-trace { stroke-dasharray: 1; stroke-dashoffset: 1; animation: qalam-draw 2.2s cubic-bezier(0.45, 0, 0.25, 1) infinite; }
-.qalam-dot { transform-box: fill-box; transform-origin: center; opacity: 0; animation: qalam-dot 2.2s ease-out infinite; }
-.qalam-loader svg.qalam-nib {
-  inset: auto;
-  left: 0;
-  top: 0;
-  offset-path: path('M108 42 C96 14 84 58 66 34 S36 24 12 44');
-  offset-anchor: 0% 100%;
-  offset-rotate: 0deg;
-  animation: qalam-move 2.2s cubic-bezier(0.45, 0, 0.25, 1) infinite;
-}
-@keyframes qalam-draw {
-  0% { stroke-dashoffset: 1; opacity: 1; }
-  68%, 88% { stroke-dashoffset: 0; opacity: 1; }
-  100% { stroke-dashoffset: 0; opacity: 0; }
-}
-@keyframes qalam-move {
-  0% { offset-distance: 0%; opacity: 1; }
-  68% { offset-distance: 100%; opacity: 1; }
-  88% { offset-distance: 100%; opacity: 1; }
-  100% { offset-distance: 100%; opacity: 0; }
-}
-@keyframes qalam-dot {
-  0%, 66% { opacity: 0; transform: scale(0); }
-  76% { opacity: 1; transform: scale(1.35); }
-  82%, 88% { opacity: 1; transform: scale(1); }
-  100% { opacity: 0; transform: scale(1); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .qalam-trace { animation: none; stroke-dashoffset: 0; }
-  .qalam-dot { animation: none; opacity: 1; }
-  .qalam-loader svg.qalam-nib { animation: none; offset-distance: 100%; }
-}
-
 @layer components {
   /* ===== سلّم الطباعة ===== */
   .text-display { font-size: 2.25rem; line-height: 2.75rem; font-weight: 800; }
