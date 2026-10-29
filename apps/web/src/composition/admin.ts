@@ -11,9 +11,13 @@ import {
   AddQuestionUseCase,
   ApproveQuestionUseCase,
   CheckAdminUseCase,
+  CreateUploadTicketUseCase,
   DeleteQuestionUseCase,
   DraftLessonNotesUseCase,
   GenerateQuestionsUseCase,
+  GenerateStudyGuideUseCase,
+  SetStudyGuideUseCase,
+  SummarizeLessonUseCase,
   ListLessonQuestionsUseCase,
   UpdateQuestionUseCase,
   type QuizAdminDeps,
@@ -37,6 +41,7 @@ import {
 } from '@qalam/application';
 import { AdminPolicy } from '@qalam/domain';
 import {
+  CloudinaryUploadSigner,
   SupabaseConceptRepository,
   SupabasePathRepository,
   SupabaseQuestionRepository,
@@ -81,10 +86,25 @@ async function buildDeps(): Promise<QuizAdminDeps> {
   };
 }
 
+/** توقيع رفع الفيديو إلى Cloudinary؛ بلا المتغيرات الثلاثة لا يظهر خيار الرفع */
+function buildUploadSigner(): CloudinaryUploadSigner {
+  return new CloudinaryUploadSigner({
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+    apiKey: process.env.CLOUDINARY_API_KEY,
+    apiSecret: process.env.CLOUDINARY_API_SECRET,
+  });
+}
+
+/** زر «لخّص الدرس» للمتعلم: يكتب الملخص المخزَّن مؤقتًا فيحتاج مستودعًا بصلاحية الخدمة (على الخادم فقط) */
+export async function getLessonSummarizer(): Promise<SummarizeLessonUseCase> {
+  return new SummarizeLessonUseCase(await buildDeps());
+}
+
 export interface AdminContainer {
   /** المستخدم الحالي (يُمرَّر لكل use case ليتحقق من صلاحيته) */
   actor: AuthUser | null;
   checkAdmin: CheckAdminUseCase;
+  createUploadTicket: CreateUploadTicketUseCase;
   listPaths: ListLearningPathsUseCase;
   getPath: GetLearningPathUseCase;
   listConcepts: ListConceptsUseCase;
@@ -110,6 +130,8 @@ export interface AdminContainer {
   approveQuestion: ApproveQuestionUseCase;
   updateQuestion: UpdateQuestionUseCase;
   deleteQuestion: DeleteQuestionUseCase;
+  generateStudyGuide: GenerateStudyGuideUseCase;
+  setStudyGuide: SetStudyGuideUseCase;
 }
 
 export async function getAdminContainer(): Promise<AdminContainer> {
@@ -118,6 +140,7 @@ export async function getAdminContainer(): Promise<AdminContainer> {
   return {
     actor,
     checkAdmin: new CheckAdminUseCase(deps),
+    createUploadTicket: new CreateUploadTicketUseCase({ policy: deps.policy, uploads: buildUploadSigner() }),
     listPaths: new ListLearningPathsUseCase(deps.paths),
     getPath: new GetLearningPathUseCase(deps.paths),
     listConcepts: new ListConceptsUseCase(deps),
@@ -143,5 +166,7 @@ export async function getAdminContainer(): Promise<AdminContainer> {
     approveQuestion: new ApproveQuestionUseCase(deps),
     updateQuestion: new UpdateQuestionUseCase(deps),
     deleteQuestion: new DeleteQuestionUseCase(deps),
+    generateStudyGuide: new GenerateStudyGuideUseCase(deps),
+    setStudyGuide: new SetStudyGuideUseCase(deps),
   };
 }

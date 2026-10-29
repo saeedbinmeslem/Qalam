@@ -32,6 +32,13 @@ export interface LessonProps {
    * الأسئلة بالذكاء الاصطناعي، لأننا لا نفترض توفر النص المفرّغ للفيديو.
    */
   notes?: string;
+  /**
+   * رابط فيديو رفعه المالك إلى Cloudinary (نص فقط؛ لا نخزّن الفيديو عندنا). عند وجوده يُعرض بمشغّل
+   * HTML بدل تضمين يوتيوب، ويكون `sourceUrl` هو نفسه.
+   */
+  mediaUrl?: string;
+  /** ملخص للقراءة بدل المشاهدة (يُنشأ بالذكاء الاصطناعي من الملاحظات ويراجعه المالك)، ومنه ملف PDF */
+  studyGuide?: string;
 }
 
 export class Lesson {
@@ -45,6 +52,8 @@ export class Lesson {
   readonly summary?: string;
   readonly reviewedByHuman: boolean;
   readonly notes?: string;
+  readonly mediaUrl?: string;
+  readonly studyGuide?: string;
 
   constructor(props: LessonProps) {
     if (!props.title || props.title.trim().length === 0) {
@@ -70,6 +79,10 @@ export class Lesson {
     this.reviewedByHuman = props.reviewedByHuman ?? false;
     const notes = props.notes?.trim();
     if (notes) this.notes = notes;
+    const mediaUrl = props.mediaUrl?.trim();
+    if (mediaUrl) this.mediaUrl = mediaUrl;
+    const studyGuide = props.studyGuide?.trim();
+    if (studyGuide) this.studyGuide = studyGuide;
   }
 
   /** نسخة جديدة بالتعديلات (الكيان غير قابل للتعديل). المعرّف لا يتغيّر. */
@@ -85,6 +98,8 @@ export class Lesson {
       summary: this.summary,
       reviewedByHuman: this.reviewedByHuman,
       notes: this.notes,
+      mediaUrl: this.mediaUrl,
+      studyGuide: this.studyGuide,
       ...changes,
     });
   }

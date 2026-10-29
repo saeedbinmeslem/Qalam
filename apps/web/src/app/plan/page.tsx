@@ -1,0 +1,142 @@
+/**
+ * @file page.tsx
+ * @description «خطتي»: الهدف، الخطة الأسبوعية بأسبابها، ما درسه المتعلم وما سيدرسه. كل شيء من use case واحد.
+ */
+import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import { EmptyState, PageHeader, ProgressBar, pageWidth } from '../../components/ui';
+import { getAuth } from '../../composition/auth';
+import { getContainer } from '../../composition/container';
+import { rebuildPlanAction } from '../start/actions';
+
+export const dynamic = 'force-dynamic';
+export const metadata = { title: 'خطتي — قلم' };
+
+const levelLabels: Record<string, string> = { beginner: 'مبتدئ', intermediate: 'متوسط', advanced: 'متقدم' };
+const statusLabels = { done: '✓ أنجزته', skipped: 'تخطّيناه', next: 'التالي', upcoming: 'قادم' } as const;
+
+export default async function PlanPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+  const { error } = await searchParams;
+  const user = await (await getAuth()).getCurrentUser.execute();
+  if (!user) redirect('/login?next=/plan');
+
+  const { getPersonalPlan } = await getContainer();
+  const view = await getPersonalPlan.execute({ userId: user.id });
+
+  if (!view) {
+    return (
+      <div className={`${pageWidth} py-20`}>
+        <EmptyState
+          title="لم نبنِ خطتك بعد"
+          body="أخبرنا بما يشغفك وبالمجال الذي تريده، ونختار لك المسار الأنسب ونرتّبه في أسابيع تناسب وقتك."
+          action={
+            <Link href="/start" className="btn-filled">
+              ابدأ الآن
+            </Link>
+          }
+        />
+      </div>
+    );
+  }
+
+  const { goal, plan, progress, next, history } = view;
+  return (
+    <>
+      <PageHeader
+        eyebrow="خطتك الشخصية"
+        title={goal.pathTitle}
+        description={goal.rationale}
+        actions={
+          next ? (
+            <Link href={`/paths/${goal.pathId}/lessons/${next.id}`} className="btn-filled">
+              تابع: {next.title}
+            </Link>
+          ) : null
+        }
+      />
+      <div className={`${pageWidth} space-y-10 py-10`}>
+        {error ? (
+          <p role="alert" className="rounded-md bg-error-container p-4 text-on-error-container">
+            {error}
+          </p>
+        ) : null}
+
+        <section aria-label="هدفك" className="card-outlined space-y-2 p-5">
+          <p className="text-sm text-muted">
+            شغفك: <span className="text-ink">{goal.interest}</span>
+          </p>
+          <p className="text-sm text-muted">
+            مجالك: <span className="text-ink">{goal.field}</span> · المستوى: {levelLabels[goal.level] ?? goal.level} ·{' '}
+            {goal.hoursPerWeek} ساعات أسبوعيًا
+          </p>
+          <ProgressBar percent={progress.percent} label={`${progress.completedCount} مكتمل و${progress.skippedCount} متخطى من ${progress.totalCount}`} />
+          <Link href="/start" className="text-sm text-primary underline">
+            غيّر هدفي
+          </Link>
+        </section>
+
+        <section aria-labelledby="plan-h">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 id="plan-h" className="font-display text-title text-on-surface">
+              الخطة الأسبوعية
+            </h2>
+            <form action={rebuildPlanAction}>
+              <button type="submit" className="btn-outlined btn-sm">
+                حدّث خطتي بحسب تقدمي
+              </button>
+            </form>
+          </div>
+          {!plan ? (
+            <p className="mt-3 text-muted">لم تُبنَ خطتك بعد. اضغط «حدّث خطتي».</p>
+          ) : plan.weeks.length === 0 ? (
+            <p className="mt-3 text-muted">أنهيت كل دروس المسار. أحسنت!</p>
+          ) : (
+            <>
+              <p className="mt-2 text-muted">{plan.summary}</p>
+              <ol className="mt-5 space-y-4">
+                {plan.weeks.map((week) => (
+                  <li key={week.week} className="card-outlined p-5">
+                    <p className="text-label text-primary">الأسبوع {week.week} · نحو {week.minutes} دقيقة</p>
+                    <h3 className="mt-1 font-display text-lg font-semibold text-ink">{week.title}</h3>
+                    <p className="mt-1 text-sm text-muted">{week.focus}</p>
+                    <ul className="mt-3 space-y-2">
+                      {week.lessons.map((lesson) => (
+                        <li key={lesson.id} className="flex items-center justify-between gap-3">
+                          <Link href={`/paths/${goal.pathId}/lessons/${lesson.id}`} className="text-ink hover:underline">
+                            {lesson.title}
+                          </Link>
+                          <span className={lesson.status === 'next' ? 'chip chip-primary' : 'text-xs text-muted'}>{statusLabels[lesson.status]}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </li>
+                ))}
+              </ol>
+              <p className="mt-3 text-xs text-muted">{plan.usedAi ? 'صيغت عناوين الأسابيع وأسبابها بالذكاء الاصطناعي من دروس المنصة فقط.' : 'بُنيت الخطة بقواعد بسيطة من ساعاتك ونتيجة اختبارك.'}</p>
+            </>
+          )}
+        </section>
+
+        <section aria-labelledby="history-h">
+          <h2 id="history-h" className="font-display text-title text-on-surface">
+            سجلّ ما درستَه
+          </h2>
+          {history.length === 0 ? (
+            <p className="mt-3 text-muted">لم تُكمل درسًا بعد. ابدأ من الدرس التالي أعلاه.</p>
+          ) : (
+            <ul className="mt-3 space-y-2">
+              {history.map((h) => (
+                <li key={`${h.lessonId}-${h.at.getTime()}`} className="flex justify-between gap-3 text-ink">
+                  <span>✓ {h.title}</span>
+                  <time className="text-xs text-muted" dateTime={h.at.toISOString()}>
+                    {h.at.toLocaleDateString('ar')}
+                  </time>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </div>
+    </>
+  );
+}

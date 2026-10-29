@@ -12,6 +12,7 @@ export const primaryNav: NavItem[] = [
   { href: '/library', label: 'مكتبة الدروس' },
   { href: '/concepts', label: 'خريطة المفاهيم' },
   { href: '/practice', label: 'التمارين', badge: 'قريبًا' },
+  { href: '/plan', label: 'خطتي' },
   { href: '/dashboard', label: 'تعلّمي' },
 ];
 

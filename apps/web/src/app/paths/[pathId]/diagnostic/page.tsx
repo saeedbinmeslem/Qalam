@@ -79,9 +79,14 @@ export default async function DiagnosticPage({
           )}
         </section>
 
-        <Link href={back} className="mt-8 btn-filled">
-          متابعة المسار
-        </Link>
+        <div className="mt-8 flex flex-wrap gap-3">
+          <Link href="/plan" className="btn-filled">
+            شاهد خطتي الأسبوعية
+          </Link>
+          <Link href={back} className="btn-outlined">
+            متابعة المسار
+          </Link>
+        </div>
       </div>
     );
   }

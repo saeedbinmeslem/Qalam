@@ -109,6 +109,8 @@ export class DraftLessonNotesUseCase {
     if (!found) throw new NotFoundError('الدرس');
     const { module, lesson } = found;
     if (lesson.notes) throw new Error('للدرس ملاحظات بالفعل. امسحها أولًا إن أردت توليد مسودة جديدة');
+    // المزوّد يقرأ روابط يوتيوب العامة فقط؛ الفيديو المرفوع (Cloudinary) تكتب ملاحظاته بنفسك
+    if (lesson.mediaUrl) throw new Error('الفيديو المرفوع لا يقرؤه النموذج تلقائيًا. اكتب ملاحظاته بنفسك في «بيانات الدرس»');
 
     const text = (
       await this.deps.llm.describeVideo({

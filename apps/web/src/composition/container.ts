@@ -14,6 +14,10 @@ import {
   type ConceptRepositoryPort,
   GetLearningPathUseCase,
   GetLessonQuizUseCase,
+  StartOnboardingUseCase,
+  AskLessonUseCase,
+  BuildPersonalPlanUseCase,
+  GetPersonalPlanUseCase,
   GetLessonUseCase,
   GetPathProgressUseCase,
   GetQuizResultUseCase,
@@ -45,10 +49,16 @@ import {
 } from '@qalam/infrastructure';
 import { join } from 'node:path';
 import { createSupabaseServerClient, isSupabaseConfigured } from './auth';
-import { getAgentLlmClient } from './llm';
+import { getAgentLlmClient, getPlanLlmClient } from './llm';
 import { getServiceClient } from './service-client';
 
 export interface Container {
+  /** «اسأل قلم»: يجيب من مادة الدرس فقط */
+  askLesson: AskLessonUseCase;
+  /** التعارف والخطة الشخصية */
+  startOnboarding: StartOnboardingUseCase;
+  buildPersonalPlan: BuildPersonalPlanUseCase;
+  getPersonalPlan: GetPersonalPlanUseCase;
   getDiagnostic: GetDiagnosticUseCase;
   getDiagnosticResult: GetDiagnosticResultUseCase;
   submitDiagnostic: SubmitDiagnosticUseCase;
@@ -76,7 +86,12 @@ function assemble(
 ): Container {
   const diagnosticDeps = { paths, questions, concepts };
   const learningAgent = new LearningAgent({ paths, events, recorder: events, clock: systemClock, llm: getAgentLlmClient() });
+  const planDeps = { paths, events, clock: systemClock, llm: getPlanLlmClient() };
   return {
+    askLesson: new AskLessonUseCase({ paths, llm: getPlanLlmClient() }),
+    startOnboarding: new StartOnboardingUseCase(planDeps),
+    buildPersonalPlan: new BuildPersonalPlanUseCase(planDeps),
+    getPersonalPlan: new GetPersonalPlanUseCase(planDeps),
     getDiagnostic: new GetDiagnosticUseCase(diagnosticDeps),
     getDiagnosticResult: new GetDiagnosticResultUseCase(diagnosticDeps),
     submitDiagnostic: new SubmitDiagnosticUseCase(diagnosticDeps, events, systemClock),

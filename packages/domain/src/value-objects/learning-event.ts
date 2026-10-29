@@ -10,6 +10,10 @@ export const LEARNING_EVENT_TYPES = [
   'attempt_submitted',
   'diagnostic_completed',
   'plan_decision',
+  /** هدف المتعلم من التعارف: الشغف والمجال والمستوى والساعات والمسار المختار */
+  'goal_set',
+  /** خطة دراسة شخصية أُنشئت (أسابيع ودروس وأسبابها)؛ آخرها هو الحالية */
+  'plan_created',
 ] as const;
 
 export type LearningEventType = (typeof LEARNING_EVENT_TYPES)[number];

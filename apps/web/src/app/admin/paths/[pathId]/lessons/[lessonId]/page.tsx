@@ -16,7 +16,7 @@ import {
   primaryButton,
 } from '../../../../../../components/admin-ui';
 import { LessonFields } from '../../../../../../components/lesson-fields';
-import { YouTubePlayer } from '../../../../../../components/youtube-player';
+import { LessonPlayer } from '../../../../../../components/lesson-player';
 import { getAdminContainer } from '../../../../../../composition/admin';
 import { ConfirmSubmit } from '../../../../../../components/confirm-submit';
 import {
@@ -25,6 +25,7 @@ import {
   deleteQuestionAction,
   draftNotesAction,
   generateQuestionsAction,
+  saveStudyGuideAction,
   setLessonReviewAction,
   updateLessonAction,
   updateQuestionAction,
@@ -62,12 +63,7 @@ export default async function AdminLessonPage({
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="space-y-4">
-          <YouTubePlayer
-            embedUrl={lesson.segment.toEmbedUrl()}
-            title={lesson.title}
-            channelName={lesson.channelName}
-            sourceUrl={lesson.sourceUrl}
-          />
+          <LessonPlayer lesson={lesson} />
           <Card title="المراجعة البشرية">
             <p className="mb-3 flex items-center gap-3 text-sm text-muted">
               الحالة الحالية: <ReviewBadge reviewed={lesson.reviewedByHuman} />
@@ -111,7 +107,8 @@ export default async function AdminLessonPage({
               defaults={{
                 title: lesson.title,
                 conceptId: lesson.conceptId,
-                videoUrl: lesson.sourceUrl,
+                videoUrl: lesson.mediaUrl ? undefined : lesson.sourceUrl,
+                mediaUrl: lesson.mediaUrl,
                 start: formatTimecode(lesson.segment.startSeconds),
                 end: formatTimecode(lesson.segment.endSeconds),
                 channelName: lesson.channelName,
@@ -124,6 +121,23 @@ export default async function AdminLessonPage({
               حفظ التعديلات
             </button>
             <p className="text-xs text-muted">أي تعديل على المحتوى يسحب اعتماد المراجعة ليُراجَع من جديد.</p>
+          </form>
+        </Card>
+      </div>
+
+      <div className="mt-10">
+        <Card title="ملخص للقراءة (و PDF)">
+          <p className="mb-4 text-sm text-muted">
+            لمن يفضّل القراءة على المشاهدة. يُولَّد الملخص تلقائيًا عندما يضغط المتعلم «لخّص لي الدرس» (من «ملاحظاتك» فقط)، ثم يُحفظ هنا لتراجعه وتعدّله أو
+            تكتب ملخصًا بنفسك. صيغة التحرير: سطر <code dir="ltr">## عنوان</code> يبدأ قسمًا، و<code dir="ltr">- نقطة</code> لعنصر فيه.
+          </p>
+          <form action={saveStudyGuideAction} className="space-y-3">
+            <input type="hidden" name="pathId" value={pathId} />
+            <input type="hidden" name="lessonId" value={lessonId} />
+            <Field label="نص الملخص" name="guide" defaultValue={lesson.studyGuide} rows={10} hint="اتركه فارغًا لإخفاء الملخص عن المتعلم. أي تعديل يسحب اعتماد مراجعة الدرس." />
+            <button type="submit" className={primaryButton}>
+              حفظ الملخص
+            </button>
           </form>
         </Card>
       </div>

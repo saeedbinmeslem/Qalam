@@ -5,9 +5,10 @@
 import { createLessonId, createPathId } from '@qalam/domain';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import { completeLessonAction, submitQuizAction } from './actions';
+import { completeLessonAction, submitQuizAction, summarizeLessonAction } from './actions';
 import { formatDuration } from '../../../../../components/format';
-import { YouTubePlayer } from '../../../../../components/youtube-player';
+import { AskQalam } from '../../../../../components/ask-qalam';
+import { LessonPlayer } from '../../../../../components/lesson-player';
 import { getAuth } from '../../../../../composition/auth';
 import { getContainer } from '../../../../../composition/container';
 
@@ -15,10 +16,13 @@ export const dynamic = 'force-dynamic';
 
 export default async function LessonPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ pathId: string; lessonId: string }>;
+  searchParams: Promise<{ summaryError?: string }>;
 }) {
   const { pathId, lessonId } = await params;
+  const { summaryError } = await searchParams;
   // صفحات الدروس تتطلب تسجيل الدخول لأن التقدم والأحداث تُسجَّل باسم المتعلم
   const auth = await getAuth();
   const user = await auth.getCurrentUser.execute();
@@ -57,17 +61,36 @@ export default async function LessonPage({
         {lesson.title}
       </h1>
       <p className="mt-1 text-muted">
-        شاهد هذا المقطع فقط ({formatDuration(lesson.segment.durationSeconds)}) من الفيديو الأصلي.
+        شاهد هذا المقطع فقط ({formatDuration(lesson.segment.durationSeconds)}) من الفيديو.
       </p>
 
       <div className="mt-6">
-        <YouTubePlayer
-          embedUrl={lesson.segment.toEmbedUrl()}
-          title={lesson.title}
-          channelName={lesson.channelName}
-          sourceUrl={lesson.sourceUrl}
-        />
+        <LessonPlayer lesson={lesson} />
       </div>
+
+      {lesson.studyGuide || lesson.notes ? (
+        <div className="mt-4">
+          {lesson.studyGuide ? (
+            <Link href={`/paths/${pathId}/lessons/${lessonId}/summary`} className="btn-outlined btn-sm">
+              اقرأ ملخص الدرس (وحمّله PDF)
+            </Link>
+          ) : (
+            <form action={summarizeLessonAction}>
+              <input type="hidden" name="pathId" value={pathId} />
+              <input type="hidden" name="lessonId" value={lessonId} />
+              <button type="submit" className="btn-outlined btn-sm">
+                لخّص لي الدرس بالذكاء الاصطناعي
+              </button>
+              <span className="ms-3 text-xs text-muted">تقرأه بدل المشاهدة، ويمكنك حفظه PDF.</span>
+            </form>
+          )}
+          {summaryError ? (
+            <p role="alert" className="mt-2 text-sm text-error">
+              {summaryError}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
       {lesson.summary ? (
         <section className="mt-8 max-w-[40rem]">
@@ -75,6 +98,8 @@ export default async function LessonPage({
           <p className="mt-2 text-muted">{lesson.summary}</p>
         </section>
       ) : null}
+
+      {lesson.notes || lesson.studyGuide || lesson.summary ? <AskQalam pathId={pathId} lessonId={lessonId} /> : null}
 
       {quiz.length > 0 ? (
         <section className="mt-10 max-w-[40rem]" aria-labelledby="quiz-title">

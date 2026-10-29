@@ -25,6 +25,7 @@ export * from './ports/llm-client.port.js';
 export * from './ports/question-repository.port.js';
 export * from './use-cases/admin/generated-questions.js';
 export * from './use-cases/admin/admin-quiz.usecases.js';
+export * from './use-cases/admin/admin-study-guide.usecases.js';
 export * from './use-cases/learner-quiz.usecases.js';
 export * from './use-cases/diagnostic.usecases.js';
 
@@ -36,6 +37,8 @@ export * from './use-cases/admin/admin-deps.js';
 export * from './use-cases/admin/admin-paths.usecases.js';
 export * from './use-cases/admin/admin-lessons.usecases.js';
 export * from './use-cases/admin/admin-concepts.usecases.js';
+export * from './ports/media-upload.port.js';
+export * from './use-cases/admin/admin-media.usecases.js';
 
 // أقسام المنصة: المكتبة وخريطة المفاهيم ولوحة المتعلم
 export * from './use-cases/catalog.usecases.js';
@@ -43,3 +46,5 @@ export * from './use-cases/catalog.usecases.js';
 // وكيل التعلّم
 export * from './agent/decision-explanation.js';
 export * from './agent/learning-agent.js';
+export * from './use-cases/personal-plan.usecases.js';
+export * from './use-cases/ask-lesson.usecase.js';

@@ -168,6 +168,38 @@ describe('الدروس', () => {
     expect(lesson.reviewedByHuman).toBe(false);
   });
 
+  it('فيديو Cloudinary المرفوع يحل محل يوتيوب، ومدته تصبح نهاية المقطع، ويُرفض أي نطاق آخر', async () => {
+    const { deps, pathId, moduleId } = await seeded();
+    const mediaUrl = 'https://res.cloudinary.com/demo/video/upload/v1/qalam/lessons/abc123.mp4';
+    const { lessonId } = await new AddLessonUseCase(deps).execute({
+      actor: admin,
+      pathId,
+      moduleId,
+      ...lessonFields,
+      videoUrl: '',
+      start: '',
+      end: '',
+      mediaUrl,
+      mediaDurationSeconds: 125.4,
+    });
+    const lesson = (deps.paths as FakePaths).store.get(pathId)!.modules[0]!.lessons.find((l) => l.id === lessonId)!;
+    expect(lesson.mediaUrl).toBe(mediaUrl);
+    expect(lesson.sourceUrl).toBe(mediaUrl);
+    expect(lesson.segment.videoId).toBe('abc123');
+    expect(lesson.segment.startSeconds).toBe(0);
+    expect(lesson.segment.endSeconds).toBe(126);
+
+    await expect(
+      new AddLessonUseCase(deps).execute({
+        actor: admin,
+        pathId,
+        moduleId,
+        ...lessonFields,
+        mediaUrl: 'https://evil.example.com/demo/video/upload/a.mp4',
+      }),
+    ).rejects.toThrow('Cloudinary');
+  });
+
   it('يرفض مفهومًا غير موجود وفيديو غير صالح ومقطعًا معكوسًا', async () => {
     const { deps, pathId, moduleId } = await seeded();
     const add = (over: Partial<typeof lessonFields>) =>

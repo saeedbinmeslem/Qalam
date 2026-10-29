@@ -11,6 +11,7 @@ import {
   createConceptId,
   createLessonId,
   createModuleId,
+  parseCloudinaryVideoUrl,
   parseTimecode,
   parseYouTubeVideoId,
   toWatchUrl,
@@ -33,22 +34,48 @@ export interface LessonFields {
   summary: string;
   /** ملاحظات المالك عن المحتوى (أساس توليد الأسئلة؛ لا تُعرض للمتعلم) */
   notes?: string;
+  /** رابط فيديو مرفوع إلى Cloudinary؛ إن وُجد حلّ محل رابط يوتيوب */
+  mediaUrl?: string;
+  /** مدة الفيديو المرفوع بالثواني (يرسلها Cloudinary)، تُستعمل نهايةً للمقطع إن تُركت النهاية فارغة */
+  mediaDurationSeconds?: number;
 }
 
-async function buildLessonChanges(deps: AdminDeps, fields: LessonFields) {
-  const conceptId = createConceptId(fields.conceptId);
-  if (!(await deps.concepts.findById(conceptId))) throw new NotFoundError('المفهوم');
-
+/** المقطع والمصدر: فيديو مرفوع (Cloudinary) أو تضمين يوتيوب */
+function resolveVideo(fields: LessonFields) {
+  const mediaUrl = fields.mediaUrl?.trim();
+  if (mediaUrl) {
+    const media = parseCloudinaryVideoUrl(mediaUrl);
+    const end = fields.end.trim() !== '' ? parseTimecode(fields.end) : Math.ceil(fields.mediaDurationSeconds ?? 0);
+    return {
+      segment: new VideoSegment({
+        videoId: media.publicId,
+        startSeconds: fields.start.trim() !== '' ? parseTimecode(fields.start) : 0,
+        endSeconds: end,
+      }),
+      sourceUrl: media.url,
+      mediaUrl: media.url,
+    };
+  }
   const videoId = parseYouTubeVideoId(fields.videoUrl);
   return {
-    title: fields.title,
-    conceptId,
     segment: new VideoSegment({
       videoId,
       startSeconds: parseTimecode(fields.start),
       endSeconds: parseTimecode(fields.end),
     }),
     sourceUrl: toWatchUrl(videoId),
+    mediaUrl: undefined,
+  };
+}
+
+async function buildLessonChanges(deps: AdminDeps, fields: LessonFields) {
+  const conceptId = createConceptId(fields.conceptId);
+  if (!(await deps.concepts.findById(conceptId))) throw new NotFoundError('المفهوم');
+
+  return {
+    title: fields.title,
+    conceptId,
+    ...resolveVideo(fields),
     channelName: fields.channelName,
     language: fields.language,
     summary: fields.summary.trim() === '' ? undefined : fields.summary,

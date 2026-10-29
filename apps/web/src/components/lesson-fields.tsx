@@ -4,11 +4,13 @@
  */
 import Link from 'next/link';
 import { Field, inputClass } from './admin-ui';
+import { LessonVideoSource } from './lesson-video-source';
 
 export interface LessonDefaults {
   title?: string;
   conceptId?: string;
   videoUrl?: string;
+  mediaUrl?: string;
   start?: string;
   end?: string;
   channelName?: string;
@@ -29,20 +31,10 @@ export function LessonFields({
       <div className="md:col-span-2">
         <Field label="عنوان الدرس" name="title" defaultValue={defaults.title} required />
       </div>
-      <div className="md:col-span-2">
-        <Field
-          label="رابط الفيديو على يوتيوب"
-          name="videoUrl"
-          defaultValue={defaults.videoUrl}
-          dir="ltr"
-          required
-          placeholder="https://www.youtube.com/watch?v=..."
-          hint="تضمين رسمي فقط: لا ننسخ الفيديو ولا نعيد استضافته."
-        />
-      </div>
-      <Field label="بداية المقطع" name="start" defaultValue={defaults.start ?? '0:00'} dir="ltr" required hint="مثل 0:00 أو 14:20 أو 1:02:03" />
-      <Field label="نهاية المقطع" name="end" defaultValue={defaults.end} dir="ltr" required hint="يجب أن تكون بعد البداية" />
-      <Field label="اسم القناة" name="channelName" defaultValue={defaults.channelName} required hint="يُعرض دائمًا مع الدرس حفظًا للحقوق." />
+      <LessonVideoSource
+        defaults={{ videoUrl: defaults.videoUrl, start: defaults.start, end: defaults.end, mediaUrl: defaults.mediaUrl }}
+      />
+      <Field label="اسم القناة أو المصدر" name="channelName" defaultValue={defaults.channelName} required hint="يُعرض دائمًا مع الدرس حفظًا للحقوق (للفيديو المرفوع اكتب اسم صاحب المحتوى)." />
       <label className="block">
         <span className="block text-sm font-medium text-ink">لغة الشرح</span>
         <select name="language" defaultValue={defaults.language ?? 'ar'} className={inputClass}>

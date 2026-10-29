@@ -19,8 +19,10 @@ export async function submitDiagnosticAction(formData: FormData): Promise<void> 
     if (key.startsWith('q_')) answers[key.slice(2)] = Number(value);
   }
 
-  const { submitDiagnostic } = await getContainer();
+  const { submitDiagnostic, buildPersonalPlan } = await getContainer();
   await submitDiagnostic.execute({ userId: user.id, pathId, answers });
+  // الخطة تُبنى من نتيجة التشخيصي (إن أجرى المتعلم التعارف)؛ فشلها لا يمنع عرض النتيجة
+  await buildPersonalPlan.execute({ userId: user.id }).catch(() => null);
 
   const encoded = Object.entries(answers)
     .map(([id, index]) => `${id}:${index}`)

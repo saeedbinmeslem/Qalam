@@ -7,6 +7,7 @@
 import { createPathId } from '@qalam/domain';
 import { redirect } from 'next/navigation';
 import { getAuth } from '../../../../../composition/auth';
+import { getLessonSummarizer } from '../../../../../composition/admin';
 import { getContainer } from '../../../../../composition/container';
 
 /** يصحّح الاختبار في الخادم ويسجّل المحاولة، ثم يفتح صفحة النتيجة (الإجابات في الرابط بصيغة id:index) */
@@ -49,4 +50,22 @@ export async function completeLessonAction(formData: FormData): Promise<void> {
   });
 
   redirect(nextLessonId ? `/paths/${pathId}/lessons/${nextLessonId}` : `/paths/${pathId}`);
+}
+
+/** زر «لخّص الدرس»: يولّد الملخص بالذكاء الاصطناعي عند الطلب فقط، ثم يفتح صفحة الملخص */
+export async function summarizeLessonAction(formData: FormData): Promise<void> {
+  const pathId = String(formData.get('pathId') ?? '');
+  const lessonId = String(formData.get('lessonId') ?? '');
+  const user = await (await getAuth()).getCurrentUser.execute();
+  if (!user) redirect('/login');
+
+  const lessonPage = `/paths/${pathId}/lessons/${lessonId}`;
+  let destination = `${lessonPage}/summary`;
+  try {
+    await (await getLessonSummarizer()).execute({ userId: user.id, pathId, lessonId });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'تعذّر التلخيص الآن';
+    destination = `${lessonPage}?summaryError=${encodeURIComponent(message)}`;
+  }
+  redirect(destination);
 }

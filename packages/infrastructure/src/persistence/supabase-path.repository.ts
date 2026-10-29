@@ -48,6 +48,8 @@ export interface LessonRow {
   summary: string | null;
   reviewed_by_human: boolean | null;
   notes?: string | null;
+  media_url?: string | null;
+  study_guide?: string | null;
   order_index: number;
 }
 
@@ -109,6 +111,8 @@ export function mapPathRow(row: PathRow): LearningPath {
           summary: l.summary ?? undefined,
           reviewedByHuman: l.reviewed_by_human ?? false,
           notes: l.notes ?? undefined,
+          mediaUrl: l.media_url ?? undefined,
+          studyGuide: l.study_guide ?? undefined,
         }),
       );
     }
@@ -158,6 +162,8 @@ export class SupabasePathRepository implements PathRepositoryPort {
           summary: l.summary ?? null,
           reviewed_by_human: l.reviewedByHuman,
           notes: l.notes ?? null,
+          media_url: l.mediaUrl ?? null,
+          study_guide: l.studyGuide ?? null,
           order_index: index + 1,
         })),
       ),

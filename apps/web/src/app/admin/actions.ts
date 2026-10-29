@@ -49,6 +49,8 @@ const lessonFields = (data: FormData) => ({
   language: text(data, 'language'),
   summary: text(data, 'summary'),
   notes: text(data, 'notes'),
+  mediaUrl: text(data, 'mediaUrl'),
+  mediaDurationSeconds: Number(text(data, 'mediaDurationSeconds')) || undefined,
 });
 
 const conceptFields = (data: FormData) => ({
@@ -207,6 +209,22 @@ export async function draftNotesAction(data: FormData): Promise<void> {
   const lessonId = text(data, 'lessonId');
   await run(lessonPage(pathId, lessonId), async (admin) => {
     await admin.draftLessonNotes.execute({ actor: admin.actor, pathId, lessonId });
+  });
+}
+
+export async function generateStudyGuideAction(data: FormData): Promise<void> {
+  const pathId = text(data, 'pathId');
+  const lessonId = text(data, 'lessonId');
+  await run(lessonPage(pathId, lessonId), async (admin) => {
+    await admin.generateStudyGuide.execute({ actor: admin.actor, pathId, lessonId });
+  });
+}
+
+export async function saveStudyGuideAction(data: FormData): Promise<void> {
+  const pathId = text(data, 'pathId');
+  const lessonId = text(data, 'lessonId');
+  await run(lessonPage(pathId, lessonId), async (admin) => {
+    await admin.setStudyGuide.execute({ actor: admin.actor, pathId, lessonId, text: text(data, 'guide') });
   });
 }
 

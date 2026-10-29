@@ -75,6 +75,8 @@ export function takeSnapshot(sources: SnapshotSources): LocalSnapshot {
           summary: l.summary,
           reviewedByHuman: l.reviewedByHuman,
           notes: l.notes,
+          mediaUrl: l.mediaUrl,
+          studyGuide: l.studyGuide,
         })),
       })),
     })),
@@ -139,6 +141,8 @@ export function restoreSnapshot(snapshot: LocalSnapshot): RestoredSnapshot {
               summary: l.summary,
               reviewedByHuman: l.reviewedByHuman,
               notes: l.notes,
+              mediaUrl: l.mediaUrl,
+              studyGuide: l.studyGuide,
             }),
           );
         }

@@ -22,3 +22,4 @@ export * from './persistence/supabase-question.repository.js';
 export * from './llm/anthropic-llm-client.js';
 export * from './llm/gemini-llm-client.js';
 export * from './persistence/local-snapshot.js';
+export * from './media/cloudinary-upload-signer.js';
