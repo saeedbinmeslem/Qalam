@@ -5,6 +5,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Mada } from 'next/font/google';
 import type { ReactNode } from 'react';
+import { GlobalLoader } from '../components/global-loader';
 import { SiteFooter } from '../components/site-footer';
 import { SiteHeader } from '../components/site-header';
 import { THEME_INIT_SCRIPT } from '../components/theme-toggle';
@@ -47,6 +48,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <SiteHeader />
         <main id="content">{children}</main>
         <SiteFooter />
+        <GlobalLoader />
       </body>
     </html>
   );
