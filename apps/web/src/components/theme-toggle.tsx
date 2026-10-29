@@ -3,7 +3,7 @@
  * @file theme-toggle.tsx
  * @description اختيار مظهر الموقع: فاتح / داكن / مثل الجهاز (الأصل).
  * "مثل الجهاز" يزيل السمة data-theme فيتولى prefers-color-scheme في globals.css الأمر؛
- * الاختيار اليدوي يُحفظ في localStorage ويُطبَّق قبل الرسم عبر THEME_INIT_SCRIPT (انظر layout.tsx).
+ * الاختيار اليدوي يُحفظ في localStorage (يبقى بعد إغلاق المتصفح) ويُطبَّق قبل الرسم عبر THEME_INIT_SCRIPT (انظر layout.tsx).
  */
 import { useEffect, useState } from 'react';
 
