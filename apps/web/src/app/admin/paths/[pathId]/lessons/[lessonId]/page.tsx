@@ -140,7 +140,7 @@ export default async function AdminLessonPage({
             <input type="hidden" name="lessonId" value={lessonId} />
             <label className="block">
               <span className="block text-sm font-medium text-ink">عدد الأسئلة</span>
-              <input type="number" name="count" defaultValue={3} min={1} max={8} className="mt-1.5 w-24 rounded-lg border border-rule bg-sheet px-3 py-2" />
+              <input type="number" name="count" defaultValue={3} min={1} max={8} className="field w-24" />
             </label>
             <button type="submit" className={primaryButton} disabled={!lesson.notes} title={lesson.notes ? undefined : 'اكتب ملاحظات الدرس أولًا'}>
               ولّد أسئلة بالذكاء الاصطناعي
@@ -148,7 +148,7 @@ export default async function AdminLessonPage({
             {lesson.notes ? null : <span className="text-sm text-red-700">اكتب ملاحظات الدرس واحفظها أولًا.</span>}
           </form>
 
-          <details className="mb-6 rounded-lg border border-rule bg-paper p-4">
+          <details className="mb-6 card-filled p-4">
             <summary className="cursor-pointer font-medium text-ink">أو اكتب سؤالًا بنفسك</summary>
             <form action={addQuestionAction} className="mt-4 space-y-3">
               <input type="hidden" name="pathId" value={pathId} />
@@ -160,7 +160,7 @@ export default async function AdminLessonPage({
                   {[0, 1, 2, 3, 4].map((i) => (
                     <div key={i} className="flex items-center gap-2">
                       <input type="radio" name="correctIndex" value={i} defaultChecked={i === 0} aria-label={`الخيار ${i + 1} هو الصحيح`} />
-                      <input name="choice" className="w-full rounded-lg border border-rule bg-sheet px-3 py-1.5" aria-label={`الخيار ${i + 1}`} />
+                      <input name="choice" className="field" aria-label={`الخيار ${i + 1}`} />
                     </div>
                   ))}
                 </div>
@@ -177,11 +177,11 @@ export default async function AdminLessonPage({
           ) : (
             <ul className="space-y-4">
               {questions.map((q, index) => (
-                <li key={q.id} className="rounded-lg border border-rule p-4">
+                <li key={q.id} className="card-outlined p-4">
                   <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
                     <span className="font-medium text-ink">سؤال {index + 1}</span>
                     {q.isApproved ? (
-                      <span className="rounded-full bg-sea/10 px-2.5 py-0.5 font-medium text-sea-dark">معتمد</span>
+                      <span className="chip chip-primary">معتمد</span>
                     ) : (
                       <span className="rounded-full bg-highlighter/25 px-2.5 py-0.5 font-medium text-ink">مسودة</span>
                     )}
@@ -199,7 +199,7 @@ export default async function AdminLessonPage({
                         {q.choices.map((choice, i) => (
                           <div key={i} className="flex items-center gap-2">
                             <input type="radio" name="correctIndex" value={i} defaultChecked={i === q.correctIndex} aria-label={`الخيار ${i + 1} هو الصحيح`} />
-                            <input name="choice" defaultValue={choice} className="w-full rounded-lg border border-rule bg-sheet px-3 py-1.5" aria-label={`الخيار ${i + 1}`} />
+                            <input name="choice" defaultValue={choice} className="field" aria-label={`الخيار ${i + 1}`} />
                           </div>
                         ))}
                       </div>

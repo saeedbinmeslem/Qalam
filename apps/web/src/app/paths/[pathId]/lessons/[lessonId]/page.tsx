@@ -86,7 +86,7 @@ export default async function LessonPage({
             <input type="hidden" name="pathId" value={pathId} />
             <input type="hidden" name="lessonId" value={lessonId} />
             {quiz.map((question, index) => (
-              <fieldset key={question.id} className="rounded-lg border border-rule bg-sheet p-4">
+              <fieldset key={question.id} className="card-outlined p-4">
                 <legend className="px-1 font-medium text-ink">
                   {index + 1}. {question.prompt}
                 </legend>
@@ -102,7 +102,7 @@ export default async function LessonPage({
             ))}
             <button
               type="submit"
-              className="rounded-lg bg-sea px-6 py-3 font-medium text-white transition-colors hover:bg-sea-dark"
+              className="btn-filled"
             >
               تسليم الإجابات
             </button>
@@ -114,7 +114,7 @@ export default async function LessonPage({
         تقدمك في المسار: {progress.completedCount} من {progress.totalCount} ({progress.percent}%)
       </p>
       {alreadyCompleted ? (
-        <p role="status" className="mt-2 inline-block rounded-full bg-sea/10 px-3 py-1 text-sm font-medium text-sea-dark">
+        <p role="status" className="mt-2 inline-block chip chip-primary">
           ✓ أكملت هذا الدرس
         </p>
       ) : null}
@@ -125,7 +125,7 @@ export default async function LessonPage({
         <input type="hidden" name="nextLessonId" value={next?.id ?? ''} />
         <button
           type="submit"
-          className="rounded-lg bg-ink px-6 py-3 font-medium text-white transition-colors hover:bg-ink-soft"
+          className="btn-filled"
         >
           {alreadyCompleted
             ? next

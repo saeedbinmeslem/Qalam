@@ -31,19 +31,19 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 
   return (
     <div className="mx-auto max-w-5xl px-5 py-10">
-      <div className="mb-8 flex flex-wrap items-center justify-between gap-4 border-b border-rule pb-4">
-        <p className="font-display text-xl font-extrabold text-ink">لوحة التحكم</p>
+      <div className="mb-8 flex flex-wrap items-center justify-between gap-4 border-b border-outline-variant pb-4">
+        <p className="font-display text-headline text-on-surface">لوحة التحكم</p>
         <nav aria-label="أقسام اللوحة" className="flex gap-2">
-          <Link href="/admin" className="rounded-full px-4 py-1.5 text-sm font-medium text-ink hover:bg-sheet">
+          <Link href="/admin" className="nav-item">
             المسارات
           </Link>
-          <Link href="/admin/concepts" className="rounded-full px-4 py-1.5 text-sm font-medium text-ink hover:bg-sheet">
+          <Link href="/admin/concepts" className="nav-item">
             المفاهيم
           </Link>
         </nav>
       </div>
       {isSupabaseConfigured() ? null : (
-        <p className="mb-6 rounded-lg border border-highlighter bg-highlighter/15 p-3 text-sm text-ink">
+        <p className="mb-6 rounded-md bg-tertiary-container p-3 text-sm text-on-tertiary-container">
           وضع التطوير: التعديلات تُحفظ في ذاكرة الخادم وتُفقد عند إعادة تشغيله. اربط Supabase لحفظها دائمًا.
         </p>
       )}

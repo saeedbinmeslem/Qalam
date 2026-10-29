@@ -62,7 +62,7 @@ export default async function QuizResultPage({
 
       <ol className="mt-8 space-y-5">
         {result.results.map((r, index) => (
-          <li key={r.questionId} className="rounded-lg border border-rule bg-sheet p-4">
+          <li key={r.questionId} className="card-outlined p-4">
             <p className="font-medium text-ink">
               {index + 1}. {r.prompt}{' '}
               <span className={r.isCorrect ? 'text-sea-dark' : 'text-red-700'}>{r.isCorrect ? '✓ صحيح' : '✗ خطأ'}</span>
@@ -90,7 +90,7 @@ export default async function QuizResultPage({
         ))}
       </ol>
 
-      <Link href={back} className="mt-8 inline-block rounded-lg bg-ink px-6 py-3 font-medium text-white hover:bg-ink-soft">
+      <Link href={back} className="mt-8 btn-filled">
         العودة إلى الدرس
       </Link>
     </div>

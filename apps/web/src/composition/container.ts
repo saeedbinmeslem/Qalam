@@ -5,6 +5,9 @@
  * مع مفاتيح Supabase: قاعدة البيانات الفعلية. بدونها: ذاكرة + بذرة (للتطوير والاختبار).
  */
 import {
+  GetConceptMapUseCase,
+  GetLearnerDashboardUseCase,
+  SearchLessonLibraryUseCase,
   GetDiagnosticResultUseCase,
   GetDiagnosticUseCase,
   SubmitDiagnosticUseCase,
@@ -59,6 +62,10 @@ export interface Container {
   recordLearningEvent: RecordLearningEventUseCase;
   /** وكيل التعلّم: القواعد حتمية، والنموذج اللغوي اختياري لصياغة الشرح فقط */
   learningAgent: LearningAgent;
+  /** أقسام المنصة: المكتبة، خريطة المفاهيم، لوحة المتعلم */
+  searchLessonLibrary: SearchLessonLibraryUseCase;
+  getConceptMap: GetConceptMapUseCase;
+  getLearnerDashboard: GetLearnerDashboardUseCase;
 }
 
 function assemble(
@@ -68,6 +75,7 @@ function assemble(
   concepts: ConceptRepositoryPort,
 ): Container {
   const diagnosticDeps = { paths, questions, concepts };
+  const learningAgent = new LearningAgent({ paths, events, recorder: events, clock: systemClock, llm: getAgentLlmClient() });
   return {
     getDiagnostic: new GetDiagnosticUseCase(diagnosticDeps),
     getDiagnosticResult: new GetDiagnosticResultUseCase(diagnosticDeps),
@@ -80,7 +88,10 @@ function assemble(
     getLesson: new GetLessonUseCase(paths),
     listLearningPaths: new ListLearningPathsUseCase(paths),
     recordLearningEvent: new RecordLearningEventUseCase(events, systemClock),
-    learningAgent: new LearningAgent({ paths, events, recorder: events, clock: systemClock, llm: getAgentLlmClient() }),
+    learningAgent,
+    searchLessonLibrary: new SearchLessonLibraryUseCase(paths),
+    getConceptMap: new GetConceptMapUseCase(concepts, paths),
+    getLearnerDashboard: new GetLearnerDashboardUseCase(paths, events, learningAgent),
   };
 }
 

@@ -4,14 +4,10 @@
  */
 import type { ReactNode } from 'react';
 
-export const inputClass =
-  'mt-1.5 w-full rounded-lg border border-rule bg-sheet px-3 py-2 text-start focus:border-sea';
-export const primaryButton =
-  'rounded-lg bg-ink px-5 py-2 font-medium text-white transition-colors hover:bg-ink-soft';
-export const ghostButton =
-  'rounded-lg border border-rule bg-sheet px-3 py-1.5 text-sm font-medium text-ink transition-colors hover:border-ink';
-export const dangerButton =
-  'rounded-lg border border-red-200 bg-sheet px-3 py-1.5 text-sm font-medium text-red-700 transition-colors hover:border-red-600';
+export const inputClass = 'field';
+export const primaryButton = 'btn-filled';
+export const ghostButton = 'btn-outlined btn-sm';
+export const dangerButton = 'btn-danger btn-sm';
 
 interface FieldProps {
   label: string;
@@ -30,9 +26,9 @@ export function Field({ label, name, defaultValue, required, dir, hint, rows, pl
   // الوسم يلفّ الحقل (ربط ضمني) فلا تتعارض المعرّفات عند تكرار النموذج في الصفحة
   return (
     <label className="block">
-      <span className="block text-sm font-medium text-ink">
+      <span className="block text-label text-on-surface">
         {label}
-        {required ? <span className="text-red-700"> *</span> : null}
+        {required ? <span className="text-error"> *</span> : null}
       </span>
       {rows ? (
         <textarea name={name} rows={rows} defaultValue={defaultValue} dir={dir} placeholder={placeholder} className={inputClass} />
@@ -48,7 +44,7 @@ export function Field({ label, name, defaultValue, required, dir, hint, rows, pl
           className={inputClass}
         />
       )}
-      {hint ? <span className="mt-1 block text-xs text-muted">{hint}</span> : null}
+      {hint ? <span className="field-hint">{hint}</span> : null}
     </label>
   );
 }
@@ -56,7 +52,7 @@ export function Field({ label, name, defaultValue, required, dir, hint, rows, pl
 export function ErrorBanner({ message }: { message?: string }) {
   if (!message) return null;
   return (
-    <p role="alert" className="mb-6 rounded-lg border border-red-300 bg-red-50 p-4 text-red-800">
+    <p role="alert" className="mb-6 rounded-md bg-error-container p-4 text-on-error-container">
       {message}
     </p>
   );
@@ -64,10 +60,10 @@ export function ErrorBanner({ message }: { message?: string }) {
 
 export function Card({ title, children, actions }: { title?: string; children: ReactNode; actions?: ReactNode }) {
   return (
-    <section className="rounded-lg border border-rule bg-sheet p-5">
+    <section className="card-outlined p-5">
       {title || actions ? (
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          {title ? <h2 className="font-display text-lg font-semibold text-ink">{title}</h2> : <span />}
+          {title ? <h2 className="font-display text-title text-on-surface">{title}</h2> : <span />}
           {actions}
         </div>
       ) : null}
@@ -78,8 +74,8 @@ export function Card({ title, children, actions }: { title?: string; children: R
 
 export function ReviewBadge({ reviewed }: { reviewed: boolean }) {
   return reviewed ? (
-    <span className="rounded-full bg-sea/10 px-2.5 py-0.5 text-xs font-medium text-sea-dark">مراجَع</span>
+    <span className="chip chip-primary">مراجَع</span>
   ) : (
-    <span className="rounded-full bg-highlighter/25 px-2.5 py-0.5 text-xs font-medium text-ink">بانتظار المراجعة</span>
+    <span className="chip chip-warn">بانتظار المراجعة</span>
   );
 }

@@ -46,8 +46,8 @@ export default async function PathPage({ params }: { params: Promise<{ pathId: s
   return (
     <>
       <section className="bg-ink text-white">
-        <div className="mx-auto max-w-5xl px-5 py-14">
-          <Link href="/#paths" className="text-sm text-white/70 hover:text-white">
+        <div className="mx-auto max-w-6xl px-5 md:px-8 py-14">
+          <Link href="/paths" className="text-sm text-white/70 hover:text-white">
             كل المسارات
           </Link>
           <h1 className="mt-4 font-display text-3xl font-extrabold leading-[1.5] md:text-4xl">
@@ -114,8 +114,8 @@ export default async function PathPage({ params }: { params: Promise<{ pathId: s
       </section>
 
       {advice ? (
-        <section aria-labelledby="why-title" className="mx-auto max-w-5xl px-5 pt-10">
-          <div className="rounded-lg border border-rule border-s-4 border-s-highlighter bg-sheet p-5">
+        <section aria-labelledby="why-title" className="mx-auto max-w-6xl px-5 md:px-8 pt-10">
+          <div className="card-outlined border-s-4 border-s-highlighter p-5">
             <p className="text-sm font-medium text-muted">
               اقتراح وكيل التعلّم: {actionLabels[advice.decision.action]}
             </p>
@@ -158,7 +158,7 @@ export default async function PathPage({ params }: { params: Promise<{ pathId: s
         </section>
       ) : null}
 
-      <div className="mx-auto max-w-5xl px-5 pt-14">
+      <div className="mx-auto max-w-6xl px-5 md:px-8 pt-14">
         <ol className="stroke-list">
           {path.modules.map((module, index) => (
             <li key={module.id} className="stroke-item">
@@ -168,7 +168,7 @@ export default async function PathPage({ params }: { params: Promise<{ pathId: s
               <h2 className="font-display text-xl font-semibold text-ink">{module.title}</h2>
               <p className="mt-1 text-muted">{module.description}</p>
 
-              <ul className="mt-5 divide-y divide-rule rounded-lg border border-rule bg-sheet">
+              <ul className="mt-5 divide-y divide-rule card-outlined">
                 {module.lessons.map((lesson) => (
                   <li key={lesson.id} className="grid gap-1 p-4 md:grid-cols-[1fr_auto] md:gap-6">
                     <div>
@@ -181,12 +181,12 @@ export default async function PathPage({ params }: { params: Promise<{ pathId: s
                         </span>
                       ) : null}
                       {progress?.completedLessonIds.has(lesson.id) ? (
-                        <span className="ms-2 rounded-full bg-sea/10 px-2 py-0.5 text-xs font-medium text-sea-dark">
+                        <span className="ms-2 chip chip-primary">
                           ✓ مكتمل
                         </span>
                       ) : null}
                       {progress?.quizPercentByLesson.has(lesson.id) ? (
-                        <span className="ms-2 rounded-full bg-ink/5 px-2 py-0.5 text-xs font-medium text-ink">
+                        <span className="ms-2 chip">
                           آخر اختبار: {progress.quizPercentByLesson.get(lesson.id)}%
                         </span>
                       ) : null}

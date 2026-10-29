@@ -11,8 +11,10 @@ export interface AuthUser {
 }
 
 export interface AuthPort {
-  /** يرسل رابط دخول سحري إلى البريد، ويعيد المستخدم مباشرة فقط في التنفيذ التطويري الذي لا يرسل بريدًا */
-  sendMagicLink(email: Email, redirectTo: string): Promise<{ signedIn: boolean }>;
+  /** يرسل رمز دخول من 6 أرقام إلى البريد، ويعيد المستخدم مباشرة فقط في التنفيذ التطويري الذي لا يرسل بريدًا */
+  requestSignInCode(email: Email): Promise<{ signedIn: boolean }>;
+  /** يتحقق من الرمز ويفتح الجلسة؛ يرمي استثناءً إن كان الرمز خاطئًا أو منتهيًا */
+  verifySignInCode(email: Email, code: string): Promise<void>;
   /** المستخدم الحالي أو null */
   getCurrentUser(): Promise<AuthUser | null>;
   signOut(): Promise<void>;

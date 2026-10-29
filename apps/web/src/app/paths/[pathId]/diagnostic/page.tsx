@@ -69,7 +69,7 @@ export default async function DiagnosticPage({
               <p className="mt-2 text-muted">تخطّينا هذه الدروس لأنك أثبتّ إتقان مفاهيمها، وهذه الأسباب:</p>
               <ul className="mt-3 space-y-3">
                 {skippedLessons.map((s) => (
-                  <li key={s.lessonId} className="rounded-lg border border-rule bg-sheet p-4">
+                  <li key={s.lessonId} className="card-outlined p-4">
                     <p className="font-medium text-ink">{s.title}</p>
                     <p className="mt-1 text-sm text-muted">{s.reason}</p>
                   </li>
@@ -79,7 +79,7 @@ export default async function DiagnosticPage({
           )}
         </section>
 
-        <Link href={back} className="mt-8 inline-block rounded-lg bg-ink px-6 py-3 font-medium text-white hover:bg-ink-soft">
+        <Link href={back} className="mt-8 btn-filled">
           متابعة المسار
         </Link>
       </div>
@@ -99,7 +99,7 @@ export default async function DiagnosticPage({
       <form action={submitDiagnosticAction} className="mt-6 space-y-6">
         <input type="hidden" name="pathId" value={pathId} />
         {questions.map((question, index) => (
-          <fieldset key={question.id} className="rounded-lg border border-rule bg-sheet p-4">
+          <fieldset key={question.id} className="card-outlined p-4">
             <legend className="px-1 font-medium text-ink">
               {index + 1}. {question.prompt}
             </legend>
@@ -113,7 +113,7 @@ export default async function DiagnosticPage({
             </div>
           </fieldset>
         ))}
-        <button type="submit" className="rounded-lg bg-sea px-6 py-3 font-medium text-white transition-colors hover:bg-sea-dark">
+        <button type="submit" className="btn-filled">
           تسليم الإجابات
         </button>
       </form>

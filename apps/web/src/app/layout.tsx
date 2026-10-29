@@ -5,6 +5,7 @@
 import type { Metadata } from 'next';
 import { Mada } from 'next/font/google';
 import type { ReactNode } from 'react';
+import { SiteFooter } from '../components/site-footer';
 import { SiteHeader } from '../components/site-header';
 import './globals.css';
 
@@ -28,17 +29,13 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body className="min-h-screen antialiased">
         <a
           href="#content"
-          className="sr-only focus:not-sr-only focus:absolute focus:start-4 focus:top-4 focus:z-50 focus:rounded focus:bg-ink focus:px-4 focus:py-2 focus:text-white"
+          className="sr-only focus:not-sr-only focus:absolute focus:start-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-primary focus:px-4 focus:py-2 focus:text-on-primary"
         >
           تخطَّ إلى المحتوى
         </a>
         <SiteHeader />
         <main id="content">{children}</main>
-        <footer className="mt-24 border-t border-rule">
-          <div className="mx-auto max-w-5xl px-5 py-8 text-sm text-muted">
-            الفيديوهات تُعرض عبر مشغّل يوتيوب الرسمي، وحقوقها لأصحاب القنوات المذكورين عند كل درس.
-          </div>
-        </footer>
+        <SiteFooter />
       </body>
     </html>
   );

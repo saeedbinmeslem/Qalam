@@ -37,6 +37,9 @@ export * from './use-cases/admin/admin-paths.usecases.js';
 export * from './use-cases/admin/admin-lessons.usecases.js';
 export * from './use-cases/admin/admin-concepts.usecases.js';
 
+// أقسام المنصة: المكتبة وخريطة المفاهيم ولوحة المتعلم
+export * from './use-cases/catalog.usecases.js';
+
 // وكيل التعلّم
 export * from './agent/decision-explanation.js';
 export * from './agent/learning-agent.js';

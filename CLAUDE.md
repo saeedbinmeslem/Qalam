@@ -62,10 +62,10 @@ tests/                       # end-to-end
 ## حالة التنفيذ (حدّثها عند كل إنجاز؛ التفاصيل في @docs/IMPLEMENTATION_LOG.md)
 
 ### المنجز (المرحلة 0، تقريبًا 90%)
-- Monorepo (npm workspaces) + TypeScript + ESLint يفرض قواعد Clean Architecture + Vitest + CI. الاختبارات: 144 ناجحة.
+- Monorepo (npm workspaces) + TypeScript + ESLint يفرض قواعد Clean Architecture + Vitest + CI. الاختبارات: 147 ناجحة.
 - Domain: Concept, Lesson, Module, LearningPath (مع مدة المسار), Learner, VideoSegment, MasteryState, Email, LearningEvent، وقواعد التكيّف الأولية.
 - Application: ports (PathRepository, LearnerRepository, Auth, EventRecorder, Clock) + use cases (GetLearningPath, ListLearningPaths, GetLesson, RequestSignIn/GetCurrentUser/SignOut, RecordLearningEvent).
-- Infrastructure: مستودعات الذاكرة، SupabasePathRepository، محوّلات المصادقة (SupabaseAuth + DevCookieAuth للتطوير)، مسجّلات الأحداث، هجرتا SQL (001 و002)، بذرة مسار.
+- Infrastructure: مستودعات الذاكرة، SupabasePathRepository، محوّلات المصادقة (SupabaseAuth برمز دخول من 6 أرقام + DevCookieAuth للتطوير)، مسجّلات الأحداث، هجرتا SQL (001 و002)، بذرة مسار.
 - apps/web: Next.js 15 + Tailwind 4، عربي RTL، هوية «حبر على ورق» مؤقتة (الرموز في `globals.css`) بخط مدى، الصفحات: الرئيسية، المسار، الدرس (مشغّل يوتيوب start/end)، الدخول. زر «أكملت الدرس» يسجّل الأحداث. Composition Root في `apps/web/src/composition`.
 - عقد المحرّك: `docs/evaluator-contract.md`. إضافة `frontend-design` مثبتة على مستوى المشروع.
 

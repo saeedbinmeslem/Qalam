@@ -18,9 +18,14 @@ export const DEV_AUTH_COOKIE = 'qalam_dev_user';
 export class DevCookieAuth implements AuthPort {
   constructor(private readonly cookies: CookieJar) {}
 
-  async sendMagicLink(email: Email, _redirectTo: string): Promise<{ signedIn: boolean }> {
+  async requestSignInCode(email: Email): Promise<{ signedIn: boolean }> {
     this.cookies.set(DEV_AUTH_COOKIE, email.value);
     return { signedIn: true };
+  }
+
+  /** لا رمز في الوضع التطويري: الدخول يتم فور الطلب */
+  async verifySignInCode(email: Email, _code: string): Promise<void> {
+    this.cookies.set(DEV_AUTH_COOKIE, email.value);
   }
 
   async getCurrentUser(): Promise<AuthUser | null> {

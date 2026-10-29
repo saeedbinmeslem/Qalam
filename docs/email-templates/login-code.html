@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<!--
+  قالب بريد رمز الدخول لقلم (هوية «حبر على ورق»).
+  يُلصق في Supabase: Authentication → Emails → Templates، في القالبين «Magic Link» و«Confirm signup».
+  عنوان الرسالة المقترح: {{ .Token }} هو رمز الدخول إلى قلم
+  المتغير {{ .Token }} يُستبدل برمز من 6 أرقام. التنسيق مضمّن (inline) وبجداول لأن عملاء البريد لا يدعمون CSS الحديث.
+-->
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <title>رمز الدخول إلى قلم</title>
+  </head>
+  <body style="margin:0;padding:0;background:#f5f7f6;">
+    <!-- نص المعاينة الذي يظهر بجانب العنوان في صندوق الوارد -->
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0;">
+      رمزك للدخول إلى قلم: {{ .Token }} — صالح لفترة قصيرة.
+    </div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f7f6;padding:32px 12px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;">
+            <!-- الترويسة: شريط حبري مع علامة قلم -->
+            <tr>
+              <td align="center" style="background:#0b6b5e;border-radius:16px 16px 0 0;padding:28px 24px 24px;">
+                <div style="font-family:'Segoe UI',Tahoma,Arial,sans-serif;font-size:34px;font-weight:800;color:#ffffff;line-height:1.2;">
+                  قلم
+                </div>
+                <div style="width:44px;height:4px;background:#f2b632;border-radius:2px;margin:12px auto 10px;"></div>
+                <div style="font-family:'Segoe UI',Tahoma,Arial,sans-serif;font-size:14px;color:#cfd9d8;">
+                  مسار تعلّمك، بخطوات واضحة
+                </div>
+              </td>
+            </tr>
+            <!-- المتن -->
+            <tr>
+              <td style="background:#ffffff;border:1px solid #cfd9d8;border-top:0;border-radius:0 0 16px 16px;padding:32px 28px;font-family:'Segoe UI',Tahoma,Arial,sans-serif;color:#15252b;">
+                <p style="margin:0 0 8px;font-size:20px;font-weight:700;color:#14303a;">مرحبًا بك في قلم 👋</p>
+                <p style="margin:0 0 24px;font-size:16px;line-height:1.8;color:#15252b;">
+                  اكتب هذا الرمز في صفحة الدخول لتكمل رحلة التعلّم:
+                </p>
+
+                <!-- الرمز: ورقة بخط تمييز أصفر تحته -->
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td align="center" style="background:#f5f7f6;border:1px solid #cfd9d8;border-bottom:4px solid #f2b632;border-radius:12px;padding:20px 8px;">
+                      <div dir="ltr" style="font-family:'Courier New',Consolas,monospace;font-size:38px;font-weight:800;letter-spacing:12px;color:#14303a;padding-left:12px;">
+                        {{ .Token }}
+                      </div>
+                    </td>
+                  </tr>
+                </table>
+
+                <p style="margin:24px 0 0;font-size:14px;line-height:1.8;color:#566c72;">
+                  الرمز صالح لفترة قصيرة ويُستعمل مرة واحدة. لا تشاركه مع أحد، فلن نطلبه منك أبدًا.
+                </p>
+                <hr style="border:0;border-top:1px solid #cfd9d8;margin:24px 0 16px;" />
+                <p style="margin:0;font-size:13px;line-height:1.8;color:#566c72;">
+                  لم تطلب الدخول إلى قلم؟ تجاهل هذه الرسالة، ولن يتغير شيء في حسابك.
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td align="center" style="padding:16px 8px 0;font-family:'Segoe UI',Tahoma,Arial,sans-serif;font-size:12px;color:#566c72;">
+                قلم · منصة تعلّم عربية مبنية على فيديوهات يوتيوب
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

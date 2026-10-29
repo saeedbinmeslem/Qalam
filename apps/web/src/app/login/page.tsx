@@ -1,17 +1,27 @@
 /**
  * @file page.tsx
- * @description صفحة الدخول بالبريد (رابط سحري). بلا كلمات مرور.
+ * @description صفحة الدخول بالبريد: خطوتان، إدخال البريد ثم إدخال رمز من 6 أرقام. بلا كلمات مرور.
  */
+import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getAuth } from '../../composition/auth';
-import { requestSignInAction } from '../auth/actions';
+import { QalamMark } from '../../components/brand';
+import { ResendCodeButton } from '../../components/resend-code-button';
+import {
+  requestSignInAction,
+  resendCodeAction,
+  resetSignInAction,
+  verifyCodeAction,
+} from '../auth/actions';
+import { PENDING_EMAIL_COOKIE } from '../auth/pending-email';
 import { safeRedirectPath } from '../auth/safe-redirect';
 
 export const dynamic = 'force-dynamic';
 
 const errors: Record<string, string> = {
   invalid: 'اكتب بريدًا إلكترونيًا صحيحًا، مثل name@example.com.',
-  failed: 'تعذّر إرسال رابط الدخول. حاول مرة أخرى بعد قليل.',
+  failed: 'تعذّر إرسال رمز الدخول. حاول مرة أخرى بعد قليل.',
+  code: 'الرمز غير صحيح أو انتهت صلاحيته. تأكد من الأرقام الستة أو اطلب رمزًا جديدًا.',
 };
 
 export default async function LoginPage({
@@ -25,15 +35,61 @@ export default async function LoginPage({
 
   if (await auth.getCurrentUser.execute()) redirect(target);
 
+  const pendingEmail = (await cookies()).get(PENDING_EMAIL_COOKIE)?.value;
+  const awaitingCode = Boolean(sent && pendingEmail);
+
   return (
     <div className="mx-auto max-w-md px-5 py-16">
-      <h1 className="font-display text-3xl font-extrabold text-ink">الدخول إلى قلم</h1>
+      <QalamMark size={56} />
+      <h1 className="mt-5 font-display text-3xl font-extrabold text-ink">الدخول إلى قلم</h1>
 
-      {sent ? (
-        <p role="status" className="mt-6 rounded-lg border border-sea bg-sheet p-5 text-ink">
-          أرسلنا رابط الدخول إلى بريدك. افتحه من هذا الجهاز لتكمل. لم يصلك شيء؟ تفقّد مجلد الرسائل
-          غير المرغوبة، أو أعد المحاولة.
-        </p>
+      {awaitingCode ? (
+        <div className="mt-6 space-y-4">
+          <p role="status" className="rounded-lg border border-sea bg-sheet p-5 text-ink">
+            أرسلنا رمزًا من 6 أرقام إلى <bdi dir="ltr" className="font-medium">{pendingEmail}</bdi>. اكتبه هنا
+            لتدخل. لم يصلك شيء؟ تفقّد مجلد الرسائل غير المرغوبة.
+          </p>
+          <form action={verifyCodeAction} className="space-y-4">
+            <input type="hidden" name="next" value={target} />
+            <div>
+              <label htmlFor="code" className="block font-medium text-ink">
+                رمز الدخول
+              </label>
+              <input
+                id="code"
+                name="code"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]{6}"
+                maxLength={6}
+                required
+                autoFocus
+                autoComplete="one-time-code"
+                dir="ltr"
+                className="field text-center font-mono text-2xl tracking-[0.5em]"
+                aria-describedby={error ? 'code-error' : undefined}
+              />
+              {error ? (
+                <p id="code-error" role="alert" className="mt-2 text-sm text-red-700">
+                  {errors[error] ?? errors.code}
+                </p>
+              ) : null}
+            </div>
+            <button
+              type="submit"
+              className="btn-filled"
+            >
+              ادخل
+            </button>
+          </form>
+          <ResendCodeButton action={resendCodeAction} next={target} />
+          <form action={resetSignInAction}>
+            <input type="hidden" name="next" value={target} />
+            <button type="submit" className="text-sm text-muted underline underline-offset-4">
+              غيّر البريد
+            </button>
+          </form>
+        </div>
       ) : (
         <form action={requestSignInAction} className="mt-6 space-y-4">
           <input type="hidden" name="next" value={target} />
@@ -48,7 +104,7 @@ export default async function LoginPage({
               required
               autoComplete="email"
               dir="ltr"
-              className="mt-2 w-full rounded-lg border border-rule bg-sheet px-4 py-3 text-start"
+              className="field"
               aria-describedby={error ? 'email-error' : undefined}
             />
             {error ? (
@@ -59,14 +115,14 @@ export default async function LoginPage({
           </div>
           <button
             type="submit"
-            className="rounded-lg bg-ink px-6 py-3 font-medium text-white transition-colors hover:bg-ink-soft"
+            className="btn-filled"
           >
-            أرسل رابط الدخول
+            أرسل رمز الدخول
           </button>
           <p className="text-sm text-muted">
             {auth.mode === 'dev'
               ? 'وضع التطوير: يتم الدخول مباشرة دون بريد.'
-              : 'لا كلمة مرور: نرسل لك رابطًا يفتح حسابك مباشرة.'}
+              : 'لا كلمة مرور: نرسل لك رمزًا من 6 أرقام لتدخل به.'}
           </p>
         </form>
       )}

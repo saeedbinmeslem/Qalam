@@ -67,7 +67,7 @@ export default async function AdminConcepts({ searchParams }: { searchParams: Pr
 
       <div className="mt-6 space-y-3">
         {concepts.map((concept) => (
-          <details key={concept.id} className="rounded-lg border border-rule bg-sheet p-4">
+          <details key={concept.id} className="card-outlined p-4">
             <summary className="cursor-pointer">
               <span className="font-medium text-ink">{concept.name}</span>
               <span className="ms-3 text-sm text-muted">

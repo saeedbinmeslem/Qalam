@@ -7,6 +7,7 @@ import {
   GetCurrentUserUseCase,
   RequestSignInUseCase,
   SignOutUseCase,
+  VerifySignInCodeUseCase,
   type AuthPort,
 } from '@qalam/application';
 import { DevCookieAuth, SupabaseAuth } from '@qalam/infrastructure';
@@ -15,6 +16,7 @@ import { cookies } from 'next/headers';
 
 export interface AuthUseCases {
   requestSignIn: RequestSignInUseCase;
+  verifySignInCode: VerifySignInCodeUseCase;
   getCurrentUser: GetCurrentUserUseCase;
   signOut: SignOutUseCase;
   /** في الوضع التطويري لا يُرسل بريد ويُسجَّل الدخول فورًا */
@@ -51,6 +53,7 @@ export async function getAuth(): Promise<AuthUseCases> {
     const auth = new SupabaseAuth(await createSupabaseServerClient());
     return {
       requestSignIn: new RequestSignInUseCase(auth),
+    verifySignInCode: new VerifySignInCodeUseCase(auth),
       getCurrentUser: new GetCurrentUserUseCase(auth),
       signOut: new SignOutUseCase(auth),
       mode: 'supabase',
@@ -60,14 +63,18 @@ export async function getAuth(): Promise<AuthUseCases> {
   if (process.env.NODE_ENV === 'production') {
     // الإنتاج بلا مفاتيح: لا دخول تطويري. الزائر يُعامل كغير مسجَّل، ومحاولة الدخول تفشل بوضوح
     const unconfigured: AuthPort = {
-      sendMagicLink: async () => {
-        throw new Error('تعذّر إرسال رابط الدخول: مفاتيح Supabase غير مضبوطة');
+      requestSignInCode: async () => {
+        throw new Error('تعذّر إرسال رمز الدخول: مفاتيح Supabase غير مضبوطة');
+      },
+      verifySignInCode: async () => {
+        throw new Error('رمز الدخول خاطئ: مفاتيح Supabase غير مضبوطة');
       },
       getCurrentUser: async () => null,
       signOut: async () => {},
     };
     return {
       requestSignIn: new RequestSignInUseCase(unconfigured),
+      verifySignInCode: new VerifySignInCodeUseCase(unconfigured),
       getCurrentUser: new GetCurrentUserUseCase(unconfigured),
       signOut: new SignOutUseCase(unconfigured),
       mode: 'supabase',
@@ -82,6 +89,7 @@ export async function getAuth(): Promise<AuthUseCases> {
   });
   return {
     requestSignIn: new RequestSignInUseCase(auth),
+    verifySignInCode: new VerifySignInCodeUseCase(auth),
     getCurrentUser: new GetCurrentUserUseCase(auth),
     signOut: new SignOutUseCase(auth),
     mode: 'dev',

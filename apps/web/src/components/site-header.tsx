@@ -2,53 +2,61 @@ import Link from 'next/link';
 import { signOutAction } from '../app/auth/actions';
 import { isAdminUser } from '../composition/admin';
 import { getAuth } from '../composition/auth';
+import { QalamLogo } from './brand';
+import { NavLinks, type NavItem } from './nav-links';
+
+/** أقسام المنصة بالترتيب الذي يتعلم به المتعلم: اكتشف، ادرس، افهم، طبّق، تابع */
+export const primaryNav: NavItem[] = [
+  { href: '/paths', label: 'المسارات' },
+  { href: '/library', label: 'مكتبة الدروس' },
+  { href: '/concepts', label: 'خريطة المفاهيم' },
+  { href: '/practice', label: 'التمارين', badge: 'قريبًا' },
+  { href: '/dashboard', label: 'تعلّمي' },
+];
 
 export async function SiteHeader() {
   const auth = await getAuth();
   const user = await auth.getCurrentUser.execute();
 
   return (
-    <header className="border-b border-rule bg-sheet">
-      <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-4">
-        <Link href="/" className="font-display text-2xl font-extrabold text-ink">
-          قلم
-        </Link>
-        <nav aria-label="التنقل الرئيسي" className="flex items-center gap-2">
-          <Link
-            href="/#paths"
-            className="rounded-full px-4 py-2 text-sm font-medium text-ink hover:bg-paper"
-          >
-            المسارات
+    <header className="sticky top-0 z-30 border-b border-outline-variant bg-surface-container-lowest/95 backdrop-blur">
+      <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-5 py-3 md:px-8">
+        <div className="flex items-center gap-6">
+          <Link href="/" aria-label="قلم — الرئيسية">
+            <QalamLogo size={34} />
           </Link>
-          {isAdminUser(user) ? (
-            <Link
-              href="/admin"
-              className="rounded-full px-4 py-2 text-sm font-medium text-ink hover:bg-paper"
-            >
-              لوحة التحكم
-            </Link>
-          ) : null}
+          <NavLinks items={primaryNav} />
+        </div>
+
+        <div className="flex items-center gap-2">
           {user ? (
-            <form action={signOutAction} className="flex items-center gap-2">
-              <span dir="ltr" className="hidden text-sm text-muted sm:inline">
-                {user.email}
-              </span>
-              <button
-                type="submit"
-                className="rounded-full px-4 py-2 text-sm font-medium text-ink hover:bg-paper"
-              >
-                خروج
-              </button>
-            </form>
+            <>
+              {isAdminUser(user) ? (
+                <Link href="/admin" className="btn-tonal btn-sm hidden sm:inline-flex">
+                  لوحة التحكم
+                </Link>
+              ) : null}
+              <Link href="/profile" className="btn-text btn-sm" aria-label="حسابي">
+                <span
+                  aria-hidden="true"
+                  className="grid size-7 place-items-center rounded-full bg-primary-container text-sm font-bold text-on-primary-container"
+                >
+                  {user.email.charAt(0).toUpperCase()}
+                </span>
+                <span className="hidden sm:inline">حسابي</span>
+              </Link>
+              <form action={signOutAction}>
+                <button type="submit" className="btn-text btn-sm hidden md:inline-flex">
+                  خروج
+                </button>
+              </form>
+            </>
           ) : (
-            <Link
-              href="/login"
-              className="rounded-full bg-ink px-4 py-2 text-sm font-medium text-white hover:bg-ink-soft"
-            >
+            <Link href="/login" className="btn-filled btn-sm">
               دخول
             </Link>
           )}
-        </nav>
+        </div>
       </div>
     </header>
   );

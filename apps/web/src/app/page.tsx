@@ -1,9 +1,10 @@
 /**
  * @file page.tsx
- * @description الصفحة الرئيسية: تعريف موجز بالمنصة وقائمة المسارات. بلا منطق عمل.
+ * @description الصفحة الرئيسية: وعد المنصة، أرقام المحتوى، أبرز المسارات، كيف يعمل قلم، وأقسام المنصة. بلا منطق عمل.
  */
 import Link from 'next/link';
-import { formatDuration, lessonsText, modulesText } from '../components/format';
+import { formatDuration } from '../components/format';
+import { PathCard, StatTile, pageWidth } from '../components/ui';
 import { getContainer } from '../composition/container';
 
 export const dynamic = 'force-dynamic';
@@ -15,30 +16,44 @@ const steps = [
   { title: 'تتعدّل خطتك', body: 'مراجعة أو درس بديل أو تقدّم أسرع، مع ذكر سبب كل قرار.' },
 ];
 
+const sections = [
+  { href: '/paths', title: 'المسارات', body: 'خطط تعلّم مرتبة من الأساس إلى المتقدم.' },
+  { href: '/library', title: 'مكتبة الدروس', body: 'ابحث في كل الدروس وصفّها بالقناة والمسار.' },
+  { href: '/concepts', title: 'خريطة المفاهيم', body: 'اعرف ما يسبق كل مفهوم وأين تتعلمه.' },
+  { href: '/dashboard', title: 'تعلّمي', body: 'تقدمك واقتراحات الوكيل في مكان واحد.' },
+  { href: '/review', title: 'المراجعة', body: 'ما يحتاج أن تعود إليه قبل أن تنساه.' },
+  { href: '/practice', title: 'التمارين العملية', body: 'كود حقيقي يُشغَّل ويُصحَّح. قيد البناء.' },
+];
+
 export default async function HomePage() {
   const { listLearningPaths } = await getContainer();
   const paths = await listLearningPaths.execute();
+  const lessons = paths.reduce((sum, p) => sum + p.lessonsCount, 0);
+  const seconds = paths.reduce((sum, p) => sum + p.totalDurationSeconds, 0);
 
   return (
     <>
-      <section className="border-b border-rule bg-sheet">
-        <div className="mx-auto grid max-w-5xl gap-12 px-5 py-16 md:grid-cols-[1.1fr_1fr] md:py-24">
+      <section className="border-b border-outline-variant bg-surface-container-low">
+        <div className={`${pageWidth} grid gap-12 py-16 md:grid-cols-[1.1fr_1fr] md:py-24`}>
           <div>
-            <h1 className="font-display text-4xl font-extrabold leading-[1.45] text-ink md:text-5xl md:leading-[1.4]">
+            <p className="chip chip-primary">منصة تعلّم عربية تقيس الفهم</p>
+            <h1 className="mt-5 font-display text-4xl font-extrabold leading-[1.45] text-on-surface md:text-6xl md:leading-[1.35]">
               تعلّم ما تحتاجه،
               <br />
-              وأثبت لنفسك أنك فهمته.
+              <span className="text-primary">وأثبت أنك فهمته.</span>
             </h1>
-            <p className="mt-6 max-w-[34rem] text-lg text-muted">
-              دروس مجانية مبعثرة في كل مكان. قلم يرتّبها لك في مسار واحد، ثم يقيس فهمك فعليًا
-              ويغيّر الخطة بحسب أدائك.
+            <p className="text-body mt-6 max-w-xl text-lg text-on-surface-variant">
+              دروس مجانية مبعثرة في كل مكان. قلم يرتّبها لك في مسار واحد، ثم يقيس فهمك فعليًا ويغيّر الخطة
+              بحسب أدائك.
             </p>
-            <Link
-              href="#paths"
-              className="mt-8 inline-block rounded-lg bg-ink px-6 py-3 font-medium text-white transition-colors hover:bg-ink-soft"
-            >
-              تصفّح المسارات
-            </Link>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link href="/paths" className="btn-filled">
+                تصفّح المسارات
+              </Link>
+              <Link href="/about" className="btn-outlined">
+                كيف يعمل قلم؟
+              </Link>
+            </div>
           </div>
 
           <ol className="stroke-list self-center" aria-label="كيف يعمل قلم">
@@ -47,48 +62,60 @@ export default async function HomePage() {
                 <span className="stroke-node" aria-hidden="true">
                   {index + 1}
                 </span>
-                <h2 className="font-display text-lg font-semibold text-ink">{step.title}</h2>
-                <p className="mt-1 text-muted">{step.body}</p>
+                <h2 className="font-display text-title text-on-surface">{step.title}</h2>
+                <p className="mt-1 text-on-surface-variant">{step.body}</p>
               </li>
             ))}
           </ol>
         </div>
       </section>
 
-      <section id="paths" className="mx-auto max-w-5xl scroll-mt-6 px-5 pt-16">
-        <h2 className="font-display text-2xl font-extrabold text-ink">المسارات المتاحة</h2>
+      <section aria-label="المنصة بالأرقام" className={`${pageWidth} -mt-8`}>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <StatTile value={String(paths.length)} label="مسارًا تعليميًا" />
+          <StatTile value={String(lessons)} label="درسًا مرتبًا" hint="كل درس مقطع محدد من مصدره" />
+          <StatTile value={seconds > 0 ? formatDuration(seconds) : '—'} label="إجمالي مدة المشاهدة" />
+        </div>
+      </section>
 
+      <section id="paths" className={`${pageWidth} scroll-mt-20 pt-20`}>
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="text-label text-primary">ابدأ من هنا</p>
+            <h2 className="font-display text-headline text-on-surface">المسارات المتاحة</h2>
+          </div>
+          <Link href="/paths" className="btn-text">
+            كل المسارات ‹
+          </Link>
+        </div>
         {paths.length === 0 ? (
-          <p className="mt-6 rounded-lg border border-dashed border-rule p-8 text-muted">
+          <p className="mt-6 rounded-lg border border-dashed border-outline p-8 text-on-surface-variant">
             لا توجد مسارات منشورة بعد. أضف أول مسار من إدارة المنصة.
           </p>
         ) : (
-          <ul className="mt-6 divide-y divide-rule border-y border-rule">
-            {paths.map((path) => (
+          <ul className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+            {paths.slice(0, 6).map((path) => (
               <li key={path.id}>
-                <Link
-                  href={`/paths/${path.id}`}
-                  className="group grid gap-2 py-6 md:grid-cols-[1fr_auto] md:items-center md:gap-8"
-                >
-                  <div>
-                    <p className="text-sm font-medium text-sea">{path.subject}</p>
-                    <h3 className="font-display text-xl font-semibold text-ink group-hover:underline">
-                      {path.title}
-                    </h3>
-                    <p className="mt-1 max-w-[40rem] text-muted">{path.description}</p>
-                  </div>
-                  <p className="text-sm text-muted md:text-end">
-                    {modulesText(path.modulesCount)}
-                    <br />
-                    {lessonsText(path.lessonsCount)}
-                    <br />
-                    {formatDuration(path.totalDurationSeconds)}
-                  </p>
-                </Link>
+                <PathCard path={path} />
               </li>
             ))}
           </ul>
         )}
+      </section>
+
+      <section className={`${pageWidth} pt-20`}>
+        <p className="text-label text-primary">كل ما تحتاجه</p>
+        <h2 className="font-display text-headline text-on-surface">أقسام المنصة</h2>
+        <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {sections.map((s) => (
+            <li key={s.href}>
+              <Link href={s.href} className="card-filled block h-full p-6 transition-colors hover:bg-surface-container">
+                <h3 className="font-display text-title text-on-surface">{s.title}</h3>
+                <p className="mt-2 text-on-surface-variant">{s.body}</p>
+              </Link>
+            </li>
+          ))}
+        </ul>
       </section>
     </>
   );

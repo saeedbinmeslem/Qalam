@@ -21,7 +21,7 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
       {paths.length === 0 ? (
         <p className="mt-4 text-muted">لا توجد مسارات بعد. أنشئ أول مسار من النموذج أدناه.</p>
       ) : (
-        <ul className="mt-5 divide-y divide-rule rounded-lg border border-rule bg-sheet">
+        <ul className="mt-5 divide-y divide-rule card-outlined">
           {paths.map((path) => (
             <li key={path.id} className="grid gap-2 p-4 md:grid-cols-[1fr_auto] md:items-center">
               <div>

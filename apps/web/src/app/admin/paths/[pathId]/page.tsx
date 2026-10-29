@@ -129,7 +129,7 @@ export default async function AdminPathPage({
             {module.lessons.length === 0 ? (
               <p className="text-sm text-muted">لا دروس في هذه الوحدة بعد.</p>
             ) : (
-              <ul className="divide-y divide-rule rounded-lg border border-rule">
+              <ul className="divide-y divide-rule card-outlined">
                 {module.lessons.map((lesson, index) => (
                   <li key={lesson.id} className="grid gap-2 p-3 md:grid-cols-[1fr_auto] md:items-center">
                     <div>
@@ -174,7 +174,7 @@ export default async function AdminPathPage({
               </ul>
             )}
 
-            <details className="mt-4 rounded-lg border border-rule bg-paper p-4">
+            <details className="mt-4 card-filled p-4">
               <summary className="cursor-pointer font-medium text-ink">إضافة درس إلى هذه الوحدة</summary>
               <form action={addLessonAction} className="mt-4 space-y-4">
                 <input type="hidden" name="pathId" value={path.id} />
@@ -187,7 +187,7 @@ export default async function AdminPathPage({
               </form>
             </details>
 
-            <details className="mt-3 rounded-lg border border-rule bg-paper p-4">
+            <details className="mt-3 card-filled p-4">
               <summary className="cursor-pointer font-medium text-ink">تعديل الوحدة أو حذفها</summary>
               <form action={updateModuleAction} className="mt-4 grid gap-4 md:grid-cols-2">
                 <input type="hidden" name="pathId" value={path.id} />
