@@ -10,6 +10,8 @@ import { getContainer } from '../../composition/container';
 import { rebuildPlanAction } from '../start/actions';
 
 export const dynamic = 'force-dynamic';
+// الصياغة بالذكاء الاصطناعي تجري بعد الاستجابة (after) وقد تستغرق دقيقة على Gemini المجاني
+export const maxDuration = 60;
 export const metadata = { title: 'خطتي — قلم' };
 
 const levelLabels: Record<string, string> = { beginner: 'مبتدئ', intermediate: 'متوسط', advanced: 'متقدم' };
@@ -112,7 +114,7 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
                   </li>
                 ))}
               </ol>
-              <p className="mt-3 text-xs text-muted">{plan.usedAi ? 'صيغت عناوين الأسابيع وأسبابها بالذكاء الاصطناعي من دروس المنصة فقط.' : 'بُنيت الخطة بقواعد بسيطة من ساعاتك ونتيجة اختبارك.'}</p>
+              <p className="mt-3 text-xs text-muted">{plan.usedAi ? 'صيغت عناوين الأسابيع وأسبابها بالذكاء الاصطناعي من دروس المنصة فقط.' : 'بُنيت الخطة من ساعاتك ونتيجة اختبارك. يصوغ الذكاء الاصطناعي عناوين الأسابيع وأسبابها في الخلفية؛ حدّث الصفحة بعد دقيقة.'}</p>
             </>
           )}
         </section>

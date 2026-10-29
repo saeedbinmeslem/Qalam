@@ -5,6 +5,7 @@
  * @description التعارف: يحوّل النموذج إلى use cases فقط. بعد اختيار المسار يذهب المتعلم للاختبار التشخيصي إن وُجدت
  * أسئلة معتمدة، وإلا تُبنى خطته مباشرة.
  */
+import { after } from 'next/server';
 import { redirect } from 'next/navigation';
 import { getAuth } from '../../composition/auth';
 import { getContainer } from '../../composition/container';
@@ -27,7 +28,10 @@ export async function startOnboardingAction(data: FormData): Promise<void> {
     });
     const questions = await getDiagnostic.execute({ pathId: chosen.pathId }).catch(() => []);
     if (questions.length > 0) destination = `/paths/${chosen.pathId}/diagnostic`;
-    else await buildPersonalPlan.execute({ userId: user.id });
+    else {
+      await buildPersonalPlan.execute({ userId: user.id, withAi: false });
+      after(() => buildPersonalPlan.execute({ userId: user.id }).catch(() => null));
+    }
   } catch (error) {
     destination = `/start?error=${encodeURIComponent(error instanceof Error ? error.message : 'تعذّر بدء الخطة')}`;
   }
@@ -41,7 +45,8 @@ export async function rebuildPlanAction(): Promise<void> {
   const { buildPersonalPlan } = await getContainer();
   let destination = '/plan';
   try {
-    await buildPersonalPlan.execute({ userId: user.id });
+    await buildPersonalPlan.execute({ userId: user.id, withAi: false });
+    after(() => buildPersonalPlan.execute({ userId: user.id }).catch(() => null));
   } catch (error) {
     destination = `/plan?error=${encodeURIComponent(error instanceof Error ? error.message : 'تعذّر تحديث الخطة')}`;
   }

@@ -10,6 +10,8 @@ import { getContainer } from '../../../../composition/container';
 import { submitDiagnosticAction } from './actions';
 
 export const dynamic = 'force-dynamic';
+// الصياغة بالذكاء الاصطناعي تجري بعد الاستجابة (after) وقد تستغرق دقيقة على Gemini المجاني
+export const maxDuration = 60;
 
 function parseAnswers(raw: string | undefined): Record<string, number> {
   const answers: Record<string, number> = {};

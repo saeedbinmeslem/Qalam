@@ -9,6 +9,8 @@ import { getAuth } from '../../composition/auth';
 import { startOnboardingAction } from './actions';
 
 export const dynamic = 'force-dynamic';
+// الصياغة بالذكاء الاصطناعي تجري بعد الاستجابة (after) وقد تستغرق دقيقة على Gemini المجاني
+export const maxDuration = 60;
 export const metadata = { title: 'ابدأ خطتك — قلم' };
 
 export default async function StartPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {

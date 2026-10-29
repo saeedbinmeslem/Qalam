@@ -44,17 +44,18 @@ export function getAgentLlmClient(): LlmClient | undefined {
   };
 }
 
-/** مهلة بناء الخطة: أطول من الشرح لأن المتعلم ينتظر النتيجة، وعند تجاوزها تُبنى الخطة بالقواعد */
-const PLAN_TIMEOUT_MS = 25000;
-
-export function getPlanLlmClient(): LlmClient | undefined {
+/**
+ * عميل لخطوات الخطة: بالمهلة المطلوبة. اختيار المسار ينتظره المتعلم (40ث)، وصياغة عناوين الأسابيع تجري
+ * في الخلفية فتتحمل أكثر (100ث) لأن Gemini المجاني قد يستغرق دقيقة.
+ */
+export function getPlanLlmClient(timeoutMs = 40000): LlmClient | undefined {
   const client = getLlmClient();
   if (client === unconfiguredLlmClient) return undefined;
   return {
     generateJson: (request) =>
       Promise.race([
         client.generateJson(request),
-        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('انتهت مهلة النموذج')), PLAN_TIMEOUT_MS)),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('انتهت مهلة النموذج')), timeoutMs)),
       ]),
   };
 }

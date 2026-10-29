@@ -125,7 +125,8 @@ export class StartOnboardingUseCase {
       rationale: '',
       usedAi: false,
     });
-    if (!this.deps.llm) return withDefaultRationale(fallback());
+    // مسار وحيد: لا اختيار يُجرى، فلا ننتظر النموذج (قد يستغرق دقيقة) ولا فائدة منه
+    if (paths.length === 1 || !this.deps.llm) return withDefaultRationale(fallback());
 
     try {
       const raw = (await this.deps.llm.generateJson({
@@ -197,8 +198,12 @@ function latest(events: readonly LearningEvent[], type: LearningEvent['type']): 
 export class BuildPersonalPlanUseCase {
   constructor(private readonly deps: PersonalPlanDeps) {}
 
-  /** يبني خطة جديدة من الدروس المتبقية (بعد التشخيصي والإكمال) ويسجّلها؛ يمكن إعادته لتحديث الخطة */
-  async execute(request: { userId: string }): Promise<{ weeks: number }> {
+  /**
+   * يبني خطة جديدة من الدروس المتبقية (بعد التشخيصي والإكمال) ويسجّلها؛ يمكن إعادته لتحديث الخطة.
+   * `withAi: false` يبني الخطة فورًا بالقواعد (بلا انتظار النموذج الذي قد يستغرق دقيقة)، ثم يُستدعى
+   * ثانيةً بـ`withAi: true` في الخلفية لصياغة عناوين الأسابيع وأسبابها فتحلّ محل الأولى.
+   */
+  async execute(request: { userId: string; withAi?: boolean }): Promise<{ weeks: number }> {
     const events = await this.deps.events.listByUser(request.userId);
     const goalEvent = latest(events, 'goal_set');
     if (!goalEvent) throw new Error('ابدأ بإخبارنا بما يشغفك وبالمجال الذي تريده');
@@ -216,7 +221,7 @@ export class BuildPersonalPlanUseCase {
       hoursPerWeek,
     );
     const titles = new Map(remaining.map((l) => [l.id as string, l.title]));
-    const labels = await this.label(goalEvent, path, weeks, titles);
+    const labels = await this.label(goalEvent, path, weeks, titles, request.withAi ?? true);
 
     await this.deps.events.record(
       new LearningEvent({
@@ -247,10 +252,11 @@ export class BuildPersonalPlanUseCase {
     path: LearningPath,
     weeks: ReturnType<typeof buildPlanWeeks>,
     titles: ReadonlyMap<string, string>,
+    withAi: boolean,
   ) {
     const fallbackSummary = `خطة من ${weeks.length} أسبوع في «${path.title}» مبنية على ساعاتك المتاحة ونتيجة اختبارك.`;
     const none = { summary: fallbackSummary, byWeek: new Map<number, { title: string; focus: string }>(), usedAi: false };
-    if (!this.deps.llm || weeks.length === 0) return none;
+    if (!withAi || !this.deps.llm || weeks.length === 0) return none;
 
     try {
       const raw = (await this.deps.llm.generateJson({

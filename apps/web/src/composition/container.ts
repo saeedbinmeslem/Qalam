@@ -90,7 +90,8 @@ function assemble(
   return {
     askLesson: new AskLessonUseCase({ paths, llm: getPlanLlmClient() }),
     startOnboarding: new StartOnboardingUseCase(planDeps),
-    buildPersonalPlan: new BuildPersonalPlanUseCase(planDeps),
+    // صياغة العناوين تجري في الخلفية، فمهلتها أطول من مهلة اختيار المسار
+    buildPersonalPlan: new BuildPersonalPlanUseCase({ ...planDeps, llm: getPlanLlmClient(100000) }),
     getPersonalPlan: new GetPersonalPlanUseCase(planDeps),
     getDiagnostic: new GetDiagnosticUseCase(diagnosticDeps),
     getDiagnosticResult: new GetDiagnosticResultUseCase(diagnosticDeps),

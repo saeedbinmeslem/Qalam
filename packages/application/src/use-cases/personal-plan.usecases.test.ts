@@ -76,6 +76,16 @@ describe('StartOnboardingUseCase', () => {
     expect(events[0]?.payload).toMatchObject({ field: 'برمجة بايثون', hoursPerWeek: 1, pathId: 'web' });
   });
 
+  it('مسار وحيد: يُختار فورًا دون استدعاء النموذج', async () => {
+    let calls = 0;
+    const llm: LlmClient = { generateJson: async () => (calls++, { pathId: 'py', rationale: 'x' }) };
+    const { deps } = setup(llm);
+    const only = { ...deps, paths: { ...deps.paths, findAll: async () => [await deps.paths.findById('py' as PathId)] as LearningPath[] } };
+    const out = await new StartOnboardingUseCase(only).execute(request);
+    expect(out).toMatchObject({ pathId: 'py', usedAi: false });
+    expect(calls).toBe(0);
+  });
+
   it('يتجاهل مسارًا مختلقًا من النموذج ويعود للكلمات المفتاحية، وكذلك عند فشله أو غيابه', async () => {
     const invented: LlmClient = { generateJson: async () => ({ pathId: 'ghost', rationale: 'x' }) };
     const failing: LlmClient = { generateJson: async () => Promise.reject(new Error('503')) };
@@ -142,6 +152,21 @@ describe('BuildPersonalPlanUseCase + GetPersonalPlanUseCase', () => {
     const view = await new GetPersonalPlanUseCase(deps).execute({ userId: 'u1' });
     expect(view?.plan).toMatchObject({ summary: 'خطة موجزة', usedAi: true });
     expect(view?.plan?.weeks.map((w) => w.title)).toEqual(['ابدأ بالأساس', 'الأسبوع 2']);
+  });
+
+  it('withAi=false يبني الخطة فورًا دون استدعاء النموذج للعناوين', async () => {
+    let labelCalls = 0;
+    const llm: LlmClient = {
+      generateJson: async (r) => {
+        if ((r.schema['required'] as string[]).includes('summary')) labelCalls++;
+        return { pathId: 'py', rationale: 'مناسب' };
+      },
+    };
+    const { deps } = setup(llm);
+    await new StartOnboardingUseCase(deps).execute(request);
+    await new BuildPersonalPlanUseCase(deps).execute({ userId: 'u1', withAi: false });
+    expect(labelCalls).toBe(0);
+    expect((await new GetPersonalPlanUseCase(deps).execute({ userId: 'u1' }))?.plan?.usedAi).toBe(false);
   });
 
   it('بلا تعارف: لا خطة، والبناء يرفض برسالة واضحة', async () => {
