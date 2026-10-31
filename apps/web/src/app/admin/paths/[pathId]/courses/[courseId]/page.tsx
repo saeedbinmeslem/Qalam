@@ -5,11 +5,11 @@
 import { createPathId } from '@qalam/domain';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ErrorBanner, ghostButton } from '../../../../../../components/admin-ui';
+import { ErrorBanner, Field, ghostButton } from '../../../../../../components/admin-ui';
 import { CourseSection } from '../../../../../../components/admin-course';
 import { InlinePending, PendingButton } from '../../../../../../components/inline-pending';
 import { getAdminContainer } from '../../../../../../composition/admin';
-import { enrichPathAction } from '../../../../actions';
+import { enrichPathAction, importPlaylistAction } from '../../../../actions';
 
 /** إكمال الملاحظات والملخصات يعمل تحت هذه المهلة */
 export const maxDuration = 300;
@@ -66,6 +66,24 @@ export default async function AdminCoursePage({
           <InlinePending label="جارٍ توليد الملاحظات والملخصات…" />
         </form>
       ) : null}
+
+      <details className="mb-6 card-outlined p-5">
+        <summary className="cursor-pointer font-medium text-ink">إكمال إضافة دروس القائمة (إن لم تُضَف كاملة)</summary>
+        <form action={importPlaylistAction} data-inline-loader className="mt-4 space-y-4">
+          <input type="hidden" name="pathId" value={path.id} />
+          <input type="hidden" name="courseId" value={course.id} />
+          <Field
+            label="رابط القائمة نفسها"
+            name="playlistUrl"
+            required
+            dir="ltr"
+            placeholder="https://www.youtube.com/playlist?list=..."
+            hint="يقرأ القائمة كاملة ويضيف إلى هذا الكورس الفيديوهات الناقصة فقط (في وحدة «تكملة القائمة») دون تكرار ما أُضيف، ثم يولّد ملاحظاتها وأسئلتها في الخلفية."
+          />
+          <PendingButton className={ghostButton}>أكمل إضافة الدروس</PendingButton>
+          <InlinePending label="جارٍ قراءة القائمة وإضافة الناقص…" />
+        </form>
+      </details>
 
       <CourseSection path={path} course={course} concepts={conceptOptions} />
     </>

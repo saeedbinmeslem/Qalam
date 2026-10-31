@@ -217,10 +217,12 @@ export async function addLessonAction(data: FormData): Promise<void> {
  */
 export async function importPlaylistAction(data: FormData): Promise<void> {
   const pathId = text(data, 'pathId');
-  await run(pathPage(pathId), async (admin) => {
-    await admin.importPlaylist.execute({ actor: admin.actor, pathId, playlistUrl: text(data, 'playlistUrl') });
+  // courseId = إكمال كورس موجود بالفيديوهات الناقصة من قائمته (بعد فشل أو انقطاع)
+  const courseId = text(data, 'courseId') || undefined;
+  await run(courseId ? coursePage(pathId, courseId) : pathPage(pathId), async (admin) => {
+    await admin.importPlaylist.execute({ actor: admin.actor, pathId, courseId, playlistUrl: text(data, 'playlistUrl') });
     after(() =>
-      admin.enrichPath.execute({ actor: admin.actor, pathId }).then(
+      admin.enrichPath.execute({ actor: admin.actor, pathId, courseId }).then(
         (result) => console.log(`[enrich] اكتمل ${result.completed}، متبقٍ ${result.remaining}، إخفاقات ${result.failures.length}`),
         (error) => console.error('[enrich] فشل الإكمال التلقائي', error),
       ),

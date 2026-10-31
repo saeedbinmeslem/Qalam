@@ -7,7 +7,8 @@
 import type { PlaylistCatalogPort, PlaylistVideo } from '@qalam/application';
 
 const API = 'https://www.googleapis.com/youtube/v3';
-const MAX_ITEMS = 200;
+/** حد أمان فقط (لا حد عملي): الكورس يُستورد كاملًا مهما طال، ويوتيوب يعيد 50 عنصرًا في الصفحة */
+const MAX_ITEMS = 2000;
 
 type Fetch = typeof fetch;
 

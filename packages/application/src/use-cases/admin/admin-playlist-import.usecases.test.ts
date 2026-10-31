@@ -118,6 +118,48 @@ describe('ImportPlaylistUseCase (استيراد قائمة يوتيوب ككور
     expect(path.conceptIdOfLesson(lessons[1]!.id)).toBe(created!.id);
   });
 
+  it('القائمة الطويلة (أكثر من 50) تُستورد كاملة دفعة واحدة بنطاقات وحدات، وتبقى عناوين يوتيوب', async () => {
+    const videos = Array.from({ length: 120 }, (_, i) => video(i + 1, { title: i % 2 ? `Lesson ${i}` : `درس ${i}` }));
+    const reply = {
+      concept: concept(),
+      courseTitle: 'كورس طويل',
+      courseDescription: 'و',
+      modules: [
+        { title: 'أ', description: '', firstIndex: 0, lastIndex: 59 },
+        { title: 'ب', description: '', firstIndex: 55, lastIndex: 100 }, // تداخل يُتجاهل
+      ],
+    };
+    const { deps, calls, pathId, request } = await setup(videos, reply);
+    const result = await new ImportPlaylistUseCase(deps).execute(request);
+    expect(result).toMatchObject({ lessons: 120, skipped: 0, modules: 3 });
+    expect(calls).toHaveLength(1);
+
+    const course = (await pathOf(deps, pathId)).courses[0]!;
+    expect(course.modules.map((m) => m.lessonsCount)).toEqual([60, 41, 19]);
+    expect(course.modules[2]!.title).toBe('دروس إضافية');
+    const first = course.modules[0]!.lessons;
+    expect(first[0]!.title).toBe('درس 0');
+    expect(first[1]!.language).toBe('en');
+  });
+
+  it('إكمال كورس موجود: يضيف الناقص فقط في وحدة تكملة بلا نموذج ولا تكرار', async () => {
+    const videos = Array.from({ length: 5 }, (_, i) => video(i + 1));
+    const { deps, calls, pathId, request } = await setup(videos.slice(0, 3), answer({ modules: [{ title: 'م', description: '', lessons: [lesson(0), lesson(1), lesson(2)] }] }));
+    await new ImportPlaylistUseCase(deps).execute(request);
+    const courseId = (await pathOf(deps, pathId)).courses[0]!.id;
+
+    (deps as { playlists: unknown }).playlists = { listVideos: async () => videos };
+    const result = await new ImportPlaylistUseCase(deps).execute({ ...request, courseId });
+    expect(result).toMatchObject({ lessons: 2, modules: 1, skipped: 3, newConcept: false });
+    expect(calls).toHaveLength(1);
+
+    const course = (await pathOf(deps, pathId)).courses[0]!;
+    expect(course.modules.map((m) => m.title)).toEqual(['م', 'تكملة القائمة']);
+    expect(course.lessonsCount).toBe(5);
+    await expect(new ImportPlaylistUseCase(deps).execute({ ...request, courseId })).rejects.toThrow('مكتمل');
+    await expect(new ImportPlaylistUseCase(deps).execute({ ...request, courseId: 'nope' })).rejects.toBeInstanceOf(NotFoundError);
+  });
+
   it('يعيد استعمال مفهوم المسار بالمعرّف أو بالاسم، ولا يرى مفاهيم مسار آخر', async () => {
     const { deps, pathId, request } = await setup([video(1), video(2), video(3)], null);
     const existing = new Concept({ id: createConceptId('c1'), pathId: createPathId(pathId), name: 'النظام الثنائي', description: '', level: 1 });
