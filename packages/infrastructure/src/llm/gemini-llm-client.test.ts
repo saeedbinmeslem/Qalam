@@ -118,6 +118,24 @@ describe('GeminiLlmClient', () => {
     });
   });
 
+  it('describeVideo يخفّف الطلب (لقطة كل ثانيتين بدقة منخفضة) ويعيده بدون ما رفضه النموذج', async () => {
+    const { impl, calls } = fetchSequence([
+      { status: 400, body: { error: { message: 'Unsupported field: media resolution and fps' } } },
+      { status: 200, body: answer('نقاط') },
+    ]);
+    const text = await new GeminiLlmClient('K', ['m1'], impl).describeVideo({
+      videoUrl: 'https://www.youtube.com/watch?v=abc', startSeconds: 0, endSeconds: 60, instructions: 'لخّص',
+    });
+    expect(text).toBe('نقاط');
+    const first = JSON.stringify(calls[0]?.body);
+    const second = JSON.stringify(calls[1]?.body);
+    expect(first).toContain('MEDIA_RESOLUTION_LOW');
+    expect(first).toContain('"fps":0.5');
+    expect(second).not.toContain('MEDIA_RESOLUTION_LOW');
+    expect(second).not.toContain('fps');
+    expect(calls).toHaveLength(2);
+  });
+
   it('يترجم الانقطاع وJSON الفاسد والأخطاء الأخرى', async () => {
     const run = (o: Outcome) => new GeminiLlmClient('K', 'm', fetchSequence([o]).impl).generateJson(request);
     await expect(run({ status: 200, body: answer('{}', 'MAX_TOKENS') })).rejects.toThrow('انقطع');

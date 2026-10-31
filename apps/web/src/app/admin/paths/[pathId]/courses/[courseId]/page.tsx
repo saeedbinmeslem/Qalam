@@ -63,7 +63,7 @@ export default async function AdminCoursePage({
             {pendingText} درسًا في هذا الكورس بلا ملاحظات أو ملخص بعد. إن لم تكتمل الخلفية (أو انتهت حصة النموذج) فأكملها من هنا.
           </p>
           <PendingButton className={ghostButton}>أكمل الملاحظات والملخصات والأسئلة</PendingButton>
-          <InlinePending label="جارٍ توليد الملاحظات والملخصات…" />
+          <InlinePending label="جارٍ بدء العملية…" />
         </form>
       ) : null}
 
@@ -81,7 +81,7 @@ export default async function AdminCoursePage({
             hint="يقرأ القائمة كاملة ويضيف إلى هذا الكورس الفيديوهات الناقصة فقط (في وحدة «تكملة القائمة») دون تكرار ما أُضيف، ثم يولّد ملاحظاتها وأسئلتها في الخلفية."
           />
           <PendingButton className={ghostButton}>أكمل إضافة الدروس</PendingButton>
-          <InlinePending label="جارٍ قراءة القائمة وإضافة الناقص…" />
+          <InlinePending label="جارٍ بدء العملية…" />
         </form>
       </details>
 

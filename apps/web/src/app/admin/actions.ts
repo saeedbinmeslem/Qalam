@@ -211,35 +211,70 @@ export async function addLessonAction(data: FormData): Promise<void> {
 }
 
 /**
- * المالك يعطي رابط القائمة فقط: يُبنى الهيكل (وحدات ودروس ومفاهيم) فورًا، ثم تُولَّد الملاحظات والملخصات
- * ومسودات الأسئلة في الخلفية (`after`). الحاكم الزمني للخلفية هو maxDuration لصفحة المسار.
+ * تشغيل عمل طويل (ذكاء اصطناعي) في الخلفية: الإجراء يسجّل العملية ويعود فورًا فيتصفح المالك ويعدّل ويحذف
+ * بحرية، والعمل يكمل بـ`after` وتظهر حالته في شريط العمليات. الحاكم الزمني هو maxDuration للصفحة.
  * أدوات الطلب (الكوكيز) تُقرأ قبل `after` لأنها لا تتوفر داخله، فالـcontainer يُبنى هنا ويُمرَّر.
+ * `work` يعيد ملخص النتيجة، أو يرمي خطأً فتُسجَّل العملية فاشلة بسببه.
+ */
+async function runInBackground(
+  returnTo: string,
+  job: { key: string; label: string },
+  work: (admin: AdminContainer) => Promise<string>,
+): Promise<never> {
+  return run(returnTo, async (admin) => {
+    const { jobId } = await admin.startJob.execute({ actor: admin.actor, ...job });
+    after(async () => {
+      try {
+        const message = await work(admin);
+        await admin.finishJob.execute({ jobId, status: 'done', message });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'خطأ غير معروف';
+        console.error(`[job] فشلت «${job.label}»`, error);
+        await admin.finishJob.execute({ jobId, status: 'failed', message }).catch(() => undefined);
+      }
+    });
+  });
+}
+
+/** يكمل التوليد لما تبقى ثم يلخّص النتيجة؛ الإخفاق مع بقاء دروس يجعل العملية فاشلة بسببه */
+async function enrichAndSummarize(admin: AdminContainer, pathId: string, courseId?: string): Promise<string> {
+  const result = await admin.enrichPath.execute({ actor: admin.actor, pathId, courseId });
+  if (result.remaining > 0 && result.failures.length > 0) {
+    throw new Error(`اكتمل ${result.completed} وتعثّر ${result.failures.length}: ${result.failures[0]?.message ?? ''}`);
+  }
+  return result.remaining > 0
+    ? `اكتمل ${result.completed} درسًا وبقي ${result.remaining} (انتهى الزمن المتاح)، أعد التشغيل لإكمالها`
+    : `اكتمل توليد ${result.completed} درسًا`;
+}
+
+/**
+ * المالك يعطي رابط القائمة فقط: يُبنى الهيكل (وحدات ودروس ومفاهيم) ثم تُولَّد الملاحظات والملخصات
+ * ومسودات الأسئلة، كله في الخلفية. مع courseId يكمل كورسًا موجودًا بالفيديوهات الناقصة من قائمته.
  */
 export async function importPlaylistAction(data: FormData): Promise<void> {
   const pathId = text(data, 'pathId');
-  // courseId = إكمال كورس موجود بالفيديوهات الناقصة من قائمته (بعد فشل أو انقطاع)
   const courseId = text(data, 'courseId') || undefined;
-  await run(courseId ? coursePage(pathId, courseId) : pathPage(pathId), async (admin) => {
-    await admin.importPlaylist.execute({ actor: admin.actor, pathId, courseId, playlistUrl: text(data, 'playlistUrl') });
-    after(() =>
-      admin.enrichPath.execute({ actor: admin.actor, pathId, courseId }).then(
-        (result) => console.log(`[enrich] اكتمل ${result.completed}، متبقٍ ${result.remaining}، إخفاقات ${result.failures.length}`),
-        (error) => console.error('[enrich] فشل الإكمال التلقائي', error),
-      ),
-    );
-  });
+  const playlistUrl = text(data, 'playlistUrl');
+  await runInBackground(
+    courseId ? coursePage(pathId, courseId) : pathPage(pathId),
+    { key: `import:${pathId}:${courseId ?? 'new'}`, label: courseId ? 'إكمال دروس القائمة' : 'استيراد قائمة يوتيوب' },
+    async (admin) => {
+      const imported = await admin.importPlaylist.execute({ actor: admin.actor, pathId, courseId, playlistUrl });
+      const generated = await enrichAndSummarize(admin, pathId, courseId).catch((e: Error) => `الاستيراد تم لكن التوليد تعثّر: ${e.message}`);
+      return `أُضيف ${imported.lessons} درسًا إلى «${imported.courseTitle}». ${generated}`;
+    },
+  );
 }
 
 /** يكمل الملاحظات والملخصات والأسئلة لما تبقى في كورس واحد (courseId) أو في المسار كله (بعد حصة منتهية أو مهلة) */
 export async function enrichPathAction(data: FormData): Promise<void> {
   const pathId = text(data, 'pathId');
   const courseId = text(data, 'courseId') || undefined;
-  await run(courseId ? coursePage(pathId, courseId) : pathPage(pathId), async (admin) => {
-    const result = await admin.enrichPath.execute({ actor: admin.actor, pathId, courseId });
-    if (result.remaining > 0 && result.failures.length > 0) {
-      throw new Error(`اكتمل ${result.completed} وتعثّر ${result.failures.length}: ${result.failures[0]?.message ?? ''}`);
-    }
-  });
+  await runInBackground(
+    courseId ? coursePage(pathId, courseId) : pathPage(pathId),
+    { key: `enrich:${pathId}:${courseId ?? 'all'}`, label: 'توليد الملاحظات والملخصات والأسئلة' },
+    (admin) => enrichAndSummarize(admin, pathId, courseId),
+  );
 }
 
 export async function updateLessonAction(data: FormData): Promise<void> {

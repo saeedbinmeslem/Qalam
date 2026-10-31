@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   AdminPolicy,
   Concept,
+  LearningPath,
   QuizQuestion,
   type ConceptId,
-  type LearningPath,
   type LessonId,
   type PathId,
   type QuestionId,
@@ -15,7 +15,7 @@ import type { LlmClient } from '../../ports/llm-client.port.js';
 import type { QuestionRepositoryPort } from '../../ports/question-repository.port.js';
 import { AddLessonUseCase } from './admin-lessons.usecases.js';
 import { EnrichPathUseCase } from './admin-path-enrichment.usecases.js';
-import type { QuizAdminDeps } from './admin-quiz.usecases.js';
+import { DraftLessonNotesUseCase, type QuizAdminDeps } from './admin-quiz.usecases.js';
 import { seedPathWithModule } from '../../test-support/admin-seed.js';
 
 class Paths {
@@ -103,6 +103,16 @@ async function setup(videoIds: string[], llm: LlmClient) {
 const lessonsOf = async (deps: QuizAdminDeps, pathId: string) =>
   (await deps.paths.findById(pathId as PathId))!.modules.flatMap((m) => m.lessons);
 
+/** يعيد بناء المسار بعنوان جديد (الكيان غير قابل للتعديل المباشر) مع الكورسات نفسها */
+class UpdatedTitle {
+  readonly path: LearningPath;
+  constructor(old: LearningPath, title: string) {
+    this.path = new LearningPath({
+      id: old.id, title, description: old.description, targetGoal: old.targetGoal, subject: old.subject, courses: [...old.courses],
+    });
+  }
+}
+
 describe('EnrichPathUseCase (إكمال الدروس تلقائيًا)', () => {
   it('يولّد الملاحظات والملخص ومسودات الأسئلة، ويبقي الدرس والأسئلة بانتظار المراجعة', async () => {
     const { deps, pathId } = await setup(['aaaaaaaaaaa', 'bbbbbbbbbbb'], fakeLlm());
@@ -136,7 +146,8 @@ describe('EnrichPathUseCase (إكمال الدروس تلقائيًا)', () => {
     const ids = ['aaaaaaaaaaa', 'bbbbbbbbbbb', 'ccccccccccc', 'ddddddddddd'];
     const failing = await setup(ids, fakeLlm(ids));
     const stopped = await new EnrichPathUseCase(failing.deps).execute({ actor: admin, pathId: failing.pathId });
-    expect(stopped.failures).toHaveLength(3);
+    // العمّال متوازون فقد يتجاوز العدد 3 بقدر ما كان جاريًا وقت الإيقاف
+    expect(stopped.failures.length).toBeGreaterThanOrEqual(3);
     expect(stopped.remaining).toBe(4);
 
     const slow = await setup(ids, fakeLlm());
@@ -157,6 +168,24 @@ describe('EnrichPathUseCase (إكمال الدروس تلقائيًا)', () => {
     const courseId = (await deps.paths.findById(pathId as PathId))!.courses[0]!.id;
     const own = await useCase.execute({ actor: admin, pathId, courseId });
     expect(own).toEqual({ completed: 2, remaining: 0, failures: [] });
+  });
+
+  it('تعديل المالك أثناء استدعاء النموذج لا يُمحى بحفظ الملاحظات', async () => {
+    const { deps, pathId } = await setup(['aaaaaaaaaaa'], fakeLlm());
+    const lessonId = (await lessonsOf(deps, pathId))[0]!.id;
+    // أثناء «قراءة الفيديو» يعيد المالك تسمية الكورس (تعديل لا يمسّ الذكاء الاصطناعي)
+    const slow: LlmClient = {
+      ...fakeLlm(),
+      describeVideo: async () => {
+        const path = (await deps.paths.findById(pathId as PathId))!;
+        await deps.paths.save(new UpdatedTitle(path, 'اسم جديد').path);
+        return '1. نقطة';
+      },
+    };
+    await new DraftLessonNotesUseCase({ ...deps, llm: slow }).execute({ actor: admin, pathId, lessonId });
+    const saved = (await deps.paths.findById(pathId as PathId))!;
+    expect(saved.title).toBe('اسم جديد');
+    expect(saved.findLesson(lessonId as never)?.lesson.notes).toBe('1. نقطة');
   });
 
   it('للمدير فقط', async () => {

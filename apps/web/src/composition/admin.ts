@@ -18,6 +18,10 @@ import {
   DeleteQuestionUseCase,
   DraftLessonNotesUseCase,
   EnrichPathUseCase,
+  FinishBackgroundJobUseCase,
+  ListBackgroundJobsUseCase,
+  StartBackgroundJobUseCase,
+  type BackgroundJobPort,
   GenerateQuestionsUseCase,
   GenerateStudyGuideUseCase,
   ImportPlaylistUseCase,
@@ -50,6 +54,8 @@ import {
 import { AdminPolicy } from '@qalam/domain';
 import {
   CloudinaryUploadSigner,
+  InMemoryBackgroundJobRepository,
+  SupabaseBackgroundJobRepository,
   SupabaseConceptRepository,
   SupabasePathRepository,
   SupabaseQuestionRepository,
@@ -93,6 +99,13 @@ async function buildDeps(): Promise<QuizAdminDeps> {
     policy,
     llm,
   };
+}
+
+/** في التطوير بلا Supabase: سجل واحد للعملية كلها (container جديد لكل طلب) */
+const localJobs = new InMemoryBackgroundJobRepository();
+
+function buildJobs(): BackgroundJobPort {
+  return isSupabaseConfigured() ? new SupabaseBackgroundJobRepository(getServiceClient()) : localJobs;
 }
 
 /** توقيع رفع الفيديو إلى Cloudinary؛ بلا المتغيرات الثلاثة لا يظهر خيار الرفع */
@@ -141,6 +154,9 @@ export interface AdminContainer {
   draftLessonNotes: DraftLessonNotesUseCase;
   importPlaylist: ImportPlaylistUseCase;
   enrichPath: EnrichPathUseCase;
+  startJob: StartBackgroundJobUseCase;
+  finishJob: FinishBackgroundJobUseCase;
+  listJobs: ListBackgroundJobsUseCase;
   addQuestion: AddQuestionUseCase;
   generateQuestions: GenerateQuestionsUseCase;
   listLessonQuestions: ListLessonQuestionsUseCase;
@@ -154,6 +170,7 @@ export interface AdminContainer {
 export async function getAdminContainer(): Promise<AdminContainer> {
   const actor = await (await getAuth()).getCurrentUser.execute();
   const deps = await buildDeps();
+  const jobDeps = { ...deps, jobs: buildJobs() };
   return {
     actor,
     checkAdmin: new CheckAdminUseCase(deps),
@@ -189,6 +206,9 @@ export async function getAdminContainer(): Promise<AdminContainer> {
       playlists: new YouTubePlaylistCatalog(process.env.YOUTUBE_API_KEY),
     }),
     enrichPath: new EnrichPathUseCase(deps),
+    startJob: new StartBackgroundJobUseCase(jobDeps),
+    finishJob: new FinishBackgroundJobUseCase(jobDeps),
+    listJobs: new ListBackgroundJobsUseCase(jobDeps),
     addQuestion: new AddQuestionUseCase(deps),
     generateQuestions: new GenerateQuestionsUseCase(deps),
     listLessonQuestions: new ListLessonQuestionsUseCase(deps),

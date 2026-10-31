@@ -128,6 +128,18 @@ describe('SupabasePathRepository', () => {
     expect(lessons.every((l) => typeof l.order_index === 'number' && !('concept_id' in l))).toBe(true);
   });
 
+  it('saveLesson يكتب صف الدرس وحده بوحدته وترتيبه ولا يمسّ بقية المسار', async () => {
+    const { client, upserts, deletes } = fakeClient([]);
+    const path = createInitialSeedPath().path;
+    const target = path.modules[1]!.lessons[1]!;
+    await new SupabasePathRepository(client).saveLesson(path, target.id);
+    expect(upserts).toHaveLength(1);
+    expect(upserts[0]?.table).toBe('lessons');
+    expect(upserts[0]?.rows).toHaveLength(1);
+    expect(upserts[0]?.rows[0]).toMatchObject({ id: target.id, module_id: path.modules[1]!.id, order_index: 2 });
+    expect(deletes).toEqual([]);
+  });
+
   it('يحذف الدروس والوحدات والكورسات المُزالة من المسار ويبقي الباقي', async () => {
     // ما «هو مخزَّن» في القاعدة، مفهرسًا بقيمة عمود الربط (module_id أو course_id أو path_id)
     const stored: Record<string, Record<string, string[]>> = {

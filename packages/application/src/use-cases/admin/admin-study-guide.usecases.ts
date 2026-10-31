@@ -9,7 +9,7 @@ import { createLessonId, formatStudyGuide, parseStudyGuide, type ConceptId, type
 import { NotFoundError } from '../../errors.js';
 import type { ConceptRepositoryPort } from '../../ports/concept-repository.port.js';
 import type { LlmClient } from '../../ports/llm-client.port.js';
-import { loadPath, requireAdmin, type AdminRequest } from './admin-deps.js';
+import { loadPath, persistLesson, requireAdmin, type AdminRequest } from './admin-deps.js';
 import type { QuizAdminDeps } from './admin-quiz.usecases.js';
 
 const MAX_GUIDE_CHARS = 8000;
@@ -92,10 +92,15 @@ export class GenerateStudyGuideUseCase {
     const path = await loadPath(this.deps.paths, request.pathId);
     const found = path.findLesson(createLessonId(request.lessonId));
     if (!found) throw new NotFoundError('الدرس');
-    const { module, lesson, course } = found;
+    const { lesson, course } = found;
     const guide = await generateStudyGuideText(this.deps, lesson, course.conceptId);
-    module.replaceLesson(lesson.update({ studyGuide: guide, reviewedByHuman: false }));
-    await this.deps.paths.save(path);
+    // الاستدعاء بطيء وقد يعدّل المالك المسار خلاله: نطبّق الملخص على نسخة حديثة لا على القراءة القديمة
+    const fresh = await loadPath(this.deps.paths, request.pathId);
+    const current = fresh.findLesson(createLessonId(request.lessonId));
+    if (!current) throw new NotFoundError('الدرس');
+    const updated = current.lesson.update({ studyGuide: guide, reviewedByHuman: false });
+    current.module.replaceLesson(updated);
+    await persistLesson(this.deps.paths, fresh, updated.id);
   }
 }
 
@@ -114,8 +119,10 @@ export class SummarizeLessonUseCase {
     if (lesson.studyGuide) return { text: lesson.studyGuide, created: false };
 
     const text = await generateStudyGuideText(this.deps, lesson, course.conceptId);
-    module.replaceLesson(lesson.update({ studyGuide: text }));
-    await this.deps.paths.save(path);
+    const updated = lesson.update({ studyGuide: text });
+    module.replaceLesson(updated);
+    // صف الدرس وحده: الاستدعاء بطيء فلا نكتب نسخة قديمة من بقية المسار فوق تعديلات المالك
+    await persistLesson(this.deps.paths, path, updated.id);
     return { text, created: true };
   }
 }

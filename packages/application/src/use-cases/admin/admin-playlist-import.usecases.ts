@@ -276,12 +276,15 @@ export class ImportPlaylistUseCase {
     // المفهوم أولًا لأن الكورس يشير إليه (مفتاح أجنبي)
     const { concept, created } = await this.resolveConcept(draft.concept, pathConcepts, path.id);
 
+    // ترتيب النموذج بطيء وقد يعدّل المالك المسار خلاله: نعيد قراءته لنضيف الكورس إلى الحالة الحديثة
+    const target = await loadPath(this.deps.paths, request.pathId);
+
     const course = new Course({
       id: createCourseId(this.deps.ids.next('course')),
       conceptId: concept.id,
       title: draft.course.title || concept.name,
       description: draft.course.description,
-      orderIndex: path.nextCourseOrderIndex,
+      orderIndex: target.nextCourseOrderIndex,
     });
 
     const assigned = new Set<number>();
@@ -322,8 +325,8 @@ export class ImportPlaylistUseCase {
     const leftovers = videos.flatMap((video, i) => (assigned.has(i) ? [] : [buildLesson(video)]));
     if (leftovers.length > 0) addModule(EXTRA_MODULE_TITLE, '', leftovers);
 
-    path.addCourse(course);
-    await this.deps.paths.save(path);
+    target.addCourse(course);
+    await this.deps.paths.save(target);
     return {
       courseTitle: course.title,
       conceptName: concept.name,

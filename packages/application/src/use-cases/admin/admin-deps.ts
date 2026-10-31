@@ -4,7 +4,7 @@
  * كل use case إداري يستدعي requireAdmin أولًا، فلا تعتمد الحماية على الواجهة وحدها.
  */
 
-import { AdminPolicy, LearningPath, createPathId } from '@qalam/domain';
+import { AdminPolicy, LearningPath, createPathId, type LessonId } from '@qalam/domain';
 import { ForbiddenError, NotFoundError, UnauthenticatedError } from '../../errors.js';
 import type { AuthUser } from '../../ports/auth.port.js';
 import type { ConceptRepositoryPort } from '../../ports/concept-repository.port.js';
@@ -32,4 +32,10 @@ export async function loadPath(paths: PathRepositoryPort, pathId: string): Promi
   const path = await paths.findById(createPathId(pathId));
   if (!path) throw new NotFoundError('المسار');
   return path;
+}
+
+/** يحفظ درسًا واحدًا إن دعم المستودع ذلك (سريع)، وإلا يحفظ المسار كله */
+export async function persistLesson(paths: PathRepositoryPort, path: LearningPath, lessonId: LessonId): Promise<void> {
+  if (paths.saveLesson) await paths.saveLesson(path, lessonId);
+  else await paths.save(path);
 }

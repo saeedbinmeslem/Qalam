@@ -17,6 +17,7 @@ import {
   createLessonId,
   createModuleId,
   createPathId,
+  type LessonId,
   type PathId,
 } from '@qalam/domain';
 
@@ -140,6 +141,26 @@ export function mapPathRow(row: PathRow): LearningPath {
   return path;
 }
 
+function toLessonRow(l: Lesson, moduleId: string, orderIndex: number): Record<string, unknown> {
+  return {
+    id: l.id,
+    module_id: moduleId,
+    title: l.title,
+    video_id: l.segment.videoId,
+    start_seconds: l.segment.startSeconds,
+    end_seconds: l.segment.endSeconds,
+    source_url: l.sourceUrl,
+    channel_name: l.channelName,
+    language: l.language,
+    summary: l.summary ?? null,
+    reviewed_by_human: l.reviewedByHuman,
+    notes: l.notes ?? null,
+    media_url: l.mediaUrl ?? null,
+    study_guide: l.studyGuide ?? null,
+    order_index: orderIndex,
+  };
+}
+
 export class SupabasePathRepository implements PathRepositoryPort {
   constructor(private readonly client: SupabaseDataClient) {}
 
@@ -177,44 +198,44 @@ export class SupabasePathRepository implements PathRepositoryPort {
     );
     await this.upsert(
       'lessons',
-      path.modules.flatMap((m) =>
-        m.lessons.map((l, index) => ({
-          id: l.id,
-          module_id: m.id,
-          title: l.title,
-          video_id: l.segment.videoId,
-          start_seconds: l.segment.startSeconds,
-          end_seconds: l.segment.endSeconds,
-          source_url: l.sourceUrl,
-          channel_name: l.channelName,
-          language: l.language,
-          summary: l.summary ?? null,
-          reviewed_by_human: l.reviewedByHuman,
-          notes: l.notes ?? null,
-          media_url: l.mediaUrl ?? null,
-          study_guide: l.studyGuide ?? null,
-          order_index: index + 1,
-        })),
-      ),
+      path.modules.flatMap((m) => m.lessons.map((l, index) => toLessonRow(l, m.id, index + 1))),
     );
     await this.removeOrphans(path);
   }
 
+  async saveLesson(path: LearningPath, lessonId: LessonId): Promise<void> {
+    for (const module of path.modules) {
+      const index = module.lessons.findIndex((l) => l.id === lessonId);
+      if (index >= 0) {
+        await this.upsert('lessons', [toLessonRow(module.lessons[index] as Lesson, module.id, index + 1)]);
+        return;
+      }
+    }
+    throw new Error('الدرس غير موجود في المسار');
+  }
+
   /** upsert لا يحذف؛ فنحذف ما أُزيل من المسار (دروس ثم وحدات ثم كورسات) ليطابق قاعدة البيانات الكيان */
   private async removeOrphans(path: LearningPath): Promise<void> {
-    for (const module of path.modules) {
-      const keep = new Set(module.lessons.map((l) => l.id as string));
-      const stored = await this.selectIds('lessons', 'module_id', module.id);
-      for (const id of stored.filter((id) => !keep.has(id))) await this.remove('lessons', id);
-    }
-    for (const course of path.courses) {
-      const keep = new Set(course.modules.map((m) => m.id as string));
-      const stored = await this.selectIds('modules', 'course_id', course.id);
-      for (const id of stored.filter((id) => !keep.has(id))) await this.remove('modules', id);
-    }
+    // القراءات مستقلة فتجري معًا (كانت متتابعة: استعلام لكل وحدة وكورس)، والحذف من الأدنى للأعلى لسلامة المفاتيح
+    const lessonOrphans = await Promise.all(
+      path.modules.map(async (module) => {
+        const keep = new Set(module.lessons.map((l) => l.id as string));
+        return (await this.selectIds('lessons', 'module_id', module.id)).filter((id) => !keep.has(id));
+      }),
+    );
+    await Promise.all(lessonOrphans.flat().map((id) => this.remove('lessons', id)));
+
+    const moduleOrphans = await Promise.all(
+      path.courses.map(async (course) => {
+        const keep = new Set(course.modules.map((m) => m.id as string));
+        return (await this.selectIds('modules', 'course_id', course.id)).filter((id) => !keep.has(id));
+      }),
+    );
+    await Promise.all(moduleOrphans.flat().map((id) => this.remove('modules', id)));
+
     const keepCourses = new Set(path.courses.map((c) => c.id as string));
     const storedCourses = await this.selectIds('courses', 'path_id', path.id);
-    for (const id of storedCourses.filter((id) => !keepCourses.has(id))) await this.remove('courses', id);
+    await Promise.all(storedCourses.filter((id) => !keepCourses.has(id)).map((id) => this.remove('courses', id)));
   }
 
   async delete(id: PathId): Promise<void> {

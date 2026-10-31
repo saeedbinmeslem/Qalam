@@ -13,6 +13,11 @@ import { GenerateStudyGuideUseCase } from './admin-study-guide.usecases.js';
 
 export const DEFAULT_ENRICH_BUDGET_MS = 240_000;
 export const QUESTIONS_PER_LESSON = 4;
+/**
+ * عدد الدروس التي تُعالَج معًا: الانتظار كله على الشبكة (قراءة الفيديو ثم Groq) فتتداخل بأمان، ويقسم الزمن تقريبًا
+ * على هذا العدد. حفظ الدرس صفًّا واحدًا (persistLesson) يمنع تزاحم الكتابة على المسار.
+ */
+export const ENRICH_CONCURRENCY = 3;
 /** توقف مبكر إن فشلت هذه العدد من الدروس متتالية (حصة منتهية أو مفتاح خاطئ) بدل استنزاف الوقت */
 const MAX_CONSECUTIVE_FAILURES = 3;
 
@@ -59,25 +64,31 @@ export class EnrichPathUseCase {
     const targets = scopeLessons(path).filter(needsText);
     const result: EnrichmentResult = { completed: 0, remaining: 0, failures: [] };
     let consecutive = 0;
+    let cursor = 0;
 
-    for (const target of targets) {
-      if (this.now() >= deadline || consecutive >= MAX_CONSECUTIVE_FAILURES) break;
-      const lessonId = target.id;
-      try {
-        // نعيد قراءة الدرس في كل خطوة لأن كل use case يحفظ المسار بنفسه
-        const current = async () => (await loadPath(this.deps.paths, request.pathId)).findLesson(lessonId)?.lesson;
+    // عمّال متوازون يسحبون الدروس من الطابور؛ كل عامل يتوقف عند نفاد الزمن أو توالي الإخفاق
+    const worker = async () => {
+      while (this.now() < deadline && consecutive < MAX_CONSECUTIVE_FAILURES) {
+        const target = targets[cursor++];
+        if (!target) return;
+        const lessonId = target.id;
+        try {
+          // نعيد قراءة الدرس في كل خطوة لأن كل use case يحفظ حالته بنفسه
+          const current = async () => (await loadPath(this.deps.paths, request.pathId)).findLesson(lessonId)?.lesson;
 
-        if (!(await current())?.notes) await this.notes.execute({ ...base, lessonId });
-        if (!(await current())?.studyGuide) await this.guide.execute({ ...base, lessonId });
-        const existing = await this.listQuestions.execute({ actor: request.actor, lessonId });
-        if (existing.length === 0) await this.questions.execute({ ...base, lessonId, count: QUESTIONS_PER_LESSON });
-        result.completed += 1;
-        consecutive = 0;
-      } catch (error) {
-        consecutive += 1;
-        result.failures.push({ title: target.title, message: error instanceof Error ? error.message : 'خطأ غير معروف' });
+          if (!(await current())?.notes) await this.notes.execute({ ...base, lessonId });
+          if (!(await current())?.studyGuide) await this.guide.execute({ ...base, lessonId });
+          const existing = await this.listQuestions.execute({ actor: request.actor, lessonId });
+          if (existing.length === 0) await this.questions.execute({ ...base, lessonId, count: QUESTIONS_PER_LESSON });
+          result.completed += 1;
+          consecutive = 0;
+        } catch (error) {
+          consecutive += 1;
+          result.failures.push({ title: target.title, message: error instanceof Error ? error.message : 'خطأ غير معروف' });
+        }
       }
-    }
+    };
+    await Promise.all(Array.from({ length: Math.min(ENRICH_CONCURRENCY, targets.length) }, worker));
 
     const after = await loadPath(this.deps.paths, request.pathId);
     result.remaining = scopeLessons(after).filter(needsText).length;

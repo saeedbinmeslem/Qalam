@@ -20,6 +20,13 @@ export const DEFAULT_GEMINI_MODEL = DEFAULT_GEMINI_MODELS[0] as string;
 const ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models';
 const REQUEST_TIMEOUT_MS = 45_000;
 const VIDEO_TIMEOUT_MS = 120_000;
+/**
+ * قراءة الفيديو أبطأ ما في المنصة لأن كلفتها بعدد «الرموز» لكل ثانية: الافتراضي لقطة/ث بدقة كاملة (~258 رمزًا للقطة)
+ * يضاف إليها الصوت. الدروس شرح منطوق فالصوت هو المحتوى، فنأخذ لقطة كل ثانيتين بدقة منخفضة (~66 رمزًا للقطة):
+ * يقل حجم الطلب نحو 4 أضعاف فيسرع الردّ وتتسع حصة الدقيقة المجانية لدروس أكثر. المعاملات اختيارية، وإن رفضها
+ * نموذج (400) أعدنا الطلب بدونها على النموذج نفسه.
+ */
+const VIDEO_FPS = 0.5;
 
 interface GeminiResponse {
   candidates?: Array<{ content?: { parts?: Array<{ text?: string; thought?: boolean }> }; finishReason?: string }>;
@@ -80,12 +87,13 @@ export class GeminiLlmClient implements LlmClient {
             parts: [
               {
                 file_data: { file_uri: request.videoUrl },
-                video_metadata: { start_offset: `${request.startSeconds}s`, end_offset: `${request.endSeconds}s` },
+                video_metadata: { start_offset: `${request.startSeconds}s`, end_offset: `${request.endSeconds}s`, fps: VIDEO_FPS },
               },
               { text: request.instructions },
             ],
           },
         ],
+        generationConfig: { mediaResolution: 'MEDIA_RESOLUTION_LOW', thinkingConfig: { thinkingBudget: 0 } },
       },
       VIDEO_TIMEOUT_MS,
     );
@@ -121,11 +129,11 @@ export class GeminiLlmClient implements LlmClient {
 
     const body = (await response.json().catch(() => ({}))) as GeminiResponse;
     if (!response.ok) {
-      // بعض النماذج لا تقبل تعطيل التفكير: نعيد المحاولة على النموذج نفسه بدونه بدل الفشل
-      const config = requestBody['generationConfig'] as Record<string, unknown> | undefined;
-      if (response.status === 400 && config?.['thinkingConfig'] && /thinking/i.test(body.error?.message ?? '')) {
-        const { thinkingConfig: _omit, ...rest } = config;
-        return this.callModel(model, { ...requestBody, generationConfig: rest }, timeoutMs);
+      // معاملات التسريع اختيارية (تعطيل التفكير، دقة الفيديو المنخفضة، معدل اللقطات): إن رفضها نموذج نعيد الطلب
+      // على النموذج نفسه بدون ما رفضه بدل الفشل
+      if (response.status === 400) {
+        const lighter = withoutRejectedTuning(requestBody, body.error?.message ?? '');
+        if (lighter) return this.callModel(model, lighter, timeoutMs);
       }
       throw translateHttpError(model, response.status, body);
     }
@@ -157,4 +165,36 @@ function translateHttpError(model: string, status: number, body: GeminiResponse)
   // حمل مؤقت أو حصة النموذج أو نموذج غير متاح لهذا الحساب: ننتقل للتالي
   if (status === 429 || status === 404 || status >= 500) return new TryNextModel(`${model}: ${status}`);
   return new Error(`خطأ من خدمة Gemini (${status})${message ? `: ${message}` : ''}`);
+}
+
+/** يحذف من الطلب معاملات التسريع التي ذكرها رسالة الرفض؛ undefined إن لم يكن فيها ما يُحذف */
+function withoutRejectedTuning(body: Record<string, unknown>, message: string): Record<string, unknown> | undefined {
+  let changed = false;
+  let next: Record<string, unknown> = body;
+
+  const config = body['generationConfig'] as Record<string, unknown> | undefined;
+  if (config) {
+    const { thinkingConfig, mediaResolution, ...rest } = config;
+    const keep: Record<string, unknown> = { ...rest };
+    if (thinkingConfig && !/thinking/i.test(message)) keep['thinkingConfig'] = thinkingConfig;
+    else if (thinkingConfig) changed = true;
+    if (mediaResolution && !/resolution|media/i.test(message)) keep['mediaResolution'] = mediaResolution;
+    else if (mediaResolution) changed = true;
+    if (changed) next = { ...next, generationConfig: keep };
+  }
+
+  if (/fps|frame|video_?metadata/i.test(message) && Array.isArray(body['contents'])) {
+    const contents = (body['contents'] as Array<{ role?: string; parts?: Array<Record<string, unknown>> }>).map((c) => ({
+      ...c,
+      parts: c.parts?.map((part) => {
+        const meta = part['video_metadata'] as Record<string, unknown> | undefined;
+        if (!meta || !('fps' in meta)) return part;
+        changed = true;
+        const { fps: _fps, ...restMeta } = meta;
+        return { ...part, video_metadata: restMeta };
+      }),
+    }));
+    next = { ...next, contents };
+  }
+  return changed ? next : undefined;
 }

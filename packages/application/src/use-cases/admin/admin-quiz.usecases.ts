@@ -8,7 +8,7 @@ import { QuizQuestion, createLessonId, createQuestionId } from '@qalam/domain';
 import { NotFoundError } from '../../errors.js';
 import type { LlmClient } from '../../ports/llm-client.port.js';
 import type { QuestionRepositoryPort } from '../../ports/question-repository.port.js';
-import { loadPath, requireAdmin, type AdminDeps, type AdminRequest } from './admin-deps.js';
+import { loadPath, persistLesson, requireAdmin, type AdminDeps, type AdminRequest } from './admin-deps.js';
 import { GENERATED_QUESTIONS_SCHEMA, parseGeneratedQuestions } from './generated-questions.js';
 
 export interface QuizAdminDeps extends AdminDeps {
@@ -107,7 +107,7 @@ export class DraftLessonNotesUseCase {
     const path = await loadPath(this.deps.paths, request.pathId);
     const found = path.findLesson(createLessonId(request.lessonId));
     if (!found) throw new NotFoundError('الدرس');
-    const { module, lesson } = found;
+    const { lesson } = found;
     if (lesson.notes) throw new Error('للدرس ملاحظات بالفعل. امسحها أولًا إن أردت توليد مسودة جديدة');
     // المزوّد يقرأ روابط يوتيوب العامة فقط؛ الفيديو المرفوع (Cloudinary) تكتب ملاحظاته بنفسك
     if (lesson.mediaUrl) throw new Error('الفيديو المرفوع لا يقرؤه النموذج تلقائيًا. اكتب ملاحظاته بنفسك في «بيانات الدرس»');
@@ -122,9 +122,15 @@ export class DraftLessonNotesUseCase {
     ).trim();
     if (!text) throw new Error('لم يُرجع النموذج ملاحظات لهذا المقطع');
 
+    // الاستدعاء بطيء وقد يعدّل المالك المسار خلاله: نعيد قراءته الآن ونطبّق الملاحظات على الحالة الحديثة
+    // (وإلا كتبنا نسخة قديمة فوق تعديلاته). إن حُذف الدرس في الأثناء يُهمل الناتج.
+    const fresh = await loadPath(this.deps.paths, request.pathId);
+    const current = fresh.findLesson(createLessonId(request.lessonId));
+    if (!current) throw new NotFoundError('الدرس');
     // حفظ الملاحظات يسحب «المراجعة البشرية» كأي تعديل على المحتوى (قاعدة الجودة)
-    module.replaceLesson(lesson.update({ notes: text, reviewedByHuman: false }));
-    await this.deps.paths.save(path);
+    const updated = current.lesson.update({ notes: text, reviewedByHuman: false });
+    current.module.replaceLesson(updated);
+    await persistLesson(this.deps.paths, fresh, updated.id);
   }
 }
 

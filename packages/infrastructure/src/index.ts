@@ -19,6 +19,8 @@ export * from './persistence/random-id-generator.js';
 export * from './persistence/supabase-service-client.js';
 export * from './persistence/in-memory-question.repository.js';
 export * from './persistence/supabase-question.repository.js';
+export * from './persistence/in-memory-background-job.repository.js';
+export * from './persistence/supabase-background-job.repository.js';
 export * from './llm/anthropic-llm-client.js';
 export * from './llm/gemini-llm-client.js';
 export * from './llm/openai-compatible-llm-client.js';
