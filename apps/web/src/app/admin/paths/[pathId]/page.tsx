@@ -17,6 +17,7 @@ import {
 } from '../../../../components/admin-ui';
 import { ConfirmSubmit } from '../../../../components/confirm-submit';
 import { formatDuration } from '../../../../components/format';
+import { JobLoader } from '../../../../components/background-jobs';
 import { InlinePending, PendingButton } from '../../../../components/inline-pending';
 import { getAdminContainer } from '../../../../composition/admin';
 import { addCourseAction, deletePathAction, importPlaylistAction, updatePathAction } from '../../actions';
@@ -94,6 +95,7 @@ export default async function AdminPathPage({
           />
           <PendingButton className={primaryButton}>استيراد الكورس</PendingButton>
           <InlinePending label="جارٍ بدء العملية…" />
+          <JobLoader matchKey={`import:${path.id}:new`} label="جارٍ استيراد القائمة وتوليد محتواها…" />
           <p className="text-xs text-muted">
             تُستورد القائمة كاملة دفعة واحدة مهما طالت، والمكرر يُتجاوز. بعد البناء تُولَّد الملاحظات وملخصات القراءة ومسودات الأسئلة في الخلفية
             (قد تستغرق دقائق؛ تابع حالتها في الشريط أعلى الصفحة وتصفّح بحرية). كل شيء يدخل «بانتظار المراجعة» ولا يراه المتعلم معتمدًا إلا بعد موافقتك.

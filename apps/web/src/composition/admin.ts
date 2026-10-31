@@ -21,6 +21,7 @@ import {
   FinishBackgroundJobUseCase,
   ListBackgroundJobsUseCase,
   StartBackgroundJobUseCase,
+  TranslateLessonTitlesUseCase,
   type BackgroundJobPort,
   GenerateQuestionsUseCase,
   GenerateStudyGuideUseCase,
@@ -154,6 +155,7 @@ export interface AdminContainer {
   draftLessonNotes: DraftLessonNotesUseCase;
   importPlaylist: ImportPlaylistUseCase;
   enrichPath: EnrichPathUseCase;
+  translateTitles: TranslateLessonTitlesUseCase;
   startJob: StartBackgroundJobUseCase;
   finishJob: FinishBackgroundJobUseCase;
   listJobs: ListBackgroundJobsUseCase;
@@ -206,6 +208,7 @@ export async function getAdminContainer(): Promise<AdminContainer> {
       playlists: new YouTubePlaylistCatalog(process.env.YOUTUBE_API_KEY),
     }),
     enrichPath: new EnrichPathUseCase(deps),
+    translateTitles: new TranslateLessonTitlesUseCase(deps),
     startJob: new StartBackgroundJobUseCase(jobDeps),
     finishJob: new FinishBackgroundJobUseCase(jobDeps),
     listJobs: new ListBackgroundJobsUseCase(jobDeps),

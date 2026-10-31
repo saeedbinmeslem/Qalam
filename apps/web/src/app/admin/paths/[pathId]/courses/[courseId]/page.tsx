@@ -7,9 +7,11 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ErrorBanner, Field, ghostButton } from '../../../../../../components/admin-ui';
 import { CourseSection } from '../../../../../../components/admin-course';
+import { JobLoader } from '../../../../../../components/background-jobs';
 import { InlinePending, PendingButton } from '../../../../../../components/inline-pending';
 import { getAdminContainer } from '../../../../../../composition/admin';
-import { enrichPathAction, importPlaylistAction } from '../../../../actions';
+import { needsArabicTitle } from '@qalam/application';
+import { enrichPathAction, importPlaylistAction, translateTitlesAction } from '../../../../actions';
 
 /** إكمال الملاحظات والملخصات يعمل تحت هذه المهلة */
 export const maxDuration = 300;
@@ -34,6 +36,7 @@ export default async function AdminCoursePage({
   const pendingText = course.modules
     .flatMap((m) => m.lessons)
     .filter((l) => !l.mediaUrl && (!l.notes || !l.studyGuide)).length;
+  const englishTitles = course.modules.flatMap((m) => m.lessons).filter((l) => needsArabicTitle(l.title)).length;
   const concepts = await admin.listConcepts.execute({ actor: admin.actor, pathId: path.id });
   const conceptOptions = concepts.map((c) => ({ id: c.id as string, name: c.name }));
   const conceptName = concepts.find((c) => c.id === course.conceptId)?.name;
@@ -60,10 +63,24 @@ export default async function AdminCoursePage({
           <input type="hidden" name="pathId" value={path.id} />
           <input type="hidden" name="courseId" value={course.id} />
           <p className="mb-3 text-sm text-muted">
-            {pendingText} درسًا في هذا الكورس بلا ملاحظات أو ملخص بعد. إن لم تكتمل الخلفية (أو انتهت حصة النموذج) فأكملها من هنا.
+            {pendingText} من أصل {course.lessonsCount} درسًا في هذا الكورس بلا ملاحظات أو ملخص بعد. إن لم تكتمل الخلفية (أو انتهت حصة النموذج) فأكملها من هنا.
           </p>
           <PendingButton className={ghostButton}>أكمل الملاحظات والملخصات والأسئلة</PendingButton>
           <InlinePending label="جارٍ بدء العملية…" />
+          <JobLoader matchKey={`enrich:${path.id}:${course.id}`} label="جارٍ توليد الملاحظات والملخصات والأسئلة…" />
+        </form>
+      ) : null}
+
+      {englishTitles > 0 ? (
+        <form action={translateTitlesAction} data-inline-loader className="mb-6 card-outlined p-5">
+          <input type="hidden" name="pathId" value={path.id} />
+          <input type="hidden" name="courseId" value={course.id} />
+          <p className="mb-3 text-sm text-muted">
+            {englishTitles} درسًا عنوانه بالإنجليزية (من يوتيوب). تُترجم إلى العربية مع إبقاء المصطلحات التقنية كما هي.
+          </p>
+          <PendingButton className={ghostButton}>ترجمة العناوين إلى العربية</PendingButton>
+          <InlinePending label="جارٍ بدء العملية…" />
+          <JobLoader matchKey={`titles:${path.id}:${course.id}`} label="جارٍ ترجمة العناوين…" />
         </form>
       ) : null}
 
@@ -82,6 +99,7 @@ export default async function AdminCoursePage({
           />
           <PendingButton className={ghostButton}>أكمل إضافة الدروس</PendingButton>
           <InlinePending label="جارٍ بدء العملية…" />
+          <JobLoader matchKey={`import:${path.id}:${course.id}`} label="جارٍ إضافة الدروس وتوليد محتواها…" />
         </form>
       </details>
 

@@ -70,7 +70,7 @@ async function setup(videos: PlaylistVideo[], reply: unknown) {
     generateJson: async (request) => {
       calls.push(request);
       if (reply instanceof Error) throw reply;
-      return reply;
+      return typeof reply === 'function' ? (reply as (r: LlmJsonRequest) => unknown)(request) : reply;
     },
   };
   const deps: PlaylistImportDeps = {
@@ -132,7 +132,8 @@ describe('ImportPlaylistUseCase (استيراد قائمة يوتيوب ككور
     const { deps, calls, pathId, request } = await setup(videos, reply);
     const result = await new ImportPlaylistUseCase(deps).execute(request);
     expect(result).toMatchObject({ lessons: 120, skipped: 0, modules: 3 });
-    expect(calls).toHaveLength(1);
+    // الترجمة (إن وُجدت) استدعاءات منفصلة؛ ترتيب الهيكل نفسه استدعاء واحد مهما طالت القائمة
+    expect(calls.filter((c) => !c.system.includes('مترجم'))).toHaveLength(1);
 
     const course = (await pathOf(deps, pathId)).courses[0]!;
     expect(course.modules.map((m) => m.lessonsCount)).toEqual([60, 41, 19]);
@@ -140,6 +141,35 @@ describe('ImportPlaylistUseCase (استيراد قائمة يوتيوب ككور
     const first = course.modules[0]!.lessons;
     expect(first[0]!.title).toBe('درس 0');
     expect(first[1]!.language).toBe('en');
+  });
+
+  it('يترجم عناوين يوتيوب الإنجليزية إلى العربية ويبقي العربية وما فشلت ترجمته، ولغة الفيديو من الأصلي', async () => {
+    const videos = [video(1, { title: 'Intro to Binary' }), video(2, { title: 'مقدمة' }), video(3, { title: 'Hex Basics' })];
+    const reply = (r: LlmJsonRequest) =>
+      r.system.includes('مترجم')
+        ? { titles: [{ index: 0, title: 'مقدمة في النظام الثنائي' }, { index: 2, title: 'hex' }] } // الثاني بلا عربية فيُرفض
+        : answer({
+            modules: [{ title: 'م', description: '', lessons: [lesson(0, { title: '', language: 'en' }), lesson(1), lesson(2, { title: '', language: 'en' })] }],
+          });
+    const { deps, calls, pathId, request } = await setup(videos, reply);
+    await new ImportPlaylistUseCase(deps).execute(request);
+
+    const lessons = (await pathOf(deps, pathId)).courses[0]!.modules.flatMap((m) => m.lessons);
+    expect(lessons.map((l) => l.title)).toEqual(['مقدمة في النظام الثنائي', 'درس 1', 'Hex Basics']);
+    // نموذج الهيكل رأى العنوان المعرَّب والأصلي معًا
+    const structureCall = calls.find((c) => !c.system.includes('مترجم'))!;
+    expect(structureCall.user).toContain('العنوان: مقدمة في النظام الثنائي | العنوان الأصلي: Intro to Binary');
+  });
+
+  it('فشل الترجمة لا يوقف الاستيراد: تبقى عناوين يوتيوب', async () => {
+    const videos = [video(1, { title: 'Only English' })];
+    const reply = (r: LlmJsonRequest) => {
+      if (r.system.includes('مترجم')) throw new Error('حصة منتهية');
+      return answer({ modules: [{ title: 'م', description: '', lessons: [lesson(0, { title: '' })] }] });
+    };
+    const { deps, pathId, request } = await setup(videos, reply);
+    await new ImportPlaylistUseCase(deps).execute(request);
+    expect((await pathOf(deps, pathId)).courses[0]!.modules[0]!.lessons[0]!.title).toBe('Only English');
   });
 
   it('إكمال كورس موجود: يضيف الناقص فقط في وحدة تكملة بلا نموذج ولا تكرار', async () => {

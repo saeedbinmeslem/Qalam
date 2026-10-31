@@ -15,6 +15,7 @@ export async function GET() {
     return NextResponse.json({
       jobs: jobs.map((j) => ({
         id: j.id,
+        key: j.key,
         label: j.label,
         status: j.status,
         message: j.message,

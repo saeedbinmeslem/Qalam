@@ -216,6 +216,16 @@ export async function addLessonAction(data: FormData): Promise<void> {
  * أدوات الطلب (الكوكيز) تُقرأ قبل `after` لأنها لا تتوفر داخله، فالـcontainer يُبنى هنا ويُمرَّر.
  * `work` يعيد ملخص النتيجة، أو يرمي خطأً فتُسجَّل العملية فاشلة بسببه.
  */
+/**
+ * حد زمن العملية الخلفية: أقل من maxDuration للصفحة (300ث). إن تجاوزته العملية نسجّلها منتهية بوضوح قبل أن تقتلها
+ * المنصة؛ وإلا بقيت «تعمل» للأبد لأن القتل لا يترك لنا فرصة تسجيل النهاية.
+ */
+const JOB_LIMIT_MS = 270_000;
+/** هامش لدرس يعالَج وقت نفاد الميزانية (قراءة فيديو قد تستغرق دقيقة+) فلا تقتله المهلة وسط الحفظ */
+const IN_FLIGHT_MARGIN_MS = 110_000;
+/** أقل ميزانية تستحق بدء التوليد؛ أقل منها نترك الباقي لزر الإكمال */
+const MIN_ENRICH_BUDGET_MS = 20_000;
+
 async function runInBackground(
   returnTo: string,
   job: { key: string; label: string },
@@ -225,7 +235,14 @@ async function runInBackground(
     const { jobId } = await admin.startJob.execute({ actor: admin.actor, ...job });
     after(async () => {
       try {
-        const message = await work(admin);
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        const timeout = new Promise<never>((_, reject) => {
+          timer = setTimeout(
+            () => reject(new Error('انتهى الزمن المتاح للعملية. حُفظ ما اكتمل، فأعد تشغيلها لإكمال الباقي')),
+            JOB_LIMIT_MS,
+          );
+        });
+        const message = await Promise.race([work(admin), timeout]).finally(() => clearTimeout(timer));
         await admin.finishJob.execute({ jobId, status: 'done', message });
       } catch (error) {
         const message = error instanceof Error ? error.message : 'خطأ غير معروف';
@@ -237,8 +254,16 @@ async function runInBackground(
 }
 
 /** يكمل التوليد لما تبقى ثم يلخّص النتيجة؛ الإخفاق مع بقاء دروس يجعل العملية فاشلة بسببه */
-async function enrichAndSummarize(admin: AdminContainer, pathId: string, courseId?: string): Promise<string> {
-  const result = await admin.enrichPath.execute({ actor: admin.actor, pathId, courseId });
+async function enrichAndSummarize(
+  admin: AdminContainer,
+  pathId: string,
+  courseId: string | undefined,
+  startedAt: number,
+): Promise<string> {
+  // ما استُهلك في الخطوات السابقة (كالاستيراد) يُخصم، ونُبقي هامشًا للدروس الجارية وقت النفاد
+  const budgetMs = JOB_LIMIT_MS - IN_FLIGHT_MARGIN_MS - (Date.now() - startedAt);
+  if (budgetMs < MIN_ENRICH_BUDGET_MS) return 'لم يبقَ زمن للتوليد، اضغط «أكمل الملاحظات والملخصات والأسئلة»';
+  const result = await admin.enrichPath.execute({ actor: admin.actor, pathId, courseId, budgetMs });
   if (result.remaining > 0 && result.failures.length > 0) {
     throw new Error(`اكتمل ${result.completed} وتعثّر ${result.failures.length}: ${result.failures[0]?.message ?? ''}`);
   }
@@ -259,8 +284,9 @@ export async function importPlaylistAction(data: FormData): Promise<void> {
     courseId ? coursePage(pathId, courseId) : pathPage(pathId),
     { key: `import:${pathId}:${courseId ?? 'new'}`, label: courseId ? 'إكمال دروس القائمة' : 'استيراد قائمة يوتيوب' },
     async (admin) => {
+      const startedAt = Date.now();
       const imported = await admin.importPlaylist.execute({ actor: admin.actor, pathId, courseId, playlistUrl });
-      const generated = await enrichAndSummarize(admin, pathId, courseId).catch((e: Error) => `الاستيراد تم لكن التوليد تعثّر: ${e.message}`);
+      const generated = await enrichAndSummarize(admin, pathId, courseId, startedAt).catch((e: Error) => `الاستيراد تم لكن التوليد تعثّر: ${e.message}`);
       return `أُضيف ${imported.lessons} درسًا إلى «${imported.courseTitle}». ${generated}`;
     },
   );
@@ -273,7 +299,21 @@ export async function enrichPathAction(data: FormData): Promise<void> {
   await runInBackground(
     courseId ? coursePage(pathId, courseId) : pathPage(pathId),
     { key: `enrich:${pathId}:${courseId ?? 'all'}`, label: 'توليد الملاحظات والملخصات والأسئلة' },
-    (admin) => enrichAndSummarize(admin, pathId, courseId),
+    (admin) => enrichAndSummarize(admin, pathId, courseId, Date.now()),
+  );
+}
+
+/** يترجم عناوين الدروس الإنجليزية في كورس إلى العربية (لكورسات استُوردت قبل الترجمة التلقائية) */
+export async function translateTitlesAction(data: FormData): Promise<void> {
+  const pathId = text(data, 'pathId');
+  const courseId = text(data, 'courseId') || undefined;
+  await runInBackground(
+    courseId ? coursePage(pathId, courseId) : pathPage(pathId),
+    { key: `titles:${pathId}:${courseId ?? 'all'}`, label: 'ترجمة عناوين الدروس إلى العربية' },
+    async (admin) => {
+      const { translated, remaining } = await admin.translateTitles.execute({ actor: admin.actor, pathId, courseId });
+      return remaining > 0 ? `تُرجم ${translated} عنوانًا وتعذّر ${remaining} (أعد المحاولة)` : `تُرجم ${translated} عنوانًا`;
+    },
   );
 }
 

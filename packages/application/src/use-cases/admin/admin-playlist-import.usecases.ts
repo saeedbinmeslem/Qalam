@@ -25,6 +25,7 @@ import {
 import { NotFoundError } from '../../errors.js';
 import type { LlmClient } from '../../ports/llm-client.port.js';
 import type { PlaylistCatalogPort, PlaylistVideo } from '../../ports/playlist-catalog.port.js';
+import { translateTitles } from './admin-title-translation.usecases.js';
 import { loadPath, requireAdmin, type AdminDeps, type AdminRequest } from './admin-deps.js';
 
 export interface PlaylistImportDeps extends AdminDeps {
@@ -173,7 +174,7 @@ const SYSTEM_PROMPT = `أنت مصمم مناهج يحوّل قائمة تشغي
 المطلوب:
 1) concept: المفهوم الذي يغطيه الكورس كاملًا. إن وُجد في «مفاهيم المسار» مفهوم يطابقه فاجعل existingId معرّفه حرفيًا. وإلا فمفهوم جديد: existingId نص فارغ، وname اسم موجز عام (مجال لا درس واحد)، وdescription جملة، وlevel من 1 (الأساسي) إلى 10، وprerequisites معرّفات مفاهيم من «مفاهيم المسار» يلزم تعلمها قبله (قد تكون فارغة).
 2) courseTitle وcourseDescription: عنوان الكورس ووصفه (حقلان في أعلى الكائن، لا داخل concept ولا modules).
-3) modules: قسّم الفيديوهات إلى وحدات متتابعة منطقيًا (من 1 إلى 8 وحدات حسب الطول). لكل وحدة title قصير وdescription بجملة. حافظ على ترتيب القائمة داخل الوحدة إلا لضرورة تعليمية واضحة. كل فيديو يظهر مرة واحدة فقط. لكل درس: index رقم الفيديو كما أُعطي، وtitle واضح موجز بلغة الفيديو (بلا إيموجي ولا اسم القناة ولا أرقام حلقات زائدة)، وsummary جملة أو جملتان مبنيتان على الوصف المنشور فقط (فارغ إن لم يكفِ الوصف)، وlanguage (ar أو en).
+3) modules: قسّم الفيديوهات إلى وحدات متتابعة منطقيًا (من 1 إلى 8 وحدات حسب الطول). لكل وحدة title قصير وdescription بجملة. حافظ على ترتيب القائمة داخل الوحدة إلا لضرورة تعليمية واضحة. كل فيديو يظهر مرة واحدة فقط. لكل درس: index رقم الفيديو كما أُعطي، وtitle عنوان عربي واضح موجز (العناوين المعطاة معرَّبة أصلًا فأبقها أو حسّنها؛ بلا إيموجي ولا اسم القناة ولا أرقام حلقات زائدة)، وsummary جملة أو جملتان مبنيتان على الوصف المنشور فقط (فارغ إن لم يكفِ الوصف)، وlanguage لغة كلام الفيديو نفسه (ar أو en) وتُستنتج من «العنوان الأصلي».
 
 شكل الناتج (أغلق كل كائن قبل الذي بعده): {"concept":{...},"courseTitle":"...","courseDescription":"...","modules":[{"title":"...","description":"...","lessons":[{"index":0,"title":"...","summary":"...","language":"ar"}]}]}
 
@@ -266,12 +267,17 @@ export class ImportPlaylistUseCase {
     // نتجاوز ما هو موجود في المسار أصلًا (إعادة الاستيراد آمنة) وما لا مدة له (محذوف أو خاص)
     const existing = new Set(path.modules.flatMap((m) => m.lessons.map((l) => l.segment.videoId)));
     const fetched = await this.deps.playlists.listVideos(playlistId);
-    const videos = fetched.filter((v) => v.durationSeconds > 0 && !existing.has(v.videoId));
-    if (request.courseId) return this.completeCourse(path, request.courseId, videos, fetched.length);
-    if (videos.length === 0) throw new Error('لا فيديوهات جديدة قابلة للاستيراد في هذه القائمة');
+    const incoming = fetched.filter((v) => v.durationSeconds > 0 && !existing.has(v.videoId));
+    if (!request.courseId && incoming.length === 0) throw new Error('لا فيديوهات جديدة قابلة للاستيراد في هذه القائمة');
+
+    // عناوين يوتيوب بلغة القناة (غالبًا إنجليزية) والمنصة عربية أولًا: نترجمها، وتبقى الأصلية لتحديد لغة الفيديو
+    const originalTitles = incoming.map((v) => v.title);
+    const translations = await translateTitles(this.deps.llm, originalTitles);
+    const videos = incoming.map((v, i) => ({ ...v, title: translations.get(i) ?? v.title }));
+    if (request.courseId) return this.completeCourse(path, request.courseId, videos, fetched.length, originalTitles);
 
     const pathConcepts = await this.deps.concepts.findByPath(path.id);
-    const draft = await this.draftStructure(videos, pathConcepts, path.title);
+    const draft = await this.draftStructure(videos, pathConcepts, path.title, originalTitles);
 
     // المفهوم أولًا لأن الكورس يشير إليه (مفتاح أجنبي)
     const { concept, created } = await this.resolveConcept(draft.concept, pathConcepts, path.id);
@@ -342,6 +348,7 @@ export class ImportPlaylistUseCase {
     courseId: string,
     videos: PlaylistVideo[],
     fetchedCount: number,
+    originalTitles: string[],
   ): Promise<ImportPlaylistResult> {
     const course = path.courses.find((c) => c.id === courseId);
     if (!course) throw new NotFoundError('الكورس');
@@ -353,7 +360,7 @@ export class ImportPlaylistUseCase {
       description: 'فيديوهات القائمة التي لم تُضَف في الاستيراد الأول',
       orderIndex: course.nextModuleOrderIndex,
     });
-    for (const video of videos) {
+    for (const [i, video] of videos.entries()) {
       module.addLesson(
         new Lesson({
           id: createLessonId(this.deps.ids.next('les')),
@@ -361,7 +368,7 @@ export class ImportPlaylistUseCase {
           segment: new VideoSegment({ videoId: video.videoId, startSeconds: 0, endSeconds: video.durationSeconds }),
           sourceUrl: toWatchUrl(video.videoId),
           channelName: video.channelName,
-          language: ARABIC.test(video.title) ? 'ar' : 'en',
+          language: ARABIC.test(originalTitles[i] ?? '') ? 'ar' : 'en',
           reviewedByHuman: false,
         }),
       );
@@ -408,7 +415,12 @@ export class ImportPlaylistUseCase {
   }
 
   /** قائمة طويلة: العناوين وحدها (بلا أوصاف) والردّ نطاقات وحدات، بنفس سياسة إعادة المحاولة */
-  private async draftLargeStructure(videos: PlaylistVideo[], concepts: Concept[], pathTitle: string): Promise<PlaylistStructureDraft> {
+  private async draftLargeStructure(
+    videos: PlaylistVideo[],
+    concepts: Concept[],
+    pathTitle: string,
+    originalTitles: string[],
+  ): Promise<PlaylistStructureDraft> {
     const titles = videos.map((v) => v.title);
     const request = {
       system: LARGE_SYSTEM_PROMPT,
@@ -422,7 +434,7 @@ export class ImportPlaylistUseCase {
         ...titles.map((t, i) => `${i}. ${t}`),
       ].join('\n'),
     };
-    const attempt = async () => parseLargePlaylistStructure(await this.deps.llm.generateJson(request), titles);
+    const attempt = async () => parseLargePlaylistStructure(await this.deps.llm.generateJson(request), originalTitles);
     try {
       return await attempt();
     } catch (first) {
@@ -435,8 +447,13 @@ export class ImportPlaylistUseCase {
     }
   }
 
-  private async draftStructure(videos: PlaylistVideo[], concepts: Concept[], pathTitle: string): Promise<PlaylistStructureDraft> {
-    if (videos.length > DETAILED_DRAFT_MAX_VIDEOS) return this.draftLargeStructure(videos, concepts, pathTitle);
+  private async draftStructure(
+    videos: PlaylistVideo[],
+    concepts: Concept[],
+    pathTitle: string,
+    originalTitles: string[],
+  ): Promise<PlaylistStructureDraft> {
+    if (videos.length > DETAILED_DRAFT_MAX_VIDEOS) return this.draftLargeStructure(videos, concepts, pathTitle, originalTitles);
     const request = {
       system: SYSTEM_PROMPT,
       schema: PLAYLIST_STRUCTURE_SCHEMA,
@@ -448,7 +465,7 @@ export class ImportPlaylistUseCase {
           'الفيديوهات:',
           ...videos.map(
             (v, i) =>
-              `${i}. العنوان: ${v.title} | القناة: ${v.channelName} | الوصف: ${v.description.replace(/\s+/g, ' ').slice(0, DESCRIPTION_EXCERPT)}`,
+              `${i}. العنوان: ${v.title} | العنوان الأصلي: ${originalTitles[i] ?? v.title} | القناة: ${v.channelName} | الوصف: ${v.description.replace(/\s+/g, ' ').slice(0, DESCRIPTION_EXCERPT)}`,
           ),
       ].join('\n'),
     };

@@ -9,7 +9,7 @@ import { requireAdmin, type AdminDeps, type AdminRequest } from './admin-deps.js
 import type { BackgroundJob, BackgroundJobPort } from '../../ports/background-job.port.js';
 
 /** أطول من مهلة الدالة (300ث) بهامش: بعدها تُعدّ العملية العالقة منتهية بفشل */
-export const STALE_JOB_MS = 8 * 60_000;
+export const STALE_JOB_MS = 6 * 60_000;
 /** كم من العمليات المنتهية تُعرض */
 const RECENT_LIMIT = 8;
 
@@ -70,7 +70,7 @@ export class ListBackgroundJobsUseCase {
     const now = this.now();
     return (await this.deps.jobs.findRecent(RECENT_LIMIT)).map((job) =>
       isStale(job, now)
-        ? { ...job, status: 'failed' as const, message: 'توقفت العملية قبل أن تنتهي (انتهت مهلة الخادم). أعد تشغيلها لإكمال الباقي', finishedAt: job.startedAt }
+        ? { ...job, status: 'failed' as const, message: 'توقفت العملية قبل أن تنتهي (انتهت مهلة الخادم). أعد تشغيلها لإكمال الباقي', finishedAt: new Date(job.startedAt.getTime() + STALE_JOB_MS) }
         : job,
     );
   }
