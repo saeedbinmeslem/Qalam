@@ -44,6 +44,8 @@ export class GeminiLlmClient implements LlmClient {
     /** نموذج واحد أو قائمة نماذج بالترتيب */
     models: string | readonly string[] = DEFAULT_GEMINI_MODELS,
     private readonly fetchImpl: FetchLike = fetch as unknown as FetchLike,
+    /** مهلة كل نموذج؛ تُقصَّر للأسئلة التفاعلية ليبقى وقت للنموذج التالي */
+    private readonly requestTimeoutMs: number = REQUEST_TIMEOUT_MS,
   ) {
     this.models = (typeof models === 'string' ? models.split(',') : [...models]).map((m) => m.trim()).filter(Boolean);
     if (this.models.length === 0) this.models = DEFAULT_GEMINI_MODELS;
@@ -51,15 +53,20 @@ export class GeminiLlmClient implements LlmClient {
 
   async generateJson(request: LlmJsonRequest): Promise<unknown> {
     const system = `${request.system}\n\nأجب بـ JSON صالح فقط، بلا شرح ولا علامات كود، ويطابق هذا المخطط تمامًا:\n${JSON.stringify(request.schema)}`;
-    const text = await this.withFallback({
+    const body = {
       systemInstruction: { parts: [{ text: system }] },
       contents: [{ role: 'user', parts: [{ text: request.user }] }],
-      generationConfig: { responseMimeType: 'application/json' },
-    });
-    try {
-      return JSON.parse(text);
-    } catch {
-      throw new Error('ردّ النموذج ليس JSON صالحًا');
+      // thinkingBudget=0: مهمتنا استخراج JSON من نص، والتفكير يضيف ثواني دون فائدة
+      generationConfig: { responseMimeType: 'application/json', thinkingConfig: { thinkingBudget: 0 } },
+    };
+    // النماذج المجانية تُخرج JSON ناقصًا أو مبتورًا أحيانًا؛ المحاولة الثانية تنجح غالبًا فنعيدها مرة واحدة
+    for (let attempt = 1; ; attempt++) {
+      try {
+        return JSON.parse(await this.withFallback(body));
+      } catch (error) {
+        if (!(error instanceof SyntaxError)) throw error;
+        if (attempt >= 2) throw new Error('ردّ النموذج ليس JSON صالحًا');
+      }
     }
   }
 
@@ -85,7 +92,7 @@ export class GeminiLlmClient implements LlmClient {
   }
 
   /** يجرّب النماذج بالترتيب ويعيد نص أول ردّ ناجح */
-  private async withFallback(body: Record<string, unknown>, timeoutMs = REQUEST_TIMEOUT_MS): Promise<string> {
+  private async withFallback(body: Record<string, unknown>, timeoutMs = this.requestTimeoutMs): Promise<string> {
     let lastError: Error | undefined;
     for (const model of this.models) {
       try {
@@ -113,7 +120,15 @@ export class GeminiLlmClient implements LlmClient {
     }
 
     const body = (await response.json().catch(() => ({}))) as GeminiResponse;
-    if (!response.ok) throw translateHttpError(model, response.status, body);
+    if (!response.ok) {
+      // بعض النماذج لا تقبل تعطيل التفكير: نعيد المحاولة على النموذج نفسه بدونه بدل الفشل
+      const config = requestBody['generationConfig'] as Record<string, unknown> | undefined;
+      if (response.status === 400 && config?.['thinkingConfig'] && /thinking/i.test(body.error?.message ?? '')) {
+        const { thinkingConfig: _omit, ...rest } = config;
+        return this.callModel(model, { ...requestBody, generationConfig: rest }, timeoutMs);
+      }
+      throw translateHttpError(model, response.status, body);
+    }
 
     if (body.promptFeedback?.blockReason) {
       throw new Error('حجب Gemini هذا الطلب. عدّل ملاحظات الدرس وأعد المحاولة');

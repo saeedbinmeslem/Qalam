@@ -9,6 +9,7 @@
 import { ForbiddenError, UnauthenticatedError } from '@qalam/application';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { after } from 'next/server';
 import { getAdminContainer, type AdminContainer } from '../../composition/admin';
 import { safeRedirectPath } from '../auth/safe-redirect';
 
@@ -41,7 +42,6 @@ const pathPage = (pathId: string) => `/admin/paths/${pathId}`;
 
 const lessonFields = (data: FormData) => ({
   title: text(data, 'title'),
-  conceptId: text(data, 'conceptId'),
   videoUrl: text(data, 'videoUrl'),
   start: text(data, 'start'),
   end: text(data, 'end'),
@@ -97,6 +97,49 @@ export async function deletePathAction(data: FormData): Promise<void> {
   });
 }
 
+// ───── الكورسات ─────
+
+export async function addCourseAction(data: FormData): Promise<void> {
+  const pathId = text(data, 'pathId');
+  await run(pathPage(pathId), async (admin) => {
+    await admin.addCourse.execute({
+      actor: admin.actor,
+      pathId,
+      conceptId: text(data, 'conceptId'),
+      title: text(data, 'title'),
+      description: text(data, 'description'),
+    });
+  });
+}
+
+export async function updateCourseAction(data: FormData): Promise<void> {
+  const pathId = text(data, 'pathId');
+  await run(pathPage(pathId), (admin) =>
+    admin.updateCourse.execute({
+      actor: admin.actor,
+      pathId,
+      courseId: text(data, 'courseId'),
+      conceptId: text(data, 'conceptId') || undefined,
+      title: text(data, 'title'),
+      description: text(data, 'description'),
+    }),
+  );
+}
+
+export async function deleteCourseAction(data: FormData): Promise<void> {
+  const pathId = text(data, 'pathId');
+  await run(pathPage(pathId), (admin) =>
+    admin.deleteCourse.execute({ actor: admin.actor, pathId, courseId: text(data, 'courseId') }),
+  );
+}
+
+export async function moveCourseAction(data: FormData): Promise<void> {
+  const pathId = text(data, 'pathId');
+  await run(pathPage(pathId), (admin) =>
+    admin.moveCourse.execute({ actor: admin.actor, pathId, courseId: text(data, 'courseId'), direction: direction(data) }),
+  );
+}
+
 // ───── الوحدات ─────
 
 export async function addModuleAction(data: FormData): Promise<void> {
@@ -105,6 +148,7 @@ export async function addModuleAction(data: FormData): Promise<void> {
     await admin.addModule.execute({
       actor: admin.actor,
       pathId,
+      courseId: text(data, 'courseId'),
       title: text(data, 'title'),
       description: text(data, 'description'),
     });
@@ -154,6 +198,35 @@ export async function addLessonAction(data: FormData): Promise<void> {
       moduleId: text(data, 'moduleId'),
       ...lessonFields(data),
     });
+  });
+}
+
+/**
+ * المالك يعطي رابط القائمة فقط: يُبنى الهيكل (وحدات ودروس ومفاهيم) فورًا، ثم تُولَّد الملاحظات والملخصات
+ * ومسودات الأسئلة في الخلفية (`after`). الحاكم الزمني للخلفية هو maxDuration لصفحة المسار.
+ * أدوات الطلب (الكوكيز) تُقرأ قبل `after` لأنها لا تتوفر داخله، فالـcontainer يُبنى هنا ويُمرَّر.
+ */
+export async function importPlaylistAction(data: FormData): Promise<void> {
+  const pathId = text(data, 'pathId');
+  await run(pathPage(pathId), async (admin) => {
+    await admin.importPlaylist.execute({ actor: admin.actor, pathId, playlistUrl: text(data, 'playlistUrl') });
+    after(() =>
+      admin.enrichPath.execute({ actor: admin.actor, pathId }).then(
+        (result) => console.log(`[enrich] اكتمل ${result.completed}، متبقٍ ${result.remaining}، إخفاقات ${result.failures.length}`),
+        (error) => console.error('[enrich] فشل الإكمال التلقائي', error),
+      ),
+    );
+  });
+}
+
+/** يكمل الملاحظات والملخصات والأسئلة لما تبقى (بعد حصة منتهية أو مهلة) */
+export async function enrichPathAction(data: FormData): Promise<void> {
+  const pathId = text(data, 'pathId');
+  await run(pathPage(pathId), async (admin) => {
+    const result = await admin.enrichPath.execute({ actor: admin.actor, pathId });
+    if (result.remaining > 0 && result.failures.length > 0) {
+      throw new Error(`اكتمل ${result.completed} وتعثّر ${result.failures.length}: ${result.failures[0]?.message ?? ''}`);
+    }
   });
 }
 
@@ -288,20 +361,23 @@ export async function deleteQuestionAction(data: FormData): Promise<void> {
 
 // ───── المفاهيم ─────
 
+const conceptsPage = (pathId: string) => `/admin/concepts?path=${encodeURIComponent(pathId)}`;
+
 export async function createConceptAction(data: FormData): Promise<void> {
-  await run('/admin/concepts', async (admin) => {
-    await admin.createConcept.execute({ actor: admin.actor, ...conceptFields(data) });
+  const pathId = text(data, 'pathId');
+  await run(conceptsPage(pathId), async (admin) => {
+    await admin.createConcept.execute({ actor: admin.actor, pathId, ...conceptFields(data) });
   });
 }
 
 export async function updateConceptAction(data: FormData): Promise<void> {
-  await run('/admin/concepts', (admin) =>
+  await run(conceptsPage(text(data, 'pathId')), (admin) =>
     admin.updateConcept.execute({ actor: admin.actor, conceptId: text(data, 'conceptId'), ...conceptFields(data) }),
   );
 }
 
 export async function deleteConceptAction(data: FormData): Promise<void> {
-  await run('/admin/concepts', (admin) =>
+  await run(conceptsPage(text(data, 'pathId')), (admin) =>
     admin.deleteConcept.execute({ actor: admin.actor, conceptId: text(data, 'conceptId') }),
   );
 }

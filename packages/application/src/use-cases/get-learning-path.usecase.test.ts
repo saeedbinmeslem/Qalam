@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  createConceptId,
   createLessonId,
   createModuleId,
   createPathId,
@@ -12,6 +11,7 @@ import {
 } from '@qalam/domain';
 import type { PathRepositoryPort } from '../ports/path-repository.port.js';
 import { GetLearningPathUseCase } from './get-learning-path.usecase.js';
+import { addModule } from '../test-support/path-builder.js';
 
 /**
  * تنفيذ وهمي (Fake / In-Memory) لمنفذ مستودع المسارات
@@ -63,7 +63,6 @@ describe('GetLearningPathUseCase (حالة استخدام استرجاع الم�
     const lesson1 = new Lesson({
       id: createLessonId('les-1'),
       title: 'المتغيرات وأنواع البيانات',
-      conceptId: createConceptId('variables'),
       segment: new VideoSegment({
         videoId: 'dQw4w9WgXcQ',
         startSeconds: 0,
@@ -74,7 +73,7 @@ describe('GetLearningPathUseCase (حالة استخدام استرجاع الم�
     });
 
     module1.addLesson(lesson1);
-    samplePath.addModule(module1);
+    addModule(samplePath, module1);
 
     await repo.save(samplePath);
 
@@ -83,6 +82,7 @@ describe('GetLearningPathUseCase (حالة استخدام استرجاع الم�
     expect(result.path.title).toBe('مدخل إلى لغة C++');
     expect(result.totalModulesCount).toBe(1);
     expect(result.totalLessonsCount).toBe(1);
+    expect(result.concepts).toEqual([]);
   });
 
   it('يرمي استثناء عندما يكون المسار غير موجود', async () => {

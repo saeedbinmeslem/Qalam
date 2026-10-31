@@ -37,6 +37,9 @@ export * from './use-cases/admin/admin-deps.js';
 export * from './use-cases/admin/admin-paths.usecases.js';
 export * from './use-cases/admin/admin-lessons.usecases.js';
 export * from './use-cases/admin/admin-concepts.usecases.js';
+export * from './ports/playlist-catalog.port.js';
+export * from './use-cases/admin/admin-playlist-import.usecases.js';
+export * from './use-cases/admin/admin-path-enrichment.usecases.js';
 export * from './ports/media-upload.port.js';
 export * from './use-cases/admin/admin-media.usecases.js';
 

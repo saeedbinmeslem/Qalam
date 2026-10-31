@@ -5,6 +5,7 @@
  * @description صندوق «اسأل قلم» في صفحة الدرس: سؤال واحد وإجابة مبنية على مادة الدرس، مع تنبيه حين لا تكفي المادة.
  */
 import { useActionState } from 'react';
+import { InlinePending } from './inline-pending';
 import { askLessonAction, type AskState } from '../app/paths/[pathId]/lessons/[lessonId]/ask-action';
 
 export function AskQalam({ pathId, lessonId }: { pathId: string; lessonId: string }) {
@@ -16,7 +17,7 @@ export function AskQalam({ pathId, lessonId }: { pathId: string; lessonId: strin
         اسأل قلم عن هذا الدرس
       </h2>
       <p className="mt-1 text-sm text-muted">يجيبك من مادة الدرس فقط، فإن لم تكفِ أخبرك بصدق.</p>
-      <form action={action} className="mt-4 space-y-3">
+      <form action={action} data-inline-loader className="mt-4 space-y-3">
         <input type="hidden" name="pathId" value={pathId} />
         <input type="hidden" name="lessonId" value={lessonId} />
         <textarea
@@ -32,6 +33,7 @@ export function AskQalam({ pathId, lessonId }: { pathId: string; lessonId: strin
         <button type="submit" className="btn-filled" disabled={pending}>
           {pending ? 'قلم يفكّر…' : 'اسأل'}
         </button>
+        <InlinePending label="قلم يبحث في مادة الدرس…" />
       </form>
 
       {state.error ? (

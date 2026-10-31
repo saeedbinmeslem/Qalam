@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
   createConceptId,
+  createCourseId,
   createLessonId,
   createModuleId,
   createPathId,
 } from '../value-objects/identifiers.js';
 import { VideoSegment } from '../value-objects/video-segment.js';
+import { Course } from './course.js';
 import { Lesson } from './lesson.js';
 import { LearningPath } from './learning-path.js';
 import { Module } from './module.js';
@@ -14,7 +16,6 @@ const lesson = (id: string) =>
   new Lesson({
     id: createLessonId(id),
     title: id,
-    conceptId: createConceptId('c'),
     segment: new VideoSegment({ videoId: 'abcdefghijk', startSeconds: 0, endSeconds: 60 }),
     sourceUrl: 'https://www.youtube.com/watch?v=abcdefghijk',
     channelName: 'قناة',
@@ -29,12 +30,14 @@ function buildPath() {
     targetGoal: 'هدف',
     subject: 'عام',
   });
+  const course = new Course({ id: createCourseId('co'), conceptId: createConceptId('c'), title: 'ك', description: '', orderIndex: 1 });
   for (const [i, name] of ['m1', 'm2', 'm3'].entries()) {
     const module = new Module({ id: createModuleId(name), title: name, description: '', orderIndex: i + 1 });
     module.addLesson(lesson(`${name}-a`));
     module.addLesson(lesson(`${name}-b`));
-    path.addModule(module);
+    course.addModule(module);
   }
+  path.addCourse(course);
   return path;
 }
 
@@ -71,7 +74,7 @@ describe('تعديل المسار والوحدات والدروس', () => {
       ['m2', 1],
       ['m3', 2],
     ]);
-    expect(path.nextModuleOrderIndex).toBe(3);
+    expect(path.courses[0]!.nextModuleOrderIndex).toBe(3);
   });
 
   it('moveModule يبدّل الترتيب ويعيد الترقيم', () => {

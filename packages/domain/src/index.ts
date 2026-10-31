@@ -12,6 +12,7 @@ export * from './value-objects/mastery-state.js';
 export * from './entities/concept.js';
 export * from './entities/lesson.js';
 export * from './entities/module.js';
+export * from './entities/course.js';
 export * from './entities/learning-path.js';
 export * from './entities/learner.js';
 

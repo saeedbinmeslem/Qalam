@@ -8,7 +8,6 @@
 import {
   Lesson,
   VideoSegment,
-  createConceptId,
   createLessonId,
   createModuleId,
   parseCloudinaryVideoUrl,
@@ -23,7 +22,6 @@ import { requireAdmin, loadPath, type AdminDeps, type AdminRequest } from './adm
 /** حقول الدرس كما تُدخل في النموذج (روابط وتوقيتات نصية) */
 export interface LessonFields {
   title: string;
-  conceptId: string;
   /** رابط يوتيوب أو معرّف الفيديو */
   videoUrl: string;
   /** «1:23» أو ثوانٍ */
@@ -68,13 +66,10 @@ function resolveVideo(fields: LessonFields) {
   };
 }
 
-async function buildLessonChanges(deps: AdminDeps, fields: LessonFields) {
-  const conceptId = createConceptId(fields.conceptId);
-  if (!(await deps.concepts.findById(conceptId))) throw new NotFoundError('المفهوم');
-
+/** مفهوم الدرس من كورسه، فلا يُدخَل مع حقول الدرس */
+function buildLessonChanges(fields: LessonFields) {
   return {
     title: fields.title,
-    conceptId,
     ...resolveVideo(fields),
     channelName: fields.channelName,
     language: fields.language,
@@ -101,7 +96,7 @@ export class AddLessonUseCase {
 
     const lesson = new Lesson({
       id: createLessonId(this.deps.ids.next('les')),
-      ...(await buildLessonChanges(this.deps, request)),
+      ...buildLessonChanges(request),
       reviewedByHuman: false,
     });
     module.addLesson(lesson);
@@ -119,7 +114,7 @@ export class UpdateLessonUseCase {
     const found = path.findLesson(createLessonId(request.lessonId));
     if (!found) throw new NotFoundError('الدرس');
 
-    const changes = await buildLessonChanges(this.deps, request);
+    const changes = buildLessonChanges(request);
     found.module.replaceLesson(found.lesson.update({ ...changes, reviewedByHuman: false }));
     await this.deps.paths.save(path);
   }

@@ -3,7 +3,6 @@ import {
   AdminPolicy,
   Concept,
   QuizQuestion,
-  createConceptId,
   type ConceptId,
   type LearningEvent,
   type LearningPath,
@@ -17,7 +16,6 @@ import type { LlmClient, LlmJsonRequest, LlmVideoRequest } from '../../ports/llm
 import { SetLessonReviewUseCase } from './admin-lessons.usecases.js';
 import type { QuestionRepositoryPort } from '../../ports/question-repository.port.js';
 import { AddLessonUseCase, UpdateLessonUseCase } from './admin-lessons.usecases.js';
-import { AddModuleUseCase, CreatePathUseCase } from './admin-paths.usecases.js';
 import {
   AddQuestionUseCase,
   ApproveQuestionUseCase,
@@ -30,6 +28,7 @@ import {
 } from './admin-quiz.usecases.js';
 import { GetLessonQuizUseCase, GetQuizResultUseCase, SubmitQuizUseCase } from '../learner-quiz.usecases.js';
 import { parseGeneratedQuestions } from './generated-questions.js';
+import { seedPathWithModule } from '../../test-support/admin-seed.js';
 
 class Paths {
   store = new Map<string, LearningPath>();
@@ -66,6 +65,9 @@ class Concepts implements ConceptRepositoryPort {
   }
   async findAll() {
     return [...this.store.values()];
+  }
+  async findByPath(pathId: PathId) {
+    return [...this.store.values()].filter((c) => c.pathId === pathId);
   }
   async delete(id: ConceptId) {
     this.store.delete(id);
@@ -105,11 +107,9 @@ async function setup(answer: unknown = validAnswer) {
     questions: new Questions(),
     llm,
   };
-  await deps.concepts.save(new Concept({ id: createConceptId('c1'), name: 'النظام الثنائي', description: '', level: 1 }));
-  const { pathId } = await new CreatePathUseCase(deps).execute({ actor: admin, title: 'م', description: '', targetGoal: 'هدف', subject: 'ع' });
-  const { moduleId } = await new AddModuleUseCase(deps).execute({ actor: admin, pathId, title: 'و', description: '' });
+  const { pathId, moduleId } = await seedPathWithModule(deps, admin);
   const fields = {
-    title: 'درس', conceptId: 'c1', videoUrl: 'qTVRs1wTwho', start: '0:00', end: '5:00',
+    title: 'درس', videoUrl: 'qTVRs1wTwho', start: '0:00', end: '5:00',
     channelName: 'قناة', language: 'ar', summary: '', notes: 'النظام الثنائي يستعمل الرقمين 0 و1. البايت ثمانية بتات.',
   };
   const { lessonId } = await new AddLessonUseCase(deps).execute({ actor: admin, pathId, moduleId, ...fields });

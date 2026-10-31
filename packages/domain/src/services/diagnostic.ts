@@ -20,11 +20,8 @@ export function selectDiagnosticQuestions(path: LearningPath, approved: readonly
   const lessonIds = new Set(path.modules.flatMap((m) => m.lessons.map((l) => l.id as string)));
   const eligible = approved.filter((q) => q.isApproved && lessonIds.has(q.lessonId));
 
-  const conceptOrder: ConceptId[] = [];
-  for (const lesson of path.modules.flatMap((m) => m.lessons)) {
-    if (!conceptOrder.includes(lesson.conceptId)) conceptOrder.push(lesson.conceptId);
-  }
-  return conceptOrder.flatMap((conceptId) =>
+  // مفاهيم المسار بترتيب كورساته
+  return path.conceptIds.flatMap((conceptId) =>
     eligible.filter((q) => q.conceptId === conceptId).slice(0, QUESTIONS_PER_CONCEPT),
   );
 }
@@ -54,12 +51,14 @@ export function planDiagnosticSkips(
       .map(([conceptId]) => conceptId),
   );
 
+  const conceptOf = path.lessonConceptMap();
   const skips = path.modules
     .flatMap((m) => m.lessons)
-    .filter((lesson) => mastered.has(lesson.conceptId))
+    .filter((lesson) => mastered.has(conceptOf.get(lesson.id) as ConceptId))
     .map((lesson) => {
-      const name = conceptNames.get(lesson.conceptId) ?? 'هذا المفهوم';
-      const n = byConcept.get(lesson.conceptId)?.length ?? 0;
+      const conceptId = conceptOf.get(lesson.id) as ConceptId;
+      const name = conceptNames.get(conceptId) ?? 'هذا المفهوم';
+      const n = byConcept.get(conceptId)?.length ?? 0;
       const count = n === 2 ? 'سؤالين' : `${n} أسئلة`;
       return { lesson, reason: `أجبتَ صحيحًا على ${count} عن «${name}» في الاختبار التشخيصي` };
     });

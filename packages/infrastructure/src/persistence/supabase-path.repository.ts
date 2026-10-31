@@ -7,11 +7,13 @@
 
 import type { PathRepositoryPort } from '@qalam/application';
 import {
+  Course,
   LearningPath,
   Lesson,
   Module,
   VideoSegment,
   createConceptId,
+  createCourseId,
   createLessonId,
   createModuleId,
   createPathId,
@@ -38,7 +40,6 @@ export interface SupabaseDataClient {
 export interface LessonRow {
   id: string;
   title: string;
-  concept_id: string;
   video_id: string;
   start_seconds: number;
   end_seconds: number;
@@ -61,6 +62,15 @@ export interface ModuleRow {
   lessons: LessonRow[] | null;
 }
 
+export interface CourseRow {
+  id: string;
+  concept_id: string;
+  title: string;
+  description: string | null;
+  order_index: number;
+  modules: ModuleRow[] | null;
+}
+
 export interface PathRow {
   id: string;
   title: string;
@@ -69,10 +79,10 @@ export interface PathRow {
   subject: string;
   created_at: string;
   updated_at: string;
-  modules: ModuleRow[] | null;
+  courses: CourseRow[] | null;
 }
 
-const PATH_SELECT = '*, modules(*, lessons(*))';
+const PATH_SELECT = '*, courses(*, modules(*, lessons(*)))';
 
 /** تحويل صف قاعدة البيانات إلى كيان Domain (دالة نقية قابلة للاختبار) */
 export function mapPathRow(row: PathRow): LearningPath {
@@ -86,37 +96,46 @@ export function mapPathRow(row: PathRow): LearningPath {
     updatedAt: new Date(row.updated_at),
   });
 
-  for (const moduleRow of row.modules ?? []) {
-    const module = new Module({
-      id: createModuleId(moduleRow.id),
-      title: moduleRow.title,
-      description: moduleRow.description ?? '',
-      orderIndex: moduleRow.order_index,
+  for (const courseRow of row.courses ?? []) {
+    const course = new Course({
+      id: createCourseId(courseRow.id),
+      conceptId: createConceptId(courseRow.concept_id),
+      title: courseRow.title,
+      description: courseRow.description ?? '',
+      orderIndex: courseRow.order_index,
     });
-    const lessons = [...(moduleRow.lessons ?? [])].sort((a, b) => a.order_index - b.order_index);
-    for (const l of lessons) {
-      module.addLesson(
-        new Lesson({
-          id: createLessonId(l.id),
-          title: l.title,
-          conceptId: createConceptId(l.concept_id),
-          segment: new VideoSegment({
-            videoId: l.video_id,
-            startSeconds: l.start_seconds,
-            endSeconds: l.end_seconds,
+    for (const moduleRow of courseRow.modules ?? []) {
+      const module = new Module({
+        id: createModuleId(moduleRow.id),
+        title: moduleRow.title,
+        description: moduleRow.description ?? '',
+        orderIndex: moduleRow.order_index,
+      });
+      const lessons = [...(moduleRow.lessons ?? [])].sort((a, b) => a.order_index - b.order_index);
+      for (const l of lessons) {
+        module.addLesson(
+          new Lesson({
+            id: createLessonId(l.id),
+            title: l.title,
+            segment: new VideoSegment({
+              videoId: l.video_id,
+              startSeconds: l.start_seconds,
+              endSeconds: l.end_seconds,
+            }),
+            sourceUrl: l.source_url,
+            channelName: l.channel_name,
+            language: l.language ?? 'ar',
+            summary: l.summary ?? undefined,
+            reviewedByHuman: l.reviewed_by_human ?? false,
+            notes: l.notes ?? undefined,
+            mediaUrl: l.media_url ?? undefined,
+            studyGuide: l.study_guide ?? undefined,
           }),
-          sourceUrl: l.source_url,
-          channelName: l.channel_name,
-          language: l.language ?? 'ar',
-          summary: l.summary ?? undefined,
-          reviewedByHuman: l.reviewed_by_human ?? false,
-          notes: l.notes ?? undefined,
-          mediaUrl: l.media_url ?? undefined,
-          studyGuide: l.study_guide ?? undefined,
-        }),
-      );
+        );
+      }
+      course.addModule(module);
     }
-    path.addModule(module);
+    path.addCourse(course);
   }
   return path;
 }
@@ -136,10 +155,21 @@ export class SupabasePathRepository implements PathRepositoryPort {
       },
     ]);
     await this.upsert(
-      'modules',
-      path.modules.map((m) => ({
-        id: m.id,
+      'courses',
+      path.courses.map((c) => ({
+        id: c.id,
         path_id: path.id,
+        concept_id: c.conceptId,
+        title: c.title,
+        description: c.description,
+        order_index: c.orderIndex,
+      })),
+    );
+    await this.upsert(
+      'modules',
+      path.courses.flatMap((c) => c.modules.map((m) => ({ course_id: c.id, m }))).map(({ course_id, m }) => ({
+        id: m.id,
+        course_id,
         title: m.title,
         description: m.description,
         order_index: m.orderIndex,
@@ -151,7 +181,6 @@ export class SupabasePathRepository implements PathRepositoryPort {
         m.lessons.map((l, index) => ({
           id: l.id,
           module_id: m.id,
-          concept_id: l.conceptId,
           title: l.title,
           video_id: l.segment.videoId,
           start_seconds: l.segment.startSeconds,
@@ -171,16 +200,21 @@ export class SupabasePathRepository implements PathRepositoryPort {
     await this.removeOrphans(path);
   }
 
-  /** upsert لا يحذف؛ فنحذف ما أُزيل من المسار (دروس ثم وحدات) ليطابق قاعدة البيانات الكيان */
+  /** upsert لا يحذف؛ فنحذف ما أُزيل من المسار (دروس ثم وحدات ثم كورسات) ليطابق قاعدة البيانات الكيان */
   private async removeOrphans(path: LearningPath): Promise<void> {
     for (const module of path.modules) {
       const keep = new Set(module.lessons.map((l) => l.id as string));
       const stored = await this.selectIds('lessons', 'module_id', module.id);
       for (const id of stored.filter((id) => !keep.has(id))) await this.remove('lessons', id);
     }
-    const keepModules = new Set(path.modules.map((m) => m.id as string));
-    const storedModules = await this.selectIds('modules', 'path_id', path.id);
-    for (const id of storedModules.filter((id) => !keepModules.has(id))) await this.remove('modules', id);
+    for (const course of path.courses) {
+      const keep = new Set(course.modules.map((m) => m.id as string));
+      const stored = await this.selectIds('modules', 'course_id', course.id);
+      for (const id of stored.filter((id) => !keep.has(id))) await this.remove('modules', id);
+    }
+    const keepCourses = new Set(path.courses.map((c) => c.id as string));
+    const storedCourses = await this.selectIds('courses', 'path_id', path.id);
+    for (const id of storedCourses.filter((id) => !keepCourses.has(id))) await this.remove('courses', id);
   }
 
   async delete(id: PathId): Promise<void> {

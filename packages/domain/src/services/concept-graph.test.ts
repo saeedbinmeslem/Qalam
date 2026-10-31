@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { Concept } from '../entities/concept.js';
-import { createConceptId } from '../value-objects/identifiers.js';
+import { createConceptId, createPathId } from '../value-objects/identifiers.js';
 import { wouldCreateCycle } from './concept-graph.js';
 
 const id = createConceptId;
 const concept = (name: string, prerequisites: string[] = []) =>
-  new Concept({ id: id(name), name, description: '', level: 1, prerequisiteIds: prerequisites.map(id) });
+  new Concept({ id: id(name), pathId: createPathId('p'), name, description: '', level: 1, prerequisiteIds: prerequisites.map(id) });
 
 describe('wouldCreateCycle (منع دورات المتطلبات)', () => {
   const graph = [concept('a'), concept('b', ['a']), concept('c', ['b'])];

@@ -40,6 +40,11 @@ const saved = file.load();
 const source = saved ?? { ...(() => { const s = infra.createInitialSeedPath(); return { paths: [s.path], concepts: s.concepts, questions: [] }; })() };
 console.log(saved ? 'المصدر: اللقطة المحلية' : 'المصدر: البذرة الأولية');
 
+// المفتاح الأجنبي: المسار أولًا (فارغ) ثم مفاهيمه ثم كورساته. concepts.path_id يشير للمسار، وcourses.concept_id للمفهوم
+const { LearningPath } = await load('domain');
+for (const path of source.paths) {
+  await paths.save(new LearningPath({ id: path.id, title: path.title, description: path.description, targetGoal: path.targetGoal, subject: path.subject }));
+}
 for (const concept of source.concepts) await concepts.save(concept);
 console.log(`المفاهيم: ${source.concepts.length}`);
 for (const path of source.paths) await paths.save(path);

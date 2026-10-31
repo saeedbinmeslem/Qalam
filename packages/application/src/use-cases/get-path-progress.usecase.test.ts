@@ -5,7 +5,6 @@ import {
   Lesson,
   Module,
   VideoSegment,
-  createConceptId,
   createLessonId,
   createModuleId,
   createPathId,
@@ -15,6 +14,7 @@ import {
 import type { EventReaderPort } from '../ports/event-reader.port.js';
 import type { PathRepositoryPort } from '../ports/path-repository.port.js';
 import { GetPathProgressUseCase } from './get-path-progress.usecase.js';
+import { addModule } from '../test-support/path-builder.js';
 
 function samplePath(): LearningPath {
   const path = new LearningPath({ id: createPathId('p1'), title: 'م', description: '', targetGoal: 'هدف', subject: 'عام' });
@@ -24,14 +24,13 @@ function samplePath(): LearningPath {
       new Lesson({
         id: createLessonId(id),
         title: id,
-        conceptId: createConceptId('c'),
         segment: new VideoSegment({ videoId: 'abcdefghijk', startSeconds: 0, endSeconds: 60 }),
         sourceUrl: 'https://www.youtube.com/watch?v=abcdefghijk',
         channelName: 'قناة',
       }),
     );
   }
-  path.addModule(module);
+  addModule(path, module);
   return path;
 }
 

@@ -18,7 +18,7 @@ export default async function PathPage({ params }: { params: Promise<{ pathId: s
   const result = await getLearningPath.execute({ pathId: createPathId(pathId) }).catch(() => null);
   if (!result) notFound();
 
-  const { path, totalModulesCount, totalLessonsCount } = result;
+  const { path, concepts, totalModulesCount, totalLessonsCount } = result;
 
   // التقدم للمسجَّل فقط؛ الزائر يرى المسار بلا تتبع
   const user = await (await getAuth()).getCurrentUser.execute();
@@ -159,59 +159,74 @@ export default async function PathPage({ params }: { params: Promise<{ pathId: s
       ) : null}
 
       <div className="mx-auto max-w-6xl px-5 md:px-8 pt-14">
-        <ol className="stroke-list">
-          {path.modules.map((module, index) => (
-            <li key={module.id} className="stroke-item">
-              <span className="stroke-node" aria-hidden="true">
-                {index + 1}
-              </span>
-              <h2 className="font-display text-xl font-semibold text-ink">{module.title}</h2>
-              <p className="mt-1 text-muted">{module.description}</p>
+        {concepts
+          .filter((concept) => path.courses.some((c) => c.conceptId === concept.id))
+          .map((concept) => (
+            <section key={concept.id} className="mb-14" aria-labelledby={`concept-${concept.id}`}>
+              <h2 id={`concept-${concept.id}`} className="font-display text-2xl font-extrabold text-ink">
+                {concept.name}
+              </h2>
+              {concept.description ? <p className="mt-1 text-muted">{concept.description}</p> : null}
 
-              <ul className="mt-5 divide-y divide-rule card-outlined">
-                {module.lessons.map((lesson) => (
-                  <li key={lesson.id} className="grid gap-1 p-4 md:grid-cols-[1fr_auto] md:gap-6">
-                    <div>
-                      <Link href={lessonHref(lesson.id)} className="font-medium text-ink hover:underline">
-                        {lesson.title}
-                      </Link>
-                      {progress?.skippedLessonIds.has(lesson.id) ? (
-                        <span className="ms-2 rounded-full bg-highlighter/25 px-2 py-0.5 text-xs font-medium text-ink">
-                          تم تخطيه (أتقنتَ مفهومه)
-                        </span>
-                      ) : null}
-                      {progress?.completedLessonIds.has(lesson.id) ? (
-                        <span className="ms-2 chip chip-primary">
-                          ✓ مكتمل
-                        </span>
-                      ) : null}
-                      {progress?.quizPercentByLesson.has(lesson.id) ? (
-                        <span className="ms-2 chip">
-                          آخر اختبار: {progress.quizPercentByLesson.get(lesson.id)}%
-                        </span>
-                      ) : null}
-                      {lesson.summary ? <p className="mt-1 text-sm text-muted">{lesson.summary}</p> : null}
-                      <p className="mt-2 text-sm text-muted">
-                        المصدر:{' '}
-                        <a
-                          href={lesson.sourceUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sea underline underline-offset-2 hover:text-sea-dark"
-                        >
-                          {lesson.channelName}
-                        </a>
-                      </p>
-                    </div>
-                    <p className="text-sm font-medium text-ink md:text-end">
-                      {formatDuration(lesson.segment.durationSeconds)}
-                    </p>
-                  </li>
+              {path.courses
+                .filter((course) => course.conceptId === concept.id)
+                .map((course) => (
+                  <div key={course.id} className="mt-6">
+                    <h3 className="font-display text-xl font-semibold text-ink">{course.title}</h3>
+                    {course.description ? <p className="mt-1 text-sm text-muted">{course.description}</p> : null}
+                    <ol className="stroke-list mt-4">
+                      {course.modules.map((module, index) => (
+                        <li key={module.id} className="stroke-item">
+                          <span className="stroke-node" aria-hidden="true">
+                            {index + 1}
+                          </span>
+                          <h4 className="font-display text-lg font-semibold text-ink">{module.title}</h4>
+                          <p className="mt-1 text-muted">{module.description}</p>
+
+                          <ul className="mt-5 divide-y divide-rule card-outlined">
+                            {module.lessons.map((lesson) => (
+                              <li key={lesson.id} className="grid gap-1 p-4 md:grid-cols-[1fr_auto] md:gap-6">
+                                <div>
+                                  <Link href={lessonHref(lesson.id)} className="font-medium text-ink hover:underline">
+                                    {lesson.title}
+                                  </Link>
+                                  {progress?.skippedLessonIds.has(lesson.id) ? (
+                                    <span className="ms-2 rounded-full bg-highlighter/25 px-2 py-0.5 text-xs font-medium text-ink">
+                                      تم تخطيه (أتقنتَ مفهومه)
+                                    </span>
+                                  ) : null}
+                                  {progress?.completedLessonIds.has(lesson.id) ? (
+                                    <span className="ms-2 chip chip-primary">✓ مكتمل</span>
+                                  ) : null}
+                                  {progress?.quizPercentByLesson.has(lesson.id) ? (
+                                    <span className="ms-2 chip">آخر اختبار: {progress.quizPercentByLesson.get(lesson.id)}%</span>
+                                  ) : null}
+                                  {lesson.summary ? <p className="mt-1 text-sm text-muted">{lesson.summary}</p> : null}
+                                  <p className="mt-2 text-sm text-muted">
+                                    المصدر:{' '}
+                                    <a
+                                      href={lesson.sourceUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-sea underline underline-offset-2 hover:text-sea-dark"
+                                    >
+                                      {lesson.channelName}
+                                    </a>
+                                  </p>
+                                </div>
+                                <p className="text-sm font-medium text-ink md:text-end">
+                                  {formatDuration(lesson.segment.durationSeconds)}
+                                </p>
+                              </li>
+                            ))}
+                          </ul>
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
                 ))}
-              </ul>
-            </li>
+            </section>
           ))}
-        </ol>
       </div>
     </>
   );

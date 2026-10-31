@@ -33,6 +33,16 @@ export function createLessonId(id: string): LessonId {
   return id as LessonId;
 }
 
+/** معرّف الكورس (مجموعة وحدات تغطي مفهومًا واحدًا داخل مسار) */
+export type CourseId = Brand<string, 'CourseId'>;
+
+export function createCourseId(id: string): CourseId {
+  if (!id || id.trim().length === 0) {
+    throw new Error('معرّف الكورس لا يمكن أن يكون فارغاً');
+  }
+  return id as CourseId;
+}
+
 /** معرّف الوحدة التعليمية */
 export type ModuleId = Brand<string, 'ModuleId'>;
 

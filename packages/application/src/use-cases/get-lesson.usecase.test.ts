@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  createConceptId,
   createLessonId,
   createModuleId,
   createPathId,
@@ -12,6 +11,7 @@ import {
 } from '@qalam/domain';
 import type { PathRepositoryPort } from '../ports/path-repository.port.js';
 import { GetLessonUseCase } from './get-lesson.usecase.js';
+import { addModule } from '../test-support/path-builder.js';
 
 class FakePathRepository implements PathRepositoryPort {
   constructor(private readonly path: LearningPath) {}
@@ -32,7 +32,6 @@ function lesson(id: string): Lesson {
   return new Lesson({
     id: createLessonId(id),
     title: `درس ${id}`,
-    conceptId: createConceptId('c'),
     segment: new VideoSegment({ videoId: 'abc', startSeconds: 0, endSeconds: 60 }),
     sourceUrl: 'https://www.youtube.com/watch?v=abc',
     channelName: 'قناة',
@@ -46,8 +45,8 @@ function buildPath(): LearningPath {
   const m2 = new Module({ id: createModuleId('m2'), title: 'ب', description: '', orderIndex: 2 });
   m2.addLesson(lesson('l3'));
   const path = new LearningPath({ id: createPathId('p'), title: 'مسار', description: '', targetGoal: 'هدف', subject: 'عام' });
-  path.addModule(m1);
-  path.addModule(m2);
+  addModule(path, m1);
+  addModule(path, m2);
   return path;
 }
 

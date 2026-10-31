@@ -3,18 +3,16 @@
  * @description كيان الدرس (Lesson Entity)
  *
  * الدرس يمثّل محتوى تعليمياً مصغّراً (مقطع فيديو يوتيوب موثّق + ملخص)،
- * ويرتبط بمفهوم محدد، مع الالتزام التام بذكر المصدر وقناة اليوتيوب.
+ * ويتبع كورسًا (ومنه مفهومه)، مع الالتزام التام بذكر المصدر وقناة اليوتيوب.
  */
 
-import type { ConceptId, LessonId } from '../value-objects/identifiers.js';
+import type { LessonId } from '../value-objects/identifiers.js';
 import { VideoSegment } from '../value-objects/video-segment.js';
 
 export interface LessonProps {
   id: LessonId;
   /** عنوان الدرس بالعربية */
   title: string;
-  /** معرّف المفهوم الذي يغطيه هذا الدرس */
-  conceptId: ConceptId;
   /** المقطع الزمني المحدد من الفيديو */
   segment: VideoSegment;
   /** رابط الفيديو الأصلي على يوتيوب */
@@ -44,7 +42,6 @@ export interface LessonProps {
 export class Lesson {
   readonly id: LessonId;
   readonly title: string;
-  readonly conceptId: ConceptId;
   readonly segment: VideoSegment;
   readonly sourceUrl: string;
   readonly channelName: string;
@@ -70,7 +67,6 @@ export class Lesson {
 
     this.id = props.id;
     this.title = props.title.trim();
-    this.conceptId = props.conceptId;
     this.segment = props.segment;
     this.sourceUrl = props.sourceUrl.trim();
     this.channelName = props.channelName.trim();
@@ -90,7 +86,6 @@ export class Lesson {
     return new Lesson({
       id: this.id,
       title: this.title,
-      conceptId: this.conceptId,
       segment: this.segment,
       sourceUrl: this.sourceUrl,
       channelName: this.channelName,

@@ -15,14 +15,16 @@ describe('InMemoryPathRepository & SeedData (المستودع وبيانات ا�
     expect(retrieved?.title).toContain('أساسيات الحاسوب');
     expect(retrieved?.modules.length).toBe(3);
     expect(retrieved?.totalLessonsCount).toBe(13);
-    expect(concepts.length).toBe(10);
+    expect(concepts.length).toBe(3);
 
     // لا درس يُعتبر مراجَعًا قبل موافقة المالك
     const lessons = retrieved?.modules.flatMap((m) => m.lessons) ?? [];
     expect(lessons.every((l) => !l.reviewedByHuman)).toBe(true);
 
-    // التحقق من المتطلبات السابقة
-    const compiler = concepts.find((c) => c.name.includes('الكومبايلر'));
-    expect(compiler?.prerequisiteIds.length).toBeGreaterThan(0);
+    // المفاهيم تتبع المسار نفسه، وكل كورس يتبع مفهومًا منها، ولها متطلبات سابقة
+    expect(concepts.every((c) => c.pathId === path.id)).toBe(true);
+    expect(retrieved?.courses.every((c) => concepts.some((k) => k.id === c.conceptId))).toBe(true);
+    const numberSystems = concepts.find((c) => c.name.includes('أنظمة العد'));
+    expect(numberSystems?.prerequisiteIds.length).toBeGreaterThan(0);
   });
 });

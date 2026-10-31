@@ -2,14 +2,16 @@
  * @file concept.ts
  * @description كيان المفهوم التعليمي (Concept Entity)
  *
- * المفهوم هو الوحدة الذرية الأساسية للتعلم في منصة قلم.
- * المسارات تتكون من رسم بياني من المفاهيم (Concept Graph) ذات متطلبات سابقة.
+ * المفهوم محور تعلّم داخل **مسار واحد** (لا مفاهيم عامة)، ويضم كورسًا أو أكثر. المسار يتكوّن من رسم بياني
+ * من مفاهيمه (Concept Graph) ذات متطلبات سابقة من المسار نفسه.
  */
 
-import type { ConceptId } from '../value-objects/identifiers.js';
+import type { ConceptId, PathId } from '../value-objects/identifiers.js';
 
 export interface ConceptProps {
   id: ConceptId;
+  /** المسار الذي يتبعه المفهوم (المفهوم لا يُشارَك بين المسارات) */
+  pathId: PathId;
   /** اسم المفهوم بالعربية (مثال: الشروط والعبارات الشرطية) */
   name: string;
   /** شرح مبسّط للمفهوم */
@@ -23,6 +25,7 @@ export interface ConceptProps {
 
 export class Concept {
   readonly id: ConceptId;
+  readonly pathId: PathId;
   readonly name: string;
   readonly description: string;
   readonly level: number;
@@ -39,6 +42,7 @@ export class Concept {
     }
 
     this.id = props.id;
+    this.pathId = props.pathId;
     this.name = props.name.trim();
     this.description = props.description.trim();
     this.level = props.level;
@@ -54,9 +58,10 @@ export class Concept {
   }
 
   /** نسخة جديدة بالتعديلات (المعرّف وتاريخ الإنشاء ثابتان) */
-  update(changes: Partial<Omit<ConceptProps, 'id' | 'createdAt'>>): Concept {
+  update(changes: Partial<Omit<ConceptProps, 'id' | 'pathId' | 'createdAt'>>): Concept {
     return new Concept({
       id: this.id,
+      pathId: this.pathId,
       name: this.name,
       description: this.description,
       level: this.level,

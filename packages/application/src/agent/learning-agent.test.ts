@@ -5,7 +5,6 @@ import {
   Lesson,
   Module,
   VideoSegment,
-  createConceptId,
   createLessonId,
   createModuleId,
   createPathId,
@@ -16,6 +15,7 @@ import type { EventRecorderPort } from '../ports/event-recorder.port.js';
 import type { LlmClient } from '../ports/llm-client.port.js';
 import type { PathRepositoryPort } from '../ports/path-repository.port.js';
 import { LearningAgent } from './learning-agent.js';
+import { addModule } from '../test-support/path-builder.js';
 
 function setup(llm?: LlmClient) {
   const path = new LearningPath({ id: createPathId('p'), title: 'م', description: '', targetGoal: 'هدف', subject: 'ع' });
@@ -23,13 +23,13 @@ function setup(llm?: LlmClient) {
   for (const id of ['l1', 'l2']) {
     module.addLesson(
       new Lesson({
-        id: createLessonId(id), title: `درس ${id}`, conceptId: createConceptId(id),
+        id: createLessonId(id), title: `درس ${id}`,
         segment: new VideoSegment({ videoId: 'abcdefghijk', startSeconds: 0, endSeconds: 60 }),
         sourceUrl: 'https://www.youtube.com/watch?v=abcdefghijk', channelName: 'قناة',
       }),
     );
   }
-  path.addModule(module);
+  addModule(path, module);
 
   const store: LearningEvent[] = [];
   let tick = 0;

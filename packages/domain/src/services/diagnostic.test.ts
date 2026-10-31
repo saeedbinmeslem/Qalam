@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
+import { Course } from '../entities/course.js';
 import { LearningPath } from '../entities/learning-path.js';
 import { Lesson } from '../entities/lesson.js';
 import { Module } from '../entities/module.js';
 import { QuizQuestion } from '../entities/quiz-question.js';
 import {
   createConceptId,
+  createCourseId,
   createLessonId,
   createModuleId,
   createPathId,
@@ -14,11 +16,10 @@ import { VideoSegment } from '../value-objects/video-segment.js';
 import { planDiagnosticSkips, selectDiagnosticQuestions } from './diagnostic.js';
 import { gradeQuiz } from './quiz-grading.js';
 
-const lesson = (id: string, concept: string) =>
+const lesson = (id: string) =>
   new Lesson({
     id: createLessonId(id),
     title: id,
-    conceptId: createConceptId(concept),
     segment: new VideoSegment({ videoId: 'abcdefghijk', startSeconds: 0, endSeconds: 60 }),
     sourceUrl: 'https://www.youtube.com/watch?v=abcdefghijk',
     channelName: 'قناة',
@@ -26,10 +27,15 @@ const lesson = (id: string, concept: string) =>
 
 function buildPath() {
   const path = new LearningPath({ id: createPathId('p'), title: 'م', description: '', targetGoal: 'هدف', subject: 'ع' });
-  const module = new Module({ id: createModuleId('m'), title: 'و', description: '', orderIndex: 1 });
-  // مفهوم a في درسين، ثم b، ثم c
-  for (const [id, c] of [['l1', 'a'], ['l2', 'a'], ['l3', 'b'], ['l4', 'c']] as const) module.addLesson(lesson(id, c));
-  path.addModule(module);
+  // مفهوم a كورسه بدرسين، ثم b، ثم c (كورس لكل مفهوم)
+  const groups = [['a', ['l1', 'l2']], ['b', ['l3']], ['c', ['l4']]] as const;
+  groups.forEach(([concept, ids], i) => {
+    const course = new Course({ id: createCourseId(`co-${concept}`), conceptId: createConceptId(concept), title: concept, description: '', orderIndex: i + 1 });
+    const module = new Module({ id: createModuleId(`m-${concept}`), title: 'و', description: '', orderIndex: 1 });
+    for (const id of ids) module.addLesson(lesson(id));
+    course.addModule(module);
+    path.addCourse(course);
+  });
   return path;
 }
 

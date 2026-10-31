@@ -114,13 +114,18 @@ export function decideNextStep(path: LearningPath, events: readonly LearningEven
     const base = { lessonId: lesson.id as string, consecutiveFailures: failures, lastPercent: blocked.percent };
 
     if (failures >= 3) {
-      const alternative = lessons.find((l) => l.id !== lesson.id && l.conceptId === lesson.conceptId);
+      // البديل: درس من كورس آخر يغطي المفهوم نفسه (شرح مختلف لنفس الموضوع)
+      const here = path.findLesson(lesson.id);
+      const alternative = lessons.find((l) => {
+        const other = path.findLesson(l.id);
+        return other && here && other.course.id !== here.course.id && other.course.conceptId === here.course.conceptId;
+      });
       if (alternative) {
         return {
           ...base,
           action: 'alternative_lesson',
           alternativeLessonId: alternative.id as string,
-          reason: `تعثّرتَ ${failures} مرات متتالية في اختبار «${lesson.title}» (آخرها ${blocked.percent}%). جرّب درسًا آخر على نفس المفهوم هو «${alternative.title}»، فقد يناسبك أسلوبه أكثر، ثم أعد الاختبار.`,
+          reason: `تعثّرتَ ${failures} مرات متتالية في اختبار «${lesson.title}» (آخرها ${blocked.percent}%). جرّب درسًا من كورس آخر على نفس المفهوم هو «${alternative.title}»، فقد يناسبك أسلوبه أكثر، ثم أعد الاختبار.`,
           evidenceKey: `alternative_lesson:${lesson.id}:${alternative.id}:${tail}`,
         };
       }

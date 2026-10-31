@@ -5,7 +5,6 @@ import {
   Lesson,
   Module,
   VideoSegment,
-  createConceptId,
   createLessonId,
   createModuleId,
   createPathId,
@@ -18,6 +17,7 @@ import {
   StartOnboardingUseCase,
   pickPathByKeywords,
 } from './personal-plan.usecases.js';
+import { addModule } from '../test-support/path-builder.js';
 
 function makePath(id: string, title: string, lessonTitles: string[], minutes = 10): LearningPath {
   const path = new LearningPath({ id: createPathId(id), title, description: `وصف ${title}`, targetGoal: 'هدف', subject: 'عام' });
@@ -27,14 +27,13 @@ function makePath(id: string, title: string, lessonTitles: string[], minutes = 1
       new Lesson({
         id: createLessonId(`${id}-l${i + 1}`),
         title: t,
-        conceptId: createConceptId('c'),
         segment: new VideoSegment({ videoId: 'abcdefghijk', startSeconds: 0, endSeconds: minutes * 60 }),
         sourceUrl: 'https://www.youtube.com/watch?v=abcdefghijk',
         channelName: 'قناة',
       }),
     ),
   );
-  path.addModule(module);
+  addModule(path, module);
   return path;
 }
 

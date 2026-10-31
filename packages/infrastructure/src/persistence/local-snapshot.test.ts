@@ -36,12 +36,15 @@ describe('اللقطة المحلية (local-snapshot)', () => {
     const back = restored.paths[0]!;
     expect(back.totalLessonsCount).toBe(13);
     expect(back.totalDurationSeconds).toBe(path.totalDurationSeconds);
-    expect(back.modules.map((m) => m.orderIndex)).toEqual([1, 2, 3]);
+    expect(back.courses.map((c) => [c.orderIndex, c.conceptId])).toEqual(path.courses.map((c) => [c.orderIndex, c.conceptId]));
+    expect(back.modules.map((m) => m.id)).toEqual(path.modules.map((m) => m.id));
+    expect(back.conceptIdOfLesson(lesson.id)).toBe(path.conceptIdOfLesson(lesson.id));
     const l = back.findLesson(lesson.id)!.lesson;
     expect(l).toMatchObject({ notes: 'ملاحظات المالك', reviewedByHuman: true, channelName: 'Programming Advices' });
     expect(l.segment.equals(lesson.segment)).toBe(true);
-    expect(restored.concepts).toHaveLength(10);
-    expect(restored.concepts.find((c) => c.name.includes('الكومبايلر'))?.prerequisiteIds).toHaveLength(1);
+    expect(restored.concepts).toHaveLength(3);
+    expect(restored.concepts.every((c) => c.pathId === path.id)).toBe(true);
+    expect(restored.concepts.find((c) => c.name.includes('أنظمة العد'))?.prerequisiteIds).toHaveLength(1);
     expect(restored.questions[0]).toMatchObject({ id: 'q1', status: 'approved', origin: 'ai', correctIndex: 2 });
     expect(restored.events[0]).toMatchObject({ userId: 'u', type: 'lesson_completed' });
     expect(restored.events[0]?.payload).toEqual({ lessonId: 'a' });

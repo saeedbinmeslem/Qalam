@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
   AdminPolicy,
   Concept,
-  createConceptId,
   type ConceptId,
   type LearningPath,
   type PathId,
@@ -24,12 +23,16 @@ import {
   UpdateLessonUseCase,
 } from './admin-lessons.usecases.js';
 import {
+  AddCourseUseCase,
   AddModuleUseCase,
   CheckAdminUseCase,
   CreatePathUseCase,
+  DeleteCourseUseCase,
   DeleteModuleUseCase,
   DeletePathUseCase,
+  MoveCourseUseCase,
   MoveModuleUseCase,
+  UpdateCourseUseCase,
   UpdatePathUseCase,
 } from './admin-paths.usecases.js';
 
@@ -63,6 +66,9 @@ class FakeConcepts implements ConceptRepositoryPort {
   async findAll() {
     return [...this.store.values()];
   }
+  async findByPath(pathId: PathId) {
+    return [...this.store.values()].filter((c) => c.pathId === pathId);
+  }
   async delete(id: ConceptId) {
     this.store.delete(id);
   }
@@ -84,7 +90,6 @@ function setup() {
 
 const lessonFields = {
   title: 'درس',
-  conceptId: 'concept-1',
   videoUrl: 'https://youtu.be/qTVRs1wTwho',
   start: '0:10',
   end: '1:10',
@@ -93,16 +98,11 @@ const lessonFields = {
   summary: '',
 };
 
-/** مسار فيه وحدة ومفهوم جاهزان لإضافة الدروس */
+const conceptFields = { name: 'مفهوم', description: '', level: 1, prerequisiteIds: [] as string[] };
+
+/** مسار فيه مفهوم وكورس ووحدة جاهزة لإضافة الدروس */
 async function seeded() {
   const deps = setup();
-  await new CreateConceptUseCase(deps).execute({
-    actor: admin,
-    name: 'مفهوم',
-    description: '',
-    level: 1,
-    prerequisiteIds: [],
-  });
   const { pathId } = await new CreatePathUseCase(deps).execute({
     actor: admin,
     title: 'مسار',
@@ -110,13 +110,22 @@ async function seeded() {
     targetGoal: 'هدف',
     subject: 'عام',
   });
+  const { conceptId } = await new CreateConceptUseCase(deps).execute({ actor: admin, pathId, ...conceptFields });
+  const { courseId } = await new AddCourseUseCase(deps).execute({
+    actor: admin,
+    pathId,
+    conceptId,
+    title: 'كورس',
+    description: '',
+  });
   const { moduleId } = await new AddModuleUseCase(deps).execute({
     actor: admin,
     pathId,
+    courseId,
     title: 'وحدة',
     description: '',
   });
-  return { deps, pathId, moduleId };
+  return { deps, pathId, conceptId, courseId, moduleId };
 }
 
 describe('الصلاحيات', () => {
@@ -130,14 +139,16 @@ describe('الصلاحيات', () => {
   });
 
   it('كل الحالات الإدارية تتحقق من المدير قبل أي عمل', async () => {
-    const { deps, pathId, moduleId } = await seeded();
+    const { deps, pathId, conceptId, courseId, moduleId } = await seeded();
     const calls = [
       () => new UpdatePathUseCase(deps).execute({ actor: stranger, pathId, title: 'x', description: '', targetGoal: 'x', subject: 'x' }),
       () => new DeletePathUseCase(deps).execute({ actor: stranger, pathId }),
       () => new DeleteModuleUseCase(deps).execute({ actor: stranger, pathId, moduleId }),
       () => new AddLessonUseCase(deps).execute({ actor: stranger, pathId, moduleId, ...lessonFields }),
       () => new SetLessonReviewUseCase(deps).execute({ actor: stranger, pathId, lessonId: 'x', reviewed: true }),
-      () => new DeleteConceptUseCase(deps).execute({ actor: stranger, conceptId: 'concept-1' }),
+      () => new DeleteConceptUseCase(deps).execute({ actor: stranger, conceptId }),
+      () => new AddCourseUseCase(deps).execute({ actor: stranger, pathId, conceptId, title: 'x', description: '' }),
+      () => new DeleteCourseUseCase(deps).execute({ actor: stranger, pathId, courseId }),
     ];
     for (const call of calls) await expect(call()).rejects.toBeInstanceOf(ForbiddenError);
   });
@@ -200,13 +211,15 @@ describe('الدروس', () => {
     ).rejects.toThrow('Cloudinary');
   });
 
-  it('يرفض مفهومًا غير موجود وفيديو غير صالح ومقطعًا معكوسًا', async () => {
+  it('يرفض فيديو غير صالح ومقطعًا معكوسًا ووحدة غير موجودة', async () => {
     const { deps, pathId, moduleId } = await seeded();
     const add = (over: Partial<typeof lessonFields>) =>
       new AddLessonUseCase(deps).execute({ actor: admin, pathId, moduleId, ...lessonFields, ...over });
-    await expect(add({ conceptId: 'nope' })).rejects.toThrow('المفهوم');
     await expect(add({ videoUrl: 'hello' })).rejects.toThrow('رابط يوتيوب');
     await expect(add({ start: '2:00', end: '1:00' })).rejects.toThrow('وقت نهاية');
+    await expect(
+      new AddLessonUseCase(deps).execute({ actor: admin, pathId, moduleId: 'nope', ...lessonFields }),
+    ).rejects.toThrow('الوحدة');
   });
 
   it('وسم المراجعة يُمنح بالإجراء الخاص ويسقط عند تعديل المحتوى', async () => {
@@ -250,10 +263,10 @@ describe('الدروس', () => {
   });
 });
 
-describe('الوحدات', () => {
-  it('الوحدات الجديدة تُرقَّم تسلسلًا، والحذف والتحريك يعيدان الترقيم', async () => {
-    const { deps, pathId } = await seeded();
-    const second = await new AddModuleUseCase(deps).execute({ actor: admin, pathId, title: 'ثانية', description: '' });
+describe('الكورسات والوحدات', () => {
+  it('الوحدات الجديدة تُرقَّم تسلسلًا داخل كورسها، والحذف والتحريك يعيدان الترقيم', async () => {
+    const { deps, pathId, courseId } = await seeded();
+    const second = await new AddModuleUseCase(deps).execute({ actor: admin, pathId, courseId, title: 'ثانية', description: '' });
     const orders = () =>
       (deps.paths as FakePaths).store.get(pathId)!.modules.map((m) => [m.title, m.orderIndex]);
     expect(orders()).toEqual([['وحدة', 1], ['ثانية', 2]]);
@@ -264,13 +277,72 @@ describe('الوحدات', () => {
     await new DeleteModuleUseCase(deps).execute({ actor: admin, pathId, moduleId: second.moduleId });
     expect(orders()).toEqual([['وحدة', 1]]);
   });
+
+  it('ترقيم الوحدات مستقل في كل كورس، ولا وحدة بلا كورس موجود', async () => {
+    const { deps, pathId, conceptId } = await seeded();
+    const other = await new AddCourseUseCase(deps).execute({ actor: admin, pathId, conceptId, title: 'كورس ثانٍ', description: '' });
+    await new AddModuleUseCase(deps).execute({ actor: admin, pathId, courseId: other.courseId, title: 'أولى هناك', description: '' });
+    const path = (deps.paths as FakePaths).store.get(pathId)!;
+    expect(path.courses.map((c) => c.modules.map((m) => m.orderIndex))).toEqual([[1], [1]]);
+    await expect(
+      new AddModuleUseCase(deps).execute({ actor: admin, pathId, courseId: 'nope', title: 'x', description: '' }),
+    ).rejects.toThrow('الكورس');
+  });
+
+  it('الكورس الجديد يتبع مفهومًا من المسار نفسه فقط ويُرقَّم تسلسلًا', async () => {
+    const { deps, pathId, conceptId } = await seeded();
+    const foreign = await new CreatePathUseCase(deps).execute({ actor: admin, title: 'آخر', description: '', targetGoal: 'هدف', subject: 'ع' });
+    const foreignConcept = await new CreateConceptUseCase(deps).execute({ actor: admin, pathId: foreign.pathId, ...conceptFields });
+
+    await expect(
+      new AddCourseUseCase(deps).execute({ actor: admin, pathId, conceptId: foreignConcept.conceptId, title: 'x', description: '' }),
+    ).rejects.toThrow('المفهوم');
+
+    await new AddCourseUseCase(deps).execute({ actor: admin, pathId, conceptId, title: 'ثانٍ', description: '' });
+    const courses = () => (deps.paths as FakePaths).store.get(pathId)!.courses.map((c) => [c.title, c.orderIndex]);
+    expect(courses()).toEqual([['كورس', 1], ['ثانٍ', 2]]);
+  });
+
+  it('يعدّل الكورس وينقله بين مفاهيم المسار، ويحرّكه ويحذفه', async () => {
+    const { deps, pathId, conceptId, courseId } = await seeded();
+    const second = await new CreateConceptUseCase(deps).execute({ actor: admin, pathId, ...conceptFields, name: 'مفهوم ثانٍ' });
+    const other = await new AddCourseUseCase(deps).execute({ actor: admin, pathId, conceptId, title: 'ثانٍ', description: '' });
+    const path = () => (deps.paths as FakePaths).store.get(pathId)!;
+
+    await new UpdateCourseUseCase(deps).execute({
+      actor: admin, pathId, courseId, title: 'معدّل', description: 'و', conceptId: second.conceptId,
+    });
+    expect(path().findCourse(courseId as never)).toMatchObject({ title: 'معدّل', conceptId: second.conceptId });
+    await expect(
+      new UpdateCourseUseCase(deps).execute({ actor: admin, pathId, courseId, title: 'x', description: '', conceptId: 'nope' }),
+    ).rejects.toThrow('المفهوم');
+
+    await new MoveCourseUseCase(deps).execute({ actor: admin, pathId, courseId: other.courseId, direction: 'up' });
+    expect(path().courses.map((c) => c.title)).toEqual(['ثانٍ', 'معدّل']);
+
+    await new DeleteCourseUseCase(deps).execute({ actor: admin, pathId, courseId });
+    expect(path().courses.map((c) => [c.title, c.orderIndex])).toEqual([['ثانٍ', 1]]);
+  });
 });
 
 describe('المفاهيم', () => {
-  it('يرفض الدورات في المتطلبات السابقة', async () => {
+  async function pathWithConcepts() {
     const deps = setup();
-    const make = (name: string, prerequisiteIds: string[]) =>
-      new CreateConceptUseCase(deps).execute({ actor: admin, name, description: '', level: 1, prerequisiteIds });
+    const { pathId } = await new CreatePathUseCase(deps).execute({ actor: admin, title: 'م', description: '', targetGoal: 'هدف', subject: 'ع' });
+    const make = (name: string, prerequisiteIds: string[], inPath = pathId) =>
+      new CreateConceptUseCase(deps).execute({ actor: admin, pathId: inPath, name, description: '', level: 1, prerequisiteIds });
+    return { deps, pathId, make };
+  }
+
+  it('المفهوم يتبع المسار الذي أُنشئ فيه، ويرفض مسارًا غير موجود', async () => {
+    const { deps, pathId, make } = await pathWithConcepts();
+    const a = await make('أ', []);
+    expect((deps.concepts as FakeConcepts).store.get(a.conceptId)?.pathId).toBe(pathId);
+    await expect(make('ب', [], 'path-غير-موجود')).rejects.toThrow('المسار');
+  });
+
+  it('يرفض الدورات في المتطلبات السابقة', async () => {
+    const { deps, make } = await pathWithConcepts();
     const a = await make('أ', []);
     const b = await make('ب', [a.conceptId]);
 
@@ -287,20 +359,35 @@ describe('المفاهيم', () => {
     await expect(make('ج', ['concept-غير-موجود'])).rejects.toThrow('المتطلب السابق');
   });
 
-  it('لا يحذف مفهومًا مستعملًا في درس أو كمتطلب سابق', async () => {
-    const { deps, pathId, moduleId } = await seeded();
-    await new AddLessonUseCase(deps).execute({ actor: admin, pathId, moduleId, ...lessonFields });
+  it('المتطلب السابق من المسار نفسه فقط', async () => {
+    const { deps, make } = await pathWithConcepts();
+    const other = await new CreatePathUseCase(deps).execute({ actor: admin, title: 'آخر', description: '', targetGoal: 'هدف', subject: 'ع' });
+    const foreign = await make('غريب', [], other.pathId);
+    await expect(make('أ', [foreign.conceptId])).rejects.toThrow('المتطلب السابق');
+  });
+
+  it('لا يحذف مفهومًا له كورسات أو هو متطلب سابق', async () => {
+    const { deps, pathId, conceptId } = await seeded();
     const remove = new DeleteConceptUseCase(deps);
 
-    await expect(remove.execute({ actor: admin, conceptId: 'concept-1' })).rejects.toThrow('ترتبط به دروس');
+    await expect(remove.execute({ actor: admin, conceptId })).rejects.toThrow('له كورسات');
 
     const dependent = await new CreateConceptUseCase(deps).execute({
       actor: admin,
+      pathId,
       name: 'تابع',
       description: '',
       level: 2,
-      prerequisiteIds: [createConceptId('concept-1')],
+      prerequisiteIds: [conceptId],
     });
+    await expect(remove.execute({ actor: admin, conceptId })).rejects.toThrow('له كورسات');
     await expect(remove.execute({ actor: admin, conceptId: dependent.conceptId })).resolves.toBeUndefined();
+  });
+
+  it('حذف المسار يحذف مفاهيمه معه', async () => {
+    const { deps, pathId } = await seeded();
+    expect((deps.concepts as FakeConcepts).store.size).toBe(1);
+    await new DeletePathUseCase(deps).execute({ actor: admin, pathId });
+    expect((deps.concepts as FakeConcepts).store.size).toBe(0);
   });
 });

@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
+import { Course } from '../entities/course.js';
 import { LearningPath } from '../entities/learning-path.js';
 import { Lesson } from '../entities/lesson.js';
 import { Module } from '../entities/module.js';
 import {
   createConceptId,
+  createCourseId,
   createLessonId,
   createModuleId,
   createPathId,
@@ -16,7 +18,6 @@ const lesson = (id: string) =>
   new Lesson({
     id: createLessonId(id),
     title: id,
-    conceptId: createConceptId('c'),
     segment: new VideoSegment({ videoId: 'abcdefghijk', startSeconds: 0, endSeconds: 60 }),
     sourceUrl: 'https://www.youtube.com/watch?v=abcdefghijk',
     channelName: 'قناة',
@@ -36,8 +37,10 @@ function buildPath(): LearningPath {
   const m2 = new Module({ id: createModuleId('m2'), title: 'م2', description: '', orderIndex: 2 });
   m2.addLesson(lesson('c'));
   m2.addLesson(lesson('d'));
-  path.addModule(m1);
-  path.addModule(m2);
+  const course = new Course({ id: createCourseId('co'), conceptId: createConceptId('c'), title: 'ك', description: '', orderIndex: 1 });
+  course.addModule(m1);
+  course.addModule(m2);
+  path.addCourse(course);
   return path;
 }
 

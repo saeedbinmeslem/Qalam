@@ -41,6 +41,16 @@ describe('GeminiLlmClient', () => {
     expect(system).toContain('"type":"object"');
   });
 
+  it('يعيد الطلب مرة واحدة عند JSON تالف، ويفشل برسالة واضحة إن تكرر', async () => {
+    const recovered = fetchSequence([ok('{"a":'), ok('{"a":1}')]);
+    expect(await new GeminiLlmClient('K', 'm1', recovered.impl).generateJson(request)).toEqual({ a: 1 });
+    expect(recovered.calls).toHaveLength(2);
+
+    const broken = fetchSequence([ok('{"a":')]);
+    await expect(new GeminiLlmClient('K', 'm1', broken.impl).generateJson(request)).rejects.toThrow('ليس JSON صالحًا');
+    expect(broken.calls).toHaveLength(2);
+  });
+
   it('ينتقل إلى النموذج التالي عند 503 أو 429 أو 404 أو انقطاع الشبكة', async () => {
     const { impl, calls } = fetchSequence([unavailable, { status: 429, body: {} }, new Error('ECONNRESET'), ok('{"a":1}')]);
     const client = new GeminiLlmClient('K', ['m1', 'm2', 'm3', 'm4'], impl);
@@ -65,6 +75,17 @@ describe('GeminiLlmClient', () => {
     const blocked = fetchSequence([{ status: 200, body: { promptFeedback: { blockReason: 'SAFETY' } } }]);
     await expect(new GeminiLlmClient('K', ['m1', 'm2'], blocked.impl).generateJson(request)).rejects.toThrow('حجب Gemini هذا الطلب');
     expect(blocked.calls).toHaveLength(1);
+  });
+
+  it('يعطّل التفكير، ويعيد المحاولة بدونه إن رفضه النموذج', async () => {
+    const { impl, calls } = fetchSequence([
+      { status: 400, body: { error: { message: 'Thinking budget 0 is invalid for this model' } } },
+      ok('{"a":1}'),
+    ]);
+    expect(await new GeminiLlmClient('K', 'm1', impl).generateJson(request)).toEqual({ a: 1 });
+    expect(calls).toHaveLength(2);
+    expect(calls[0]!.body['generationConfig']).toMatchObject({ thinkingConfig: { thinkingBudget: 0 } });
+    expect(calls[1]!.body['generationConfig']).toEqual({ responseMimeType: 'application/json' });
   });
 
   it('يتجاهل أجزاء التفكير ويقبل قائمة مفصولة بفواصل', async () => {

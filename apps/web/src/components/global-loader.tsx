@@ -13,6 +13,8 @@ import { QalamLoader } from './brand';
 
 const SHOW_DELAY_MS = 150;
 const REDIRECT_WAIT_MS = 8000;
+/** المدة بين إرسال نموذج inline وانطلاق طلب الإجراء الذي نتجاوزه */
+const INLINE_SKIP_WINDOW_MS = 1500;
 
 function isServerAction(input: RequestInfo | URL, init?: RequestInit): boolean {
   const headers = init?.headers ?? (typeof Request !== 'undefined' && input instanceof Request ? input.headers : undefined);
@@ -52,9 +54,22 @@ export function GlobalLoader() {
       }, 100);
     };
 
+    // نماذج تعرض مؤشرها بنفسها (data-inline-loader): نتجاوز شاشتنا الكاملة لأول إجراء بعد إرسالها
+    let skipUntil = 0;
+    const onSubmit = (event: Event) => {
+      if (event.target instanceof HTMLFormElement && event.target.hasAttribute('data-inline-loader')) {
+        skipUntil = Date.now() + INLINE_SKIP_WINDOW_MS;
+      }
+    };
+    document.addEventListener('submit', onSubmit, true);
+
     const original = window.fetch;
     window.fetch = async (input, init) => {
       if (!isServerAction(input, init)) return original(input, init);
+      if (Date.now() < skipUntil) {
+        skipUntil = 0;
+        return original(input, init);
+      }
       const startHref = window.location.href;
       begin();
       try {
@@ -66,6 +81,7 @@ export function GlobalLoader() {
       }
     };
     return () => {
+      document.removeEventListener('submit', onSubmit, true);
       window.fetch = original;
       if (timer.current) clearTimeout(timer.current);
     };

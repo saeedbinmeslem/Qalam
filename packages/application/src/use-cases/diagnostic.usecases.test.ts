@@ -23,23 +23,25 @@ import {
   SubmitDiagnosticUseCase,
   type DiagnosticDeps,
 } from './diagnostic.usecases.js';
+import { addCourseWithModule } from '../test-support/path-builder.js';
 
 function build() {
   const path = new LearningPath({ id: createPathId('p'), title: 'م', description: '', targetGoal: 'هدف', subject: 'ع' });
-  const module = new Module({ id: createModuleId('m'), title: 'و', description: '', orderIndex: 1 });
+  const modules = new Map<string, Module>();
   for (const [id, concept] of [['l1', 'a'], ['l2', 'a'], ['l3', 'b']] as const) {
+    const module = modules.get(concept) ?? new Module({ id: createModuleId(`m-${concept}`), title: 'و', description: '', orderIndex: 1 });
+    modules.set(concept, module);
     module.addLesson(
       new Lesson({
         id: createLessonId(id),
         title: `درس ${id}`,
-        conceptId: createConceptId(concept),
         segment: new VideoSegment({ videoId: 'abcdefghijk', startSeconds: 0, endSeconds: 60 }),
         sourceUrl: 'https://www.youtube.com/watch?v=abcdefghijk',
         channelName: 'قناة',
       }),
     );
   }
-  path.addModule(module);
+  for (const [concept, module] of modules) addCourseWithModule(path, module, concept);
 
   const q = (id: string, lessonId: string, concept: string, status: 'approved' | 'draft' = 'approved') =>
     new QuizQuestion({
@@ -53,8 +55,8 @@ function build() {
     questions: { findByLesson: async (id: LessonId) => all.filter((x) => x.lessonId === id) } as unknown as QuestionRepositoryPort,
     concepts: {
       findAll: async () => [
-        new Concept({ id: createConceptId('a'), name: 'المفهوم أ', description: '', level: 1 }),
-        new Concept({ id: createConceptId('b'), name: 'المفهوم ب', description: '', level: 1 }),
+        new Concept({ id: createConceptId('a'), pathId: createPathId('p'), name: 'المفهوم أ', description: '', level: 1 }),
+        new Concept({ id: createConceptId('b'), pathId: createPathId('p'), name: 'المفهوم ب', description: '', level: 1 }),
       ],
     } as unknown as ConceptRepositoryPort,
   };

@@ -6,6 +6,7 @@
  * - المديرون: ADMIN_EMAILS (قائمة بريد مفصولة بفواصل) في كل البيئات؛ بدونها لا يدخل أحد.
  */
 import {
+  AddCourseUseCase,
   AddLessonUseCase,
   AddModuleUseCase,
   AddQuestionUseCase,
@@ -14,8 +15,10 @@ import {
   CreateUploadTicketUseCase,
   DeleteQuestionUseCase,
   DraftLessonNotesUseCase,
+  EnrichPathUseCase,
   GenerateQuestionsUseCase,
   GenerateStudyGuideUseCase,
+  ImportPlaylistUseCase,
   SetStudyGuideUseCase,
   SummarizeLessonUseCase,
   ListLessonQuestionsUseCase,
@@ -24,16 +27,19 @@ import {
   CreateConceptUseCase,
   CreatePathUseCase,
   DeleteConceptUseCase,
+  DeleteCourseUseCase,
   DeleteLessonUseCase,
   DeleteModuleUseCase,
   DeletePathUseCase,
   GetLearningPathUseCase,
   ListConceptsUseCase,
   ListLearningPathsUseCase,
+  MoveCourseUseCase,
   MoveLessonUseCase,
   MoveModuleUseCase,
   SetLessonReviewUseCase,
   UpdateConceptUseCase,
+  UpdateCourseUseCase,
   UpdateLessonUseCase,
   UpdateModuleUseCase,
   UpdatePathUseCase,
@@ -45,6 +51,7 @@ import {
   SupabaseConceptRepository,
   SupabasePathRepository,
   SupabaseQuestionRepository,
+  YouTubePlaylistCatalog,
   randomIdGenerator,
 } from '@qalam/infrastructure';
 import { getAuth, isSupabaseConfigured } from './auth';
@@ -111,6 +118,10 @@ export interface AdminContainer {
   createPath: CreatePathUseCase;
   updatePath: UpdatePathUseCase;
   deletePath: DeletePathUseCase;
+  addCourse: AddCourseUseCase;
+  updateCourse: UpdateCourseUseCase;
+  deleteCourse: DeleteCourseUseCase;
+  moveCourse: MoveCourseUseCase;
   addModule: AddModuleUseCase;
   updateModule: UpdateModuleUseCase;
   deleteModule: DeleteModuleUseCase;
@@ -124,6 +135,8 @@ export interface AdminContainer {
   updateConcept: UpdateConceptUseCase;
   deleteConcept: DeleteConceptUseCase;
   draftLessonNotes: DraftLessonNotesUseCase;
+  importPlaylist: ImportPlaylistUseCase;
+  enrichPath: EnrichPathUseCase;
   addQuestion: AddQuestionUseCase;
   generateQuestions: GenerateQuestionsUseCase;
   listLessonQuestions: ListLessonQuestionsUseCase;
@@ -142,11 +155,15 @@ export async function getAdminContainer(): Promise<AdminContainer> {
     checkAdmin: new CheckAdminUseCase(deps),
     createUploadTicket: new CreateUploadTicketUseCase({ policy: deps.policy, uploads: buildUploadSigner() }),
     listPaths: new ListLearningPathsUseCase(deps.paths),
-    getPath: new GetLearningPathUseCase(deps.paths),
+    getPath: new GetLearningPathUseCase(deps.paths, deps.concepts),
     listConcepts: new ListConceptsUseCase(deps),
     createPath: new CreatePathUseCase(deps),
     updatePath: new UpdatePathUseCase(deps),
     deletePath: new DeletePathUseCase(deps),
+    addCourse: new AddCourseUseCase(deps),
+    updateCourse: new UpdateCourseUseCase(deps),
+    deleteCourse: new DeleteCourseUseCase(deps),
+    moveCourse: new MoveCourseUseCase(deps),
     addModule: new AddModuleUseCase(deps),
     updateModule: new UpdateModuleUseCase(deps),
     deleteModule: new DeleteModuleUseCase(deps),
@@ -160,6 +177,12 @@ export async function getAdminContainer(): Promise<AdminContainer> {
     updateConcept: new UpdateConceptUseCase(deps),
     deleteConcept: new DeleteConceptUseCase(deps),
     draftLessonNotes: new DraftLessonNotesUseCase(deps),
+    // ترتيب دفعة كاملة من العناوين: نستعمل العميل العادي (لا السريع) لأن الجودة هنا أهم من الزمن
+    importPlaylist: new ImportPlaylistUseCase({
+      ...deps,
+      playlists: new YouTubePlaylistCatalog(process.env.YOUTUBE_API_KEY),
+    }),
+    enrichPath: new EnrichPathUseCase(deps),
     addQuestion: new AddQuestionUseCase(deps),
     generateQuestions: new GenerateQuestionsUseCase(deps),
     listLessonQuestions: new ListLessonQuestionsUseCase(deps),

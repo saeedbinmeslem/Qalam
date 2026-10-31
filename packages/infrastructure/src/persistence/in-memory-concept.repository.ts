@@ -3,7 +3,7 @@
  * @description مستودع المفاهيم بالذاكرة (التطوير المحلي والاختبار).
  */
 
-import type { Concept, ConceptId } from '@qalam/domain';
+import type { Concept, ConceptId, PathId } from '@qalam/domain';
 import type { ConceptRepositoryPort } from '@qalam/application';
 
 export class InMemoryConceptRepository implements ConceptRepositoryPort {
@@ -27,6 +27,10 @@ export class InMemoryConceptRepository implements ConceptRepositoryPort {
 
   async findAll(): Promise<Concept[]> {
     return [...this.concepts.values()];
+  }
+
+  async findByPath(pathId: PathId): Promise<Concept[]> {
+    return [...this.concepts.values()].filter((c) => c.pathId === pathId);
   }
 
   async delete(id: ConceptId): Promise<void> {

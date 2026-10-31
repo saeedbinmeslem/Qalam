@@ -21,5 +21,8 @@ export * from './persistence/in-memory-question.repository.js';
 export * from './persistence/supabase-question.repository.js';
 export * from './llm/anthropic-llm-client.js';
 export * from './llm/gemini-llm-client.js';
+export * from './llm/openai-compatible-llm-client.js';
+export * from './llm/fallback-llm-client.js';
 export * from './persistence/local-snapshot.js';
 export * from './media/cloudinary-upload-signer.js';
+export * from './youtube/youtube-playlist-catalog.js';

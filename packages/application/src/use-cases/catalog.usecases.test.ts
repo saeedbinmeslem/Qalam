@@ -20,23 +20,27 @@ import {
   SearchLessonLibraryUseCase,
   type AdviceSource,
 } from './catalog.usecases.js';
+import { addCourseWithModule } from '../test-support/path-builder.js';
 
 function pathOf(id: string, title: string, lessons: { id: string; title: string; concept: string; channel: string }[]) {
   const path = new LearningPath({ id: createPathId(id), title, description: '', targetGoal: 'هدف', subject: 'عام' });
-  const module = new Module({ id: createModuleId(`${id}-m`), title: 'الوحدة الأولى', description: '', orderIndex: 1 });
+  const modules = new Map<string, Module>();
   for (const l of lessons) {
+    const module =
+      modules.get(l.concept) ??
+      new Module({ id: createModuleId(`${id}-m-${l.concept}`), title: 'الوحدة الأولى', description: '', orderIndex: 1 });
+    modules.set(l.concept, module);
     module.addLesson(
       new Lesson({
         id: createLessonId(l.id),
         title: l.title,
-        conceptId: createConceptId(l.concept),
         segment: new VideoSegment({ videoId: 'abcdefghijk', startSeconds: 0, endSeconds: 120 }),
         sourceUrl: 'https://www.youtube.com/watch?v=abcdefghijk',
         channelName: l.channel,
       }),
     );
   }
-  path.addModule(module);
+  for (const [concept, module] of modules) addCourseWithModule(path, module, concept);
   return path;
 }
 
@@ -78,11 +82,12 @@ describe('SearchLessonLibraryUseCase (مكتبة الدروس)', () => {
 
 describe('GetConceptMapUseCase (خريطة المفاهيم)', () => {
   const concept = (id: string, name: string, level: number, pre: string[] = []) =>
-    new Concept({ id: createConceptId(id), name, description: '', level, prerequisiteIds: pre.map(createConceptId) });
+    new Concept({ id: createConceptId(id), pathId: createPathId('p1'), name, description: '', level, prerequisiteIds: pre.map(createConceptId) });
   const repo = (items: Concept[]): ConceptRepositoryPort => ({
     save: async () => {},
     findById: async () => null,
     findAll: async () => items,
+    findByPath: async () => items,
     delete: async () => {},
   });
 

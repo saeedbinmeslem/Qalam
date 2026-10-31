@@ -45,11 +45,7 @@ export default async function AdminLessonPage({
   const result = await admin.getPath.execute({ pathId: createPathId(pathId) }).catch(() => null);
   const found = result?.path.findLesson(createLessonId(lessonId));
   if (!result || !found) notFound();
-  const { lesson } = found;
-  const concepts = (await admin.listConcepts.execute({ actor: admin.actor })).map((c) => ({
-    id: c.id as string,
-    name: c.name,
-  }));
+  const { lesson, course } = found;
   const questions = await admin.listLessonQuestions.execute({ actor: admin.actor, lessonId });
   const here = `/admin/paths/${pathId}/lessons/${lessonId}`;
 
@@ -57,7 +53,7 @@ export default async function AdminLessonPage({
     <>
       <ErrorBanner message={error} />
       <Link href={`/admin/paths/${pathId}`} className="text-sm text-muted hover:text-ink">
-        ← {result.path.title}
+        ← {result.path.title} / {course.title}
       </Link>
       <h1 className="mb-6 mt-1 font-display text-2xl font-extrabold text-ink">{lesson.title}</h1>
 
@@ -103,10 +99,8 @@ export default async function AdminLessonPage({
             <input type="hidden" name="pathId" value={pathId} />
             <input type="hidden" name="lessonId" value={lessonId} />
             <LessonFields
-              concepts={concepts}
               defaults={{
                 title: lesson.title,
-                conceptId: lesson.conceptId,
                 videoUrl: lesson.mediaUrl ? undefined : lesson.sourceUrl,
                 mediaUrl: lesson.mediaUrl,
                 start: formatTimecode(lesson.segment.startSeconds),

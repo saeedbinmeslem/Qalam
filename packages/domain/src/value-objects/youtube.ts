@@ -33,6 +33,26 @@ export function parseYouTubeVideoId(input: string): string {
   return candidate;
 }
 
+const PLAYLIST_ID = /^[A-Za-z0-9_-]{13,64}$/;
+
+/** يقبل معرّف القائمة مباشرة أو أي رابط يوتيوب يحمل معامل list= (قائمة تشغيل أو فيديو داخل قائمة) */
+export function parseYouTubePlaylistId(input: string): string {
+  const text = input.trim();
+  if (PLAYLIST_ID.test(text) && /^(PL|UU|OL|FL|RD)/.test(text)) return text;
+
+  let url: URL;
+  try {
+    url = new URL(text);
+  } catch {
+    throw new Error('رابط قائمة التشغيل غير صالح');
+  }
+  const candidate = url.searchParams.get('list');
+  if (!YOUTUBE_HOSTS.has(url.hostname) || !candidate || !PLAYLIST_ID.test(candidate)) {
+    throw new Error('رابط قائمة التشغيل غير صالح. يلزم رابط فيه list=');
+  }
+  return candidate;
+}
+
 /** الرابط الأصلي القياسي للفيديو (يُعرض مع اسم القناة دائمًا) */
 export function toWatchUrl(videoId: string): string {
   return `https://www.youtube.com/watch?v=${videoId}`;

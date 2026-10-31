@@ -5,7 +5,7 @@
  * للدرس كغيره من المحتوى الذي يراه المتعلم.
  */
 
-import { createLessonId, formatStudyGuide, parseStudyGuide, type Lesson } from '@qalam/domain';
+import { createLessonId, formatStudyGuide, parseStudyGuide, type ConceptId, type Lesson } from '@qalam/domain';
 import { NotFoundError } from '../../errors.js';
 import type { ConceptRepositoryPort } from '../../ports/concept-repository.port.js';
 import type { LlmClient } from '../../ports/llm-client.port.js';
@@ -72,9 +72,10 @@ export function parseGeneratedStudyGuide(raw: unknown): string {
 export async function generateStudyGuideText(
   deps: { llm: LlmClient; concepts: ConceptRepositoryPort },
   lesson: Lesson,
+  conceptId?: ConceptId,
 ): Promise<string> {
   if (!lesson.notes) throw new Error('لا توجد مادة كافية لتلخيص هذا الدرس بعد');
-  const concept = await deps.concepts.findById(lesson.conceptId);
+  const concept = conceptId ? await deps.concepts.findById(conceptId) : null;
   const raw = await deps.llm.generateJson({
     system: SYSTEM_PROMPT,
     schema: STUDY_GUIDE_SCHEMA,
@@ -91,8 +92,8 @@ export class GenerateStudyGuideUseCase {
     const path = await loadPath(this.deps.paths, request.pathId);
     const found = path.findLesson(createLessonId(request.lessonId));
     if (!found) throw new NotFoundError('الدرس');
-    const { module, lesson } = found;
-    const guide = await generateStudyGuideText(this.deps, lesson);
+    const { module, lesson, course } = found;
+    const guide = await generateStudyGuideText(this.deps, lesson, course.conceptId);
     module.replaceLesson(lesson.update({ studyGuide: guide, reviewedByHuman: false }));
     await this.deps.paths.save(path);
   }
@@ -109,10 +110,10 @@ export class SummarizeLessonUseCase {
     const path = await loadPath(this.deps.paths, request.pathId);
     const found = path.findLesson(createLessonId(request.lessonId));
     if (!found) throw new NotFoundError('الدرس');
-    const { module, lesson } = found;
+    const { module, lesson, course } = found;
     if (lesson.studyGuide) return { text: lesson.studyGuide, created: false };
 
-    const text = await generateStudyGuideText(this.deps, lesson);
+    const text = await generateStudyGuideText(this.deps, lesson, course.conceptId);
     module.replaceLesson(lesson.update({ studyGuide: text }));
     await this.deps.paths.save(path);
     return { text, created: true };

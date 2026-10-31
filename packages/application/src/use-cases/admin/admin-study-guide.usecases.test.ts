@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
   AdminPolicy,
   Concept,
-  createConceptId,
   createLessonId,
   parseStudyGuide,
   type ConceptId,
@@ -12,7 +11,6 @@ import {
 import { ForbiddenError } from '../../errors.js';
 import type { LlmClient } from '../../ports/llm-client.port.js';
 import { AddLessonUseCase, SetLessonReviewUseCase } from './admin-lessons.usecases.js';
-import { AddModuleUseCase, CreatePathUseCase } from './admin-paths.usecases.js';
 import type { QuizAdminDeps } from './admin-quiz.usecases.js';
 import { DraftLessonNotesUseCase } from './admin-quiz.usecases.js';
 import {
@@ -21,6 +19,7 @@ import {
   SummarizeLessonUseCase,
   parseGeneratedStudyGuide,
 } from './admin-study-guide.usecases.js';
+import { seedPathWithModule } from '../../test-support/admin-seed.js';
 
 const admin = { id: 'u1', email: 'owner@qalam.dev' };
 const stranger = { id: 'u2', email: 'x@x.com' };
@@ -55,6 +54,7 @@ async function setup(answer: unknown = validGuide, withNotes = true) {
       save: async (c: Concept) => void concepts.set(c.id, c),
       findById: async (id: ConceptId) => concepts.get(id) ?? null,
       findAll: async () => [...concepts.values()],
+      findByPath: async (pid: PathId) => [...concepts.values()].filter((c) => c.pathId === pid),
       delete: async (id: ConceptId) => void concepts.delete(id),
     },
     ids: { next: (prefix: string) => `${prefix}-${++n}` },
@@ -62,15 +62,12 @@ async function setup(answer: unknown = validGuide, withNotes = true) {
     questions: {} as QuizAdminDeps['questions'],
     llm,
   } satisfies QuizAdminDeps;
-  await deps.concepts.save(new Concept({ id: createConceptId('c1'), name: 'البيانات', description: '', level: 1 }));
-  const { pathId } = await new CreatePathUseCase(deps).execute({ actor: admin, title: 'م', description: '', targetGoal: 'هدف', subject: 'ع' });
-  const { moduleId } = await new AddModuleUseCase(deps).execute({ actor: admin, pathId, title: 'و', description: '' });
+  const { pathId, moduleId } = await seedPathWithModule(deps, admin);
   const { lessonId } = await new AddLessonUseCase(deps).execute({
     actor: admin,
     pathId,
     moduleId,
     title: 'درس',
-    conceptId: 'c1',
     videoUrl: 'qTVRs1wTwho',
     start: '0:00',
     end: '5:00',
@@ -171,8 +168,7 @@ describe('الفيديو المرفوع', () => {
       pathId,
       moduleId: mod.id,
       title: 'مرفوع',
-      conceptId: 'c1',
-      videoUrl: '',
+        videoUrl: '',
       start: '',
       end: '',
       channelName: 'المالك',

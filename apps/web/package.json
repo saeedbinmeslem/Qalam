@@ -17,6 +17,8 @@
     "@qalam/domain": "*",
     "@qalam/infrastructure": "*",
     "@supabase/ssr": "^0.12.7",
+    "html2canvas-pro": "^2.5.0",
+    "jspdf": "^4.2.1",
     "next": "^15.5.28",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"

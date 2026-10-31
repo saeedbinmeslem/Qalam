@@ -1,8 +1,11 @@
 /**
  * @file page.tsx
- * @description إدارة المفاهيم ومتطلباتها السابقة (رسم المفاهيم الذي تبني عليه التوصيات لاحقًا).
+ * @description إدارة مفاهيم **مسار واحد** ومتطلباتها السابقة. المفهوم يتبع مسارًا (لا مفاهيم عامة) ويضم كورسًا أو أكثر.
  */
-import { Card, ErrorBanner, Field, dangerButton, inputClass, primaryButton } from '../../../components/admin-ui';
+import Link from 'next/link';
+import { Card, ErrorBanner, Field, dangerButton, ghostButton, inputClass, primaryButton } from '../../../components/admin-ui';
+import { createPathId } from '@qalam/domain';
+import { notFound } from 'next/navigation';
 import { ConfirmSubmit } from '../../../components/confirm-submit';
 import { getAdminContainer } from '../../../composition/admin';
 import { createConceptAction, deleteConceptAction, updateConceptAction } from '../actions';
@@ -51,18 +54,52 @@ function Prerequisites({
   );
 }
 
-export default async function AdminConcepts({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
-  const { error } = await searchParams;
+export default async function AdminConcepts({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string; path?: string }>;
+}) {
+  const { error, path: pathId } = await searchParams;
   const admin = await getAdminContainer();
-  const concepts = await admin.listConcepts.execute({ actor: admin.actor });
+
+  // بلا مسار محدد: اختر المسار أولًا لأن لكل مسار مفاهيمه
+  if (!pathId) {
+    const paths = await admin.listPaths.execute();
+    return (
+      <>
+        <ErrorBanner message={error} />
+        <h1 className="font-display text-2xl font-extrabold text-ink">المفاهيم</h1>
+        <p className="mt-1 text-muted">لكل مسار مفاهيمه الخاصة. اختر مسارًا لإدارة مفاهيمه.</p>
+        <ul className="mt-5 divide-y divide-rule card-outlined">
+          {paths.map((p) => (
+            <li key={p.id} className="flex items-center justify-between gap-3 p-4">
+              <span className="font-medium text-ink">{p.title}</span>
+              <Link href={`/admin/concepts?path=${p.id}`} className={ghostButton}>
+                مفاهيم المسار
+              </Link>
+            </li>
+          ))}
+          {paths.length === 0 ? <li className="p-4 text-muted">لا مسارات بعد.</li> : null}
+        </ul>
+      </>
+    );
+  }
+
+  const found = await admin.getPath.execute({ pathId: createPathId(pathId) }).catch(() => null);
+  if (!found) notFound();
+  const concepts = await admin.listConcepts.execute({ actor: admin.actor, pathId });
   const options = concepts.map((c) => ({ id: c.id as string, name: c.name }));
 
   return (
     <>
       <ErrorBanner message={error} />
-      <h1 className="font-display text-2xl font-extrabold text-ink">المفاهيم</h1>
+      <Link href={`/admin/paths/${pathId}`} className="text-sm text-muted hover:text-ink">
+        ← {found.path.title}
+      </Link>
+      <h1 className="font-display text-2xl font-extrabold text-ink">مفاهيم المسار</h1>
       <p className="mt-1 text-muted">
-        المفهوم وحدة تعلّم ذرية يغطيها درس أو أكثر. المتطلبات السابقة تحدد ترتيب التعلّم، ولا يُسمح بدورات بينها.
+        المفهوم محور تعلّم داخل هذا المسار فقط، وتحته كورس أو أكثر. المتطلبات السابقة من مفاهيم المسار نفسه وتحدد ترتيب
+        التعلّم، ولا يُسمح بدورات بينها. يمكنك تركها للاستيراد التلقائي فينشئ المفهوم عند الحاجة.
       </p>
 
       <div className="mt-6 space-y-3">
@@ -76,6 +113,7 @@ export default async function AdminConcepts({ searchParams }: { searchParams: Pr
               </span>
             </summary>
             <form action={updateConceptAction} className="mt-4 grid gap-4 md:grid-cols-2">
+              <input type="hidden" name="pathId" value={pathId} />
               <input type="hidden" name="conceptId" value={concept.id} />
               <Field label="اسم المفهوم" name="name" defaultValue={concept.name} required />
               <LevelSelect value={concept.level} />
@@ -93,6 +131,7 @@ export default async function AdminConcepts({ searchParams }: { searchParams: Pr
               </div>
             </form>
             <form action={deleteConceptAction} className="mt-4 border-t border-rule pt-4">
+              <input type="hidden" name="pathId" value={pathId} />
               <input type="hidden" name="conceptId" value={concept.id} />
               <ConfirmSubmit message={`حذف المفهوم «${concept.name}»؟`} className={dangerButton}>
                 حذف المفهوم
@@ -100,11 +139,13 @@ export default async function AdminConcepts({ searchParams }: { searchParams: Pr
             </form>
           </details>
         ))}
+        {concepts.length === 0 ? <p className="text-muted">لا مفاهيم في هذا المسار بعد.</p> : null}
       </div>
 
       <div className="mt-10">
         <Card title="مفهوم جديد">
           <form action={createConceptAction} className="grid gap-4 md:grid-cols-2">
+            <input type="hidden" name="pathId" value={pathId} />
             <Field label="اسم المفهوم" name="name" required />
             <LevelSelect />
             <div className="md:col-span-2">

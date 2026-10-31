@@ -2,13 +2,11 @@
  * @file lesson-fields.tsx
  * @description حقول نموذج الدرس المشتركة بين الإضافة والتعديل.
  */
-import Link from 'next/link';
 import { Field, inputClass } from './admin-ui';
 import { LessonVideoSource } from './lesson-video-source';
 
 export interface LessonDefaults {
   title?: string;
-  conceptId?: string;
   videoUrl?: string;
   mediaUrl?: string;
   start?: string;
@@ -19,13 +17,7 @@ export interface LessonDefaults {
   notes?: string;
 }
 
-export function LessonFields({
-  concepts,
-  defaults = {},
-}: {
-  concepts: Array<{ id: string; name: string }>;
-  defaults?: LessonDefaults;
-}) {
+export function LessonFields({ defaults = {} }: { defaults?: LessonDefaults }) {
   return (
     <div className="grid gap-4 md:grid-cols-2">
       <div className="md:col-span-2">
@@ -42,28 +34,6 @@ export function LessonFields({
           <option value="en">الإنجليزية</option>
         </select>
       </label>
-      <div className="md:col-span-2">
-        <label className="block">
-          <span className="block text-sm font-medium text-ink">
-            المفهوم الذي يغطيه الدرس <span className="text-red-700">*</span>
-          </span>
-          <select name="conceptId" defaultValue={defaults.conceptId} required className={inputClass}>
-            {concepts.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        {concepts.length === 0 ? (
-          <p className="mt-1 text-xs text-red-700">
-            لا توجد مفاهيم بعد.{' '}
-            <Link href="/admin/concepts" className="underline">
-              أضف مفهومًا أولًا
-            </Link>
-          </p>
-        ) : null}
-      </div>
       <div className="md:col-span-2">
         <Field label="ملخص قصير" name="summary" defaultValue={defaults.summary} rows={3} />
       </div>

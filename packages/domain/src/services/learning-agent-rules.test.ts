@@ -1,29 +1,31 @@
 import { describe, expect, it } from 'vitest';
+import { Course } from '../entities/course.js';
 import { LearningPath } from '../entities/learning-path.js';
 import { Lesson } from '../entities/lesson.js';
 import { Module } from '../entities/module.js';
 import { LearningEvent } from '../value-objects/learning-event.js';
-import { createConceptId, createLessonId, createModuleId, createPathId } from '../value-objects/identifiers.js';
+import { createConceptId, createCourseId, createLessonId, createModuleId, createPathId } from '../value-objects/identifiers.js';
 import { VideoSegment } from '../value-objects/video-segment.js';
 import { decideNextStep } from './learning-agent-rules.js';
 
-// l1,l2 على المفهوم a (l2 بديل l1)، وl3 على المفهوم b
+// l1,l2 على المفهوم a في كورسين مختلفين (l2 بديل l1)، وl3 على المفهوم b
 function buildPath(lessonConcepts: Array<[string, string]> = [['l1', 'a'], ['l2', 'a'], ['l3', 'b']]) {
   const path = new LearningPath({ id: createPathId('p'), title: 'م', description: '', targetGoal: 'هدف', subject: 'ع' });
-  const module = new Module({ id: createModuleId('m'), title: 'و', description: '', orderIndex: 1 });
-  for (const [id, concept] of lessonConcepts) {
+  lessonConcepts.forEach(([id, concept], i) => {
+    const course = new Course({ id: createCourseId(`co-${id}`), conceptId: createConceptId(concept), title: `كورس ${id}`, description: '', orderIndex: i + 1 });
+    const module = new Module({ id: createModuleId(`m-${id}`), title: 'و', description: '', orderIndex: 1 });
     module.addLesson(
       new Lesson({
         id: createLessonId(id),
         title: `درس ${id}`,
-        conceptId: createConceptId(concept),
         segment: new VideoSegment({ videoId: 'abcdefghijk', startSeconds: 0, endSeconds: 60 }),
         sourceUrl: 'https://www.youtube.com/watch?v=abcdefghijk',
         channelName: 'قناة',
       }),
     );
-  }
-  path.addModule(module);
+    course.addModule(module);
+    path.addCourse(course);
+  });
   return path;
 }
 

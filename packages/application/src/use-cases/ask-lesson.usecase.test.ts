@@ -4,13 +4,13 @@ import {
   Lesson,
   Module,
   VideoSegment,
-  createConceptId,
   createLessonId,
   createModuleId,
   createPathId,
 } from '@qalam/domain';
 import type { LlmClient, LlmJsonRequest } from '../ports/llm-client.port.js';
 import { AskLessonUseCase } from './ask-lesson.usecase.js';
+import { addModule } from '../test-support/path-builder.js';
 
 function pathWith(notes?: string): LearningPath {
   const path = new LearningPath({ id: createPathId('p'), title: 'م', description: '', targetGoal: 'هدف', subject: 'عام' });
@@ -19,14 +19,13 @@ function pathWith(notes?: string): LearningPath {
     new Lesson({
       id: createLessonId('l'),
       title: 'النظام الثنائي',
-      conceptId: createConceptId('c'),
       segment: new VideoSegment({ videoId: 'abcdefghijk', startSeconds: 0, endSeconds: 60 }),
       sourceUrl: 'https://www.youtube.com/watch?v=abcdefghijk',
       channelName: 'قناة',
       notes,
     }),
   );
-  path.addModule(module);
+  addModule(path, module);
   return path;
 }
 

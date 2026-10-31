@@ -31,9 +31,10 @@ export default async function LessonSummaryPage({ params }: { params: Promise<{ 
         <Link href={`/paths/${pathId}/lessons/${lessonId}`} className="text-sm text-muted hover:underline">
           ← العودة إلى الدرس
         </Link>
-        <PrintButton className="btn-filled" />
+        <PrintButton className="btn-filled" targetId="summary-sheet" fileName={`ملخص-${lesson.title}`} />
       </div>
 
+      <div id="summary-sheet" className="bg-sheet p-2">
       <header className="mb-6 flex items-center justify-between border-b-2 border-primary pb-4">
         <QalamLogo size={40} />
         <span className="text-sm text-muted">ملخص من منصة قلم · qalam</span>
@@ -46,7 +47,7 @@ export default async function LessonSummaryPage({ params }: { params: Promise<{ 
 
       <div className="mt-8 space-y-7">
         {sections.map((section, index) => (
-          <section key={index} className="break-inside-avoid">
+          <section key={index} data-pdf-block className="break-inside-avoid">
             {section.heading ? <h2 className="font-display text-xl font-semibold text-ink">{section.heading}</h2> : null}
             {section.paragraphs.map((paragraph, i) => (
               <p key={i} className="mt-2 leading-8 text-ink">
@@ -64,12 +65,13 @@ export default async function LessonSummaryPage({ params }: { params: Promise<{ 
         ))}
       </div>
 
-      <p className="mt-10 border-t border-rule pt-4 text-xs text-muted">
+      <p data-pdf-block className="mt-10 border-t border-rule pt-4 text-xs text-muted">
         أُعدّ هذا الملخص بواسطة منصة «قلم» بالذكاء الاصطناعي اعتمادًا على محتوى الدرس. الفيديو هو المرجع الأصلي، وراجعه عند أي التباس.
       </p>
       <footer className="mt-6 flex items-center justify-center gap-2 text-sm text-muted">
         <QalamLogo size={22} /> <span>منصة قلم للتعلّم الذكي</span>
       </footer>
+      </div>
     </article>
   );
 }

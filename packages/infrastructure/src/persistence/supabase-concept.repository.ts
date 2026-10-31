@@ -5,11 +5,12 @@
  */
 
 import type { ConceptRepositoryPort } from '@qalam/application';
-import { Concept, createConceptId, type ConceptId } from '@qalam/domain';
+import { Concept, createConceptId, createPathId, type ConceptId, type PathId } from '@qalam/domain';
 import type { SupabaseDataClient } from './supabase-path.repository.js';
 
 interface ConceptRow {
   id: string;
+  path_id: string;
   name: string;
   description: string | null;
   level: number;
@@ -26,6 +27,7 @@ export function mapConceptRows(rows: ConceptRow[], prerequisites: PrerequisiteRo
     (row) =>
       new Concept({
         id: createConceptId(row.id),
+        pathId: createPathId(row.path_id),
         name: row.name,
         description: row.description ?? '',
         level: row.level,
@@ -42,7 +44,7 @@ export class SupabaseConceptRepository implements ConceptRepositoryPort {
 
   async save(concept: Concept): Promise<void> {
     const saved = await this.client.from('concepts').upsert([
-      { id: concept.id, name: concept.name, description: concept.description, level: concept.level },
+      { id: concept.id, path_id: concept.pathId, name: concept.name, description: concept.description, level: concept.level },
     ]);
     if (saved.error) throw new Error(`تعذّر حفظ المفهوم: ${saved.error.message}`);
 
@@ -67,6 +69,10 @@ export class SupabaseConceptRepository implements ConceptRepositoryPort {
     const prerequisites = await this.client.from('concept_prerequisites').select('*');
     if (prerequisites.error) throw new Error(`تعذّرت قراءة المتطلبات: ${prerequisites.error.message}`);
     return mapConceptRows((concepts.data ?? []) as ConceptRow[], (prerequisites.data ?? []) as PrerequisiteRow[]);
+  }
+
+  async findByPath(pathId: PathId): Promise<Concept[]> {
+    return (await this.findAll()).filter((c) => c.pathId === pathId);
   }
 
   async delete(id: ConceptId): Promise<void> {

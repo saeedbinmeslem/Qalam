@@ -40,13 +40,13 @@ export class GenerateQuestionsUseCase {
     const path = await loadPath(this.deps.paths, request.pathId);
     const found = path.findLesson(createLessonId(request.lessonId));
     if (!found) throw new NotFoundError('الدرس');
-    const { lesson } = found;
+    const { lesson, course } = found;
 
     if (!lesson.notes) {
       throw new Error('اكتب ملاحظات عن محتوى الدرس أولًا: هي المصدر الوحيد الذي تُبنى عليه الأسئلة');
     }
     const count = Math.min(Math.max(Math.trunc(request.count) || 3, 1), MAX_QUESTIONS_PER_REQUEST);
-    const concept = await this.deps.concepts.findById(lesson.conceptId);
+    const concept = await this.deps.concepts.findById(course.conceptId);
 
     const raw = await this.deps.llm.generateJson({
       system: SYSTEM_PROMPT,
@@ -70,7 +70,7 @@ export class GenerateQuestionsUseCase {
         new QuizQuestion({
           id: createQuestionId(this.deps.ids.next('q')),
           lessonId: lesson.id,
-          conceptId: lesson.conceptId,
+          conceptId: course.conceptId,
           prompt: g.prompt,
           choices: g.choices,
           correctIndex: g.correctIndex,
@@ -150,7 +150,7 @@ export class AddQuestionUseCase {
     const question = new QuizQuestion({
       id: createQuestionId(this.deps.ids.next('q')),
       lessonId: found.lesson.id,
-      conceptId: found.lesson.conceptId,
+      conceptId: found.course.conceptId,
       prompt: request.prompt,
       choices: request.choices,
       correctIndex: request.correctIndex,

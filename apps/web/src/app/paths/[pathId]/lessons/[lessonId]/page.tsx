@@ -8,11 +8,15 @@ import { notFound, redirect } from 'next/navigation';
 import { completeLessonAction, submitQuizAction, summarizeLessonAction } from './actions';
 import { formatDuration } from '../../../../../components/format';
 import { AskQalam } from '../../../../../components/ask-qalam';
+import { InlinePending, PendingButton } from '../../../../../components/inline-pending';
 import { LessonPlayer } from '../../../../../components/lesson-player';
 import { getAuth } from '../../../../../composition/auth';
 import { getContainer } from '../../../../../composition/container';
 
 export const dynamic = 'force-dynamic';
+// «اسأل قلم» والتلخيص إجراءان على هذه الصفحة وقد يستغرقان أكثر من دقيقة؛ 300ث أقصى ما تسمح به Vercel (Fluid compute).
+// إن رفض النشر هذه القيمة على خطتكم فخفّضها إلى 60.
+export const maxDuration = 300;
 
 export default async function LessonPage({
   params,
@@ -75,13 +79,12 @@ export default async function LessonPage({
               اقرأ ملخص الدرس (وحمّله PDF)
             </Link>
           ) : (
-            <form action={summarizeLessonAction}>
+            <form action={summarizeLessonAction} data-inline-loader>
               <input type="hidden" name="pathId" value={pathId} />
               <input type="hidden" name="lessonId" value={lessonId} />
-              <button type="submit" className="btn-outlined btn-sm">
-                لخّص لي الدرس بالذكاء الاصطناعي
-              </button>
+              <PendingButton className="btn-outlined btn-sm">لخّص لي الدرس بالذكاء الاصطناعي</PendingButton>
               <span className="ms-3 text-xs text-muted">تقرأه بدل المشاهدة، ويمكنك حفظه PDF.</span>
+              <InlinePending label="قلم يلخّص الدرس… يمكنك التصفح ريثما ينتهي" />
             </form>
           )}
           {summaryError ? (

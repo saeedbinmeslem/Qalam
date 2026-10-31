@@ -88,7 +88,8 @@ function assemble(
   const learningAgent = new LearningAgent({ paths, events, recorder: events, clock: systemClock, llm: getAgentLlmClient() });
   const planDeps = { paths, events, clock: systemClock, llm: getPlanLlmClient() };
   return {
-    askLesson: new AskLessonUseCase({ paths, llm: getPlanLlmClient() }),
+    // السؤال: نماذج خفيفة أولًا، وإجمالي 120ث (تحت maxDuration لصفحة الدرس) ليبقى الردّ مفتوحًا لدقيقتين عند البطء
+    askLesson: new AskLessonUseCase({ paths, llm: getPlanLlmClient(120000, { fast: true }) }),
     startOnboarding: new StartOnboardingUseCase(planDeps),
     // صياغة العناوين تجري في الخلفية، فمهلتها أطول من مهلة اختيار المسار
     buildPersonalPlan: new BuildPersonalPlanUseCase({ ...planDeps, llm: getPlanLlmClient(100000) }),
@@ -100,7 +101,7 @@ function assemble(
     getQuizResult: new GetQuizResultUseCase(questions),
     submitQuiz: new SubmitQuizUseCase(questions, events, systemClock),
     getPathProgress: new GetPathProgressUseCase(paths, events),
-    getLearningPath: new GetLearningPathUseCase(paths),
+    getLearningPath: new GetLearningPathUseCase(paths, concepts),
     getLesson: new GetLessonUseCase(paths),
     listLearningPaths: new ListLearningPathsUseCase(paths),
     recordLearningEvent: new RecordLearningEventUseCase(events, systemClock),

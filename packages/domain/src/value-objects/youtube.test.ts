@@ -1,5 +1,21 @@
 import { describe, expect, it } from 'vitest';
-import { formatTimecode, parseTimecode, parseYouTubeVideoId } from './youtube.js';
+import { formatTimecode, parseTimecode, parseYouTubePlaylistId, parseYouTubeVideoId } from './youtube.js';
+
+describe('parseYouTubePlaylistId (استخراج معرّف القائمة)', () => {
+  const id = 'PLxyzABC1234567890_-abcdefghijkl';
+
+  it('يقبل المعرّف ورابط القائمة ورابط فيديو داخل قائمة', () => {
+    expect(parseYouTubePlaylistId(id)).toBe(id);
+    expect(parseYouTubePlaylistId(`https://www.youtube.com/playlist?list=${id}`)).toBe(id);
+    expect(parseYouTubePlaylistId(`https://www.youtube.com/watch?v=qTVRs1wTwho&list=${id}&index=2`)).toBe(id);
+  });
+
+  it('يرفض ما ليس قائمة', () => {
+    expect(() => parseYouTubePlaylistId('https://www.youtube.com/watch?v=qTVRs1wTwho')).toThrow();
+    expect(() => parseYouTubePlaylistId('https://evil.com/?list=' + id)).toThrow();
+    expect(() => parseYouTubePlaylistId('hello')).toThrow();
+  });
+});
 
 describe('parseYouTubeVideoId (استخراج معرّف الفيديو)', () => {
   const id = 'qTVRs1wTwho';

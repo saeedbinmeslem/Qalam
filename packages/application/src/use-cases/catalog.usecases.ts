@@ -89,8 +89,11 @@ export interface ConceptMapItem {
   name: string;
   description: string;
   level: number;
+  /** المسار الذي يتبعه المفهوم (لا مفاهيم عامة) */
+  pathId: PathId;
+  pathTitle: string;
   prerequisites: { id: ConceptId; name: string }[];
-  /** الدروس التي تشرح المفهوم، لربط الخريطة بالمسارات */
+  /** دروس كورسات المفهوم، لربط الخريطة بالمسارات */
   lessons: { id: string; title: string; pathId: PathId }[];
 }
 
@@ -104,12 +107,15 @@ export class GetConceptMapUseCase {
   async execute(): Promise<{ levels: { level: number; concepts: ConceptMapItem[] }[]; total: number }> {
     const [concepts, paths] = await Promise.all([this.concepts.findAll(), this.paths.findAll()]);
     const names = new Map(concepts.map((c) => [c.id as string, c.name]));
+    const pathTitles = new Map(paths.map((p) => [p.id as string, p.title]));
     const taught = new Map<string, ConceptMapItem['lessons']>();
     for (const path of paths) {
+      const conceptOf = path.lessonConceptMap();
       for (const lesson of path.modules.flatMap((m) => m.lessons)) {
-        const list = taught.get(lesson.conceptId as string) ?? [];
+        const conceptId = conceptOf.get(lesson.id) as string;
+        const list = taught.get(conceptId) ?? [];
         list.push({ id: lesson.id as string, title: lesson.title, pathId: path.id });
-        taught.set(lesson.conceptId as string, list);
+        taught.set(conceptId, list);
       }
     }
 
@@ -118,6 +124,8 @@ export class GetConceptMapUseCase {
       name: c.name,
       description: c.description,
       level: c.level,
+      pathId: c.pathId,
+      pathTitle: pathTitles.get(c.pathId as string) ?? '',
       prerequisites: c.prerequisiteIds.map((id) => ({ id, name: names.get(id as string) ?? (id as string) })),
       lessons: taught.get(c.id as string) ?? [],
     }));
