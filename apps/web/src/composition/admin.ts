@@ -10,6 +10,8 @@ import {
   AddLessonUseCase,
   AddModuleUseCase,
   AddQuestionUseCase,
+  ApproveLessonQuestionsUseCase,
+  ApproveLessonsUseCase,
   ApproveQuestionUseCase,
   CheckAdminUseCase,
   CreateUploadTicketUseCase,
@@ -131,6 +133,8 @@ export interface AdminContainer {
   deleteLesson: DeleteLessonUseCase;
   moveLesson: MoveLessonUseCase;
   setLessonReview: SetLessonReviewUseCase;
+  approveLessons: ApproveLessonsUseCase;
+  approveLessonQuestions: ApproveLessonQuestionsUseCase;
   createConcept: CreateConceptUseCase;
   updateConcept: UpdateConceptUseCase;
   deleteConcept: DeleteConceptUseCase;
@@ -173,6 +177,8 @@ export async function getAdminContainer(): Promise<AdminContainer> {
     deleteLesson: new DeleteLessonUseCase(deps),
     moveLesson: new MoveLessonUseCase(deps),
     setLessonReview: new SetLessonReviewUseCase(deps),
+    approveLessons: new ApproveLessonsUseCase(deps),
+    approveLessonQuestions: new ApproveLessonQuestionsUseCase(deps),
     createConcept: new CreateConceptUseCase(deps),
     updateConcept: new UpdateConceptUseCase(deps),
     deleteConcept: new DeleteConceptUseCase(deps),

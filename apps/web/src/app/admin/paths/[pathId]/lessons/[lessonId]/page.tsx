@@ -21,6 +21,7 @@ import { getAdminContainer } from '../../../../../../composition/admin';
 import { ConfirmSubmit } from '../../../../../../components/confirm-submit';
 import {
   addQuestionAction,
+  approveAllQuestionsAction,
   approveQuestionAction,
   deleteQuestionAction,
   draftNotesAction,
@@ -47,12 +48,14 @@ export default async function AdminLessonPage({
   if (!result || !found) notFound();
   const { lesson, course } = found;
   const questions = await admin.listLessonQuestions.execute({ actor: admin.actor, lessonId });
-  const here = `/admin/paths/${pathId}/lessons/${lessonId}`;
+  const draftCount = questions.filter((q) => !q.isApproved).length;
+  const here =`/admin/paths/${pathId}/lessons/${lessonId}`;
+  const courseHref = `/admin/paths/${pathId}/courses/${course.id}`;
 
   return (
     <>
       <ErrorBanner message={error} />
-      <Link href={`/admin/paths/${pathId}`} className="text-sm text-muted hover:text-ink">
+      <Link href={courseHref} className="text-sm text-muted hover:text-ink">
         ← {result.path.title} / {course.title}
       </Link>
       <h1 className="mb-6 mt-1 font-display text-2xl font-extrabold text-ink">{lesson.title}</h1>
@@ -98,6 +101,7 @@ export default async function AdminLessonPage({
           <form action={updateLessonAction} className="space-y-4">
             <input type="hidden" name="pathId" value={pathId} />
             <input type="hidden" name="lessonId" value={lessonId} />
+            <input type="hidden" name="returnTo" value={courseHref} />
             <LessonFields
               defaults={{
                 title: lesson.title,
@@ -183,6 +187,17 @@ export default async function AdminLessonPage({
           {questions.length === 0 ? (
             <p className="text-sm text-muted">لا أسئلة بعد.</p>
           ) : (
+            <>
+            {draftCount > 0 ? (
+              <form action={approveAllQuestionsAction} className="mb-4 flex flex-wrap items-center gap-3">
+                <input type="hidden" name="pathId" value={pathId} />
+                <input type="hidden" name="lessonId" value={lessonId} />
+                <button type="submit" className={primaryButton}>
+                  راجعتُ الأسئلة وأعتمدها كلها ({draftCount})
+                </button>
+                <span className="text-xs text-muted">يعتمد كل المسودات دفعة واحدة؛ راجعها أولًا.</span>
+              </form>
+            ) : null}
             <ul className="space-y-4">
               {questions.map((q, index) => (
                 <li key={q.id} className="card-outlined p-4">
@@ -241,6 +256,7 @@ export default async function AdminLessonPage({
                 </li>
               ))}
             </ul>
+            </>
           )}
         </Card>
       </div>

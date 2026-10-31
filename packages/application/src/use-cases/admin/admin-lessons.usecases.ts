@@ -8,6 +8,7 @@
 import {
   Lesson,
   VideoSegment,
+  createCourseId,
   createLessonId,
   createModuleId,
   parseCloudinaryVideoUrl,
@@ -161,5 +162,40 @@ export class SetLessonReviewUseCase {
     if (!found) throw new NotFoundError('الدرس');
     found.module.replaceLesson(found.lesson.update({ reviewedByHuman: request.reviewed }));
     await this.deps.paths.save(path);
+  }
+}
+
+/**
+ * اعتماد دفعة من الدروس بضغطة واحدة: كل دروس كورس (`courseId`) أو كل دروس وحدة (`moduleId`).
+ * القرار قرار المالك كالاعتماد الفردي، لكنه يوفّر الضغط درسًا درسًا؛ يعيد عدد الدروس التي اعتُمدت فعلًا.
+ */
+export class ApproveLessonsUseCase {
+  constructor(private readonly deps: AdminDeps) {}
+
+  async execute(
+    request: AdminRequest & { pathId: string } & ({ courseId: string } | { moduleId: string }),
+  ): Promise<{ approved: number }> {
+    requireAdmin(this.deps.policy, request.actor);
+    const path = await loadPath(this.deps.paths, request.pathId);
+
+    let modules;
+    if ('courseId' in request) {
+      const course = path.findCourse(createCourseId(request.courseId));
+      if (!course) throw new NotFoundError('الكورس');
+      modules = course.modules;
+    } else {
+      modules = [locateModule(path, request.moduleId)];
+    }
+
+    let approved = 0;
+    for (const module of modules) {
+      for (const lesson of module.lessons) {
+        if (lesson.reviewedByHuman) continue;
+        module.replaceLesson(lesson.update({ reviewedByHuman: true }));
+        approved += 1;
+      }
+    }
+    if (approved > 0) await this.deps.paths.save(path);
+    return { approved };
   }
 }

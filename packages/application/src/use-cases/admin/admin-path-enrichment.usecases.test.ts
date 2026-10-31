@@ -146,6 +146,19 @@ describe('EnrichPathUseCase (إكمال الدروس تلقائيًا)', () => {
     expect(result.remaining).toBe(4 - result.completed);
   });
 
+  it('يقتصر على الكورس المحدد ولا يلمس غيره', async () => {
+    const { deps, pathId } = await setup(['aaaaaaaaaaa', 'bbbbbbbbbbb'], fakeLlm());
+    const useCase = new EnrichPathUseCase(deps);
+
+    const other = await useCase.execute({ actor: admin, pathId, courseId: 'كورس-آخر' });
+    expect(other).toEqual({ completed: 0, remaining: 0, failures: [] });
+    expect((await lessonsOf(deps, pathId)).some((l) => l.notes)).toBe(false);
+
+    const courseId = (await deps.paths.findById(pathId as PathId))!.courses[0]!.id;
+    const own = await useCase.execute({ actor: admin, pathId, courseId });
+    expect(own).toEqual({ completed: 2, remaining: 0, failures: [] });
+  });
+
   it('للمدير فقط', async () => {
     const { deps, pathId } = await setup(['aaaaaaaaaaa'], fakeLlm());
     await expect(new EnrichPathUseCase(deps).execute({ actor: { id: 'u2', email: 'x@x.com' }, pathId })).rejects.toBeInstanceOf(ForbiddenError);

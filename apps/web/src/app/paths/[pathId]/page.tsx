@@ -170,61 +170,30 @@ export default async function PathPage({ params }: { params: Promise<{ pathId: s
 
               {path.courses
                 .filter((course) => course.conceptId === concept.id)
-                .map((course) => (
-                  <div key={course.id} className="mt-6">
-                    <h3 className="font-display text-xl font-semibold text-ink">{course.title}</h3>
-                    {course.description ? <p className="mt-1 text-sm text-muted">{course.description}</p> : null}
-                    <ol className="stroke-list mt-4">
-                      {course.modules.map((module, index) => (
-                        <li key={module.id} className="stroke-item">
-                          <span className="stroke-node" aria-hidden="true">
-                            {index + 1}
-                          </span>
-                          <h4 className="font-display text-lg font-semibold text-ink">{module.title}</h4>
-                          <p className="mt-1 text-muted">{module.description}</p>
-
-                          <ul className="mt-5 divide-y divide-rule card-outlined">
-                            {module.lessons.map((lesson) => (
-                              <li key={lesson.id} className="grid gap-1 p-4 md:grid-cols-[1fr_auto] md:gap-6">
-                                <div>
-                                  <Link href={lessonHref(lesson.id)} className="font-medium text-ink hover:underline">
-                                    {lesson.title}
-                                  </Link>
-                                  {progress?.skippedLessonIds.has(lesson.id) ? (
-                                    <span className="ms-2 rounded-full bg-highlighter/25 px-2 py-0.5 text-xs font-medium text-ink">
-                                      تم تخطيه (أتقنتَ مفهومه)
-                                    </span>
-                                  ) : null}
-                                  {progress?.completedLessonIds.has(lesson.id) ? (
-                                    <span className="ms-2 chip chip-primary">✓ مكتمل</span>
-                                  ) : null}
-                                  {progress?.quizPercentByLesson.has(lesson.id) ? (
-                                    <span className="ms-2 chip">آخر اختبار: {progress.quizPercentByLesson.get(lesson.id)}%</span>
-                                  ) : null}
-                                  {lesson.summary ? <p className="mt-1 text-sm text-muted">{lesson.summary}</p> : null}
-                                  <p className="mt-2 text-sm text-muted">
-                                    المصدر:{' '}
-                                    <a
-                                      href={lesson.sourceUrl}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="text-sea underline underline-offset-2 hover:text-sea-dark"
-                                    >
-                                      {lesson.channelName}
-                                    </a>
-                                  </p>
-                                </div>
-                                <p className="text-sm font-medium text-ink md:text-end">
-                                  {formatDuration(lesson.segment.durationSeconds)}
-                                </p>
-                              </li>
-                            ))}
-                          </ul>
-                        </li>
-                      ))}
-                    </ol>
-                  </div>
-                ))}
+                .map((course) => {
+                  const lessons = course.modules.flatMap((m) => m.lessons);
+                  const done = progress
+                    ? lessons.filter((l) => progress.completedLessonIds.has(l.id) || progress.skippedLessonIds.has(l.id)).length
+                    : 0;
+                  return (
+                    <Link
+                      key={course.id}
+                      href={`/paths/${path.id}/courses/${course.id}`}
+                      className="card-outlined mt-6 block p-5 shadow-sm transition-colors hover:border-ink md:p-6"
+                    >
+                      <h3 className="font-display text-xl font-semibold text-ink">{course.title}</h3>
+                      <p className="mt-1 text-xs text-muted">
+                        {modulesText(course.modules.length)}، {lessonsText(course.lessonsCount)} · {formatDuration(course.totalDurationSeconds)}
+                      </p>
+                      {course.description ? <p className="mt-1 text-sm text-muted">{course.description}</p> : null}
+                      {progress ? (
+                        <p className="mt-3 text-sm font-medium text-ink">
+                          أنجزت {done} من {lessons.length}
+                        </p>
+                      ) : null}
+                    </Link>
+                  );
+                })}
             </section>
           ))}
       </div>

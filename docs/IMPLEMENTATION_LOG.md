@@ -349,3 +349,19 @@ Qalam/
 - **إصلاح ردّ النموذج:** Gemini أخطأ في إغلاق كائن `course` فأدخل `modules` داخله (JSON غير صالح). صار مخطط الاستيراد مسطّحًا (`courseTitle` و`courseDescription` في الأعلى)، مع مثال للشكل في التعليمات، وإعادة محاولة واحدة عند JSON/بنية تالفة فقط. وفي `GeminiLlmClient.generateJson` إعادة طلب واحدة عند JSON تالف (يشمل الملخصات والأسئلة). اختباران جديدان.
 - **الإكمال التلقائي (ملاحظات/ملخص/أسئلة):** يعمل لكن مزوّد Gemini المجاني متقطع (503 وJSON مبتور)، وGroq يرفض (403) من الشبكة المحلية؛ اكتمل 3 ملاحظات وملخص واحد فقط، والباقي بزر «أكمل الملاحظات والملخصات والأسئلة».
 - **سبب أخطاء السيرفر المحلي:** `next build` و`next dev` يتشاركان `apps/web/.next`؛ تشغيل أحدهما (أو بقاء خادم قديم) يُفسد الآخر فتظهر أخطاء مثل «Could not find the module … React Client Manifest» أو «Cannot find module './846.js'». الحل: إيقاف الخادم، حذف `apps/web/.next`، ثم `npm run dev`.
+
+## 2026-10-31 — اعتماد دفعي وبطاقات الكورسات
+- **اعتماد الدروس دفعة:** `ApproveLessonsUseCase` (كورس `courseId` أو وحدة `moduleId`) في `admin-lessons.usecases.ts`؛ زر «اعتماد كل دروس الكورس (n)» في ترويسة بطاقة الكورس، وزر «اعتماد دروس الوحدة (n)» في كل وحدة، ولا يظهران إلا عند وجود دروس غير معتمدة.
+- **اعتماد كل أسئلة الدرس:** `ApproveLessonQuestionsUseCase` في `admin-quiz.usecases.ts`؛ زر «راجعتُ الأسئلة وأعتمدها كلها (n)» في صفحة الدرس الإدارية.
+- **بطاقات الكورسات:** كل كورس في بطاقة مستقلة (ترويسة مفصولة) في لوحة التحكم، وفي صفحة المسار للمتعلم مع عدد الوحدات والدروس والمدة.
+- الملفات: `admin-lessons.usecases.ts`، `admin-quiz.usecases.ts`، `admin-quiz.usecases.test.ts`، `composition/admin.ts`، `admin/actions.ts`، صفحات `admin/paths/[pathId]` و`lessons/[lessonId]` و`paths/[pathId]`. الاختبارات: 230 ناجحة، وفحص أنواع الواجهة نظيف. لم تُجرَّب الواجهة في المتصفح بعد.
+
+## 2026-10-31 — صفحة مستقلة لكل كورس في لوحة التحكم
+- صفحة المسار صارت تعرض كل كورس **بطاقة** تفتح `/admin/paths/[pathId]/courses/[courseId]` (وحدات الكورس ودروسه وتعديله).
+- زر «أكمل الملاحظات والملخصات والأسئلة» انتقل من بطاقة الاستيراد إلى صفحة الكورس ويعمل على دروس **هذا الكورس فقط** (`EnrichPathUseCase` يقبل `courseId` اختياريًا).
+- الإجراءات تعود لصفحة الكورس عبر حقل `returnTo` (يُقبل فقط إن كان داخل المسار نفسه، `backTo` في `actions.ts`)؛ رابط الرجوع من صفحة الدرس يرجع للكورس.
+- الملفات: `components/admin-course.tsx` (جديد)، `admin/paths/[pathId]/courses/[courseId]/page.tsx` (جديد)، `admin/paths/[pathId]/page.tsx`، `lessons/[lessonId]/page.tsx`، `admin/actions.ts`، `admin-path-enrichment.usecases.ts` (+ اختبار). غير مجرَّب في المتصفح.
+
+## 2026-10-31 — صفحة كورس للمتعلم
+- صفحة المسار `/paths/[pathId]` تعرض الكورسات بطاقات (مع «أنجزت X من Y» للمسجَّل) تفتح `/paths/[pathId]/courses/[courseId]` (جديدة، مع `loading.tsx`) وفيها الوحدات والدروس والمصدر وشريط تقدم الكورس.
+- الملفات: `apps/web/src/app/paths/[pathId]/page.tsx`، `courses/[courseId]/page.tsx` و`loading.tsx`. فحص الأنواع وESLint ناجحان؛ غير مجرَّب في المتصفح. رابط الرجوع في صفحة الدرس ما زال يشير للمسار.

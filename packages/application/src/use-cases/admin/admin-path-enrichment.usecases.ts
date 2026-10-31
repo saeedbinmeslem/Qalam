@@ -43,13 +43,20 @@ export class EnrichPathUseCase {
     this.listQuestions = new ListLessonQuestionsUseCase(deps);
   }
 
-  async execute(request: AdminRequest & { pathId: string; budgetMs?: number }): Promise<EnrichmentResult> {
+  /** `courseId` يحصر العمل في كورس واحد؛ بدونه يشمل المسار كله */
+  async execute(request: AdminRequest & { pathId: string; courseId?: string; budgetMs?: number }): Promise<EnrichmentResult> {
     requireAdmin(this.deps.policy, request.actor);
     const deadline = this.now() + (request.budgetMs ?? DEFAULT_ENRICH_BUDGET_MS);
     const base = { actor: request.actor, pathId: request.pathId };
+    const scopeLessons = (path: Awaited<ReturnType<typeof loadPath>>): Lesson[] => {
+      const modules = request.courseId
+        ? (path.courses.find((c) => c.id === request.courseId)?.modules ?? [])
+        : path.modules;
+      return modules.flatMap((m) => m.lessons);
+    };
 
     const path = await loadPath(this.deps.paths, request.pathId);
-    const targets = path.modules.flatMap((m) => m.lessons).filter(needsText);
+    const targets = scopeLessons(path).filter(needsText);
     const result: EnrichmentResult = { completed: 0, remaining: 0, failures: [] };
     let consecutive = 0;
 
@@ -73,7 +80,7 @@ export class EnrichPathUseCase {
     }
 
     const after = await loadPath(this.deps.paths, request.pathId);
-    result.remaining = after.modules.flatMap((m) => m.lessons).filter(needsText).length;
+    result.remaining = scopeLessons(after).filter(needsText).length;
     return result;
   }
 }

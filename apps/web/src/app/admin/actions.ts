@@ -40,6 +40,15 @@ async function run(
 
 const pathPage = (pathId: string) => `/admin/paths/${pathId}`;
 
+/** صفحة الكورس داخل المسار */
+const coursePage = (pathId: string, courseId: string) => `${pathPage(pathId)}/courses/${courseId}`;
+
+/** العودة لصفحة الكورس إن جاء منها النموذج (returnTo)، وإلا صفحة المسار؛ لا يُقبل إلا مسار هذا المسار */
+function backTo(data: FormData, pathId: string): string {
+  const back = safeRedirectPath(text(data, 'returnTo'));
+  return back.startsWith(`${pathPage(pathId)}/`) ? back : pathPage(pathId);
+}
+
 const lessonFields = (data: FormData) => ({
   title: text(data, 'title'),
   videoUrl: text(data, 'videoUrl'),
@@ -114,7 +123,7 @@ export async function addCourseAction(data: FormData): Promise<void> {
 
 export async function updateCourseAction(data: FormData): Promise<void> {
   const pathId = text(data, 'pathId');
-  await run(pathPage(pathId), (admin) =>
+  await run(backTo(data, pathId), (admin) =>
     admin.updateCourse.execute({
       actor: admin.actor,
       pathId,
@@ -135,7 +144,7 @@ export async function deleteCourseAction(data: FormData): Promise<void> {
 
 export async function moveCourseAction(data: FormData): Promise<void> {
   const pathId = text(data, 'pathId');
-  await run(pathPage(pathId), (admin) =>
+  await run(backTo(data, pathId), (admin) =>
     admin.moveCourse.execute({ actor: admin.actor, pathId, courseId: text(data, 'courseId'), direction: direction(data) }),
   );
 }
@@ -144,7 +153,7 @@ export async function moveCourseAction(data: FormData): Promise<void> {
 
 export async function addModuleAction(data: FormData): Promise<void> {
   const pathId = text(data, 'pathId');
-  await run(pathPage(pathId), async (admin) => {
+  await run(backTo(data, pathId), async (admin) => {
     await admin.addModule.execute({
       actor: admin.actor,
       pathId,
@@ -157,7 +166,7 @@ export async function addModuleAction(data: FormData): Promise<void> {
 
 export async function updateModuleAction(data: FormData): Promise<void> {
   const pathId = text(data, 'pathId');
-  await run(pathPage(pathId), (admin) =>
+  await run(backTo(data, pathId), (admin) =>
     admin.updateModule.execute({
       actor: admin.actor,
       pathId,
@@ -170,14 +179,14 @@ export async function updateModuleAction(data: FormData): Promise<void> {
 
 export async function deleteModuleAction(data: FormData): Promise<void> {
   const pathId = text(data, 'pathId');
-  await run(pathPage(pathId), (admin) =>
+  await run(backTo(data, pathId), (admin) =>
     admin.deleteModule.execute({ actor: admin.actor, pathId, moduleId: text(data, 'moduleId') }),
   );
 }
 
 export async function moveModuleAction(data: FormData): Promise<void> {
   const pathId = text(data, 'pathId');
-  await run(pathPage(pathId), (admin) =>
+  await run(backTo(data, pathId), (admin) =>
     admin.moveModule.execute({
       actor: admin.actor,
       pathId,
@@ -191,7 +200,7 @@ export async function moveModuleAction(data: FormData): Promise<void> {
 
 export async function addLessonAction(data: FormData): Promise<void> {
   const pathId = text(data, 'pathId');
-  await run(pathPage(pathId), async (admin) => {
+  await run(backTo(data, pathId), async (admin) => {
     await admin.addLesson.execute({
       actor: admin.actor,
       pathId,
@@ -219,11 +228,12 @@ export async function importPlaylistAction(data: FormData): Promise<void> {
   });
 }
 
-/** يكمل الملاحظات والملخصات والأسئلة لما تبقى (بعد حصة منتهية أو مهلة) */
+/** يكمل الملاحظات والملخصات والأسئلة لما تبقى في كورس واحد (courseId) أو في المسار كله (بعد حصة منتهية أو مهلة) */
 export async function enrichPathAction(data: FormData): Promise<void> {
   const pathId = text(data, 'pathId');
-  await run(pathPage(pathId), async (admin) => {
-    const result = await admin.enrichPath.execute({ actor: admin.actor, pathId });
+  const courseId = text(data, 'courseId') || undefined;
+  await run(courseId ? coursePage(pathId, courseId) : pathPage(pathId), async (admin) => {
+    const result = await admin.enrichPath.execute({ actor: admin.actor, pathId, courseId });
     if (result.remaining > 0 && result.failures.length > 0) {
       throw new Error(`اكتمل ${result.completed} وتعثّر ${result.failures.length}: ${result.failures[0]?.message ?? ''}`);
     }
@@ -235,20 +245,20 @@ export async function updateLessonAction(data: FormData): Promise<void> {
   const lessonId = text(data, 'lessonId');
   await run(`${pathPage(pathId)}/lessons/${lessonId}`, async (admin) => {
     await admin.updateLesson.execute({ actor: admin.actor, pathId, lessonId, ...lessonFields(data) });
-    return pathPage(pathId);
+    return backTo(data, pathId);
   });
 }
 
 export async function deleteLessonAction(data: FormData): Promise<void> {
   const pathId = text(data, 'pathId');
-  await run(pathPage(pathId), (admin) =>
+  await run(backTo(data, pathId), (admin) =>
     admin.deleteLesson.execute({ actor: admin.actor, pathId, lessonId: text(data, 'lessonId') }),
   );
 }
 
 export async function moveLessonAction(data: FormData): Promise<void> {
   const pathId = text(data, 'pathId');
-  await run(pathPage(pathId), (admin) =>
+  await run(backTo(data, pathId), (admin) =>
     admin.moveLesson.execute({
       actor: admin.actor,
       pathId,
@@ -271,6 +281,19 @@ export async function setLessonReviewAction(data: FormData): Promise<void> {
       reviewed: text(data, 'reviewed') === 'true',
     }),
   );
+}
+
+/** اعتماد كل دروس كورس (courseId) أو كل دروس وحدة (moduleId) بضغطة واحدة */
+export async function approveLessonsAction(data: FormData): Promise<void> {
+  const pathId = text(data, 'pathId');
+  const courseId = text(data, 'courseId');
+  await run(backTo(data, pathId), async (admin) => {
+    await admin.approveLessons.execute(
+      courseId
+        ? { actor: admin.actor, pathId, courseId }
+        : { actor: admin.actor, pathId, moduleId: text(data, 'moduleId') },
+    );
+  });
 }
 
 // ───── أسئلة الاختبارات ─────
@@ -338,6 +361,12 @@ export async function approveQuestionAction(data: FormData): Promise<void> {
   await run(lessonPage(text(data, 'pathId'), text(data, 'lessonId')), (admin) =>
     admin.approveQuestion.execute({ actor: admin.actor, questionId: text(data, 'questionId') }),
   );
+}
+
+export async function approveAllQuestionsAction(data: FormData): Promise<void> {
+  await run(lessonPage(text(data, 'pathId'), text(data, 'lessonId')), async (admin) => {
+    await admin.approveLessonQuestions.execute({ actor: admin.actor, lessonId: text(data, 'lessonId') });
+  });
 }
 
 export async function updateQuestionAction(data: FormData): Promise<void> {

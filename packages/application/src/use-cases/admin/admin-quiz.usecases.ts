@@ -187,6 +187,20 @@ export class ApproveQuestionUseCase {
   }
 }
 
+/** اعتماد كل مسودات أسئلة الدرس دفعة واحدة (بعد أن يراجعها المالك)؛ يعيد عدد ما اعتُمد */
+export class ApproveLessonQuestionsUseCase {
+  constructor(private readonly deps: QuizAdminDeps) {}
+
+  async execute(request: AdminRequest & { lessonId: string }): Promise<{ approved: number }> {
+    requireAdmin(this.deps.policy, request.actor);
+    const drafts = (await this.deps.questions.findByLesson(createLessonId(request.lessonId))).filter(
+      (q) => !q.isApproved,
+    );
+    for (const question of drafts) await this.deps.questions.save(question.approve());
+    return { approved: drafts.length };
+  }
+}
+
 export class UpdateQuestionUseCase {
   constructor(private readonly deps: QuizAdminDeps) {}
 

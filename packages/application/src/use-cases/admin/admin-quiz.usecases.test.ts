@@ -13,11 +13,12 @@ import {
 import { ForbiddenError } from '../../errors.js';
 import type { ConceptRepositoryPort } from '../../ports/concept-repository.port.js';
 import type { LlmClient, LlmJsonRequest, LlmVideoRequest } from '../../ports/llm-client.port.js';
-import { SetLessonReviewUseCase } from './admin-lessons.usecases.js';
+import { ApproveLessonsUseCase, SetLessonReviewUseCase } from './admin-lessons.usecases.js';
 import type { QuestionRepositoryPort } from '../../ports/question-repository.port.js';
 import { AddLessonUseCase, UpdateLessonUseCase } from './admin-lessons.usecases.js';
 import {
   AddQuestionUseCase,
+  ApproveLessonQuestionsUseCase,
   ApproveQuestionUseCase,
   DeleteQuestionUseCase,
   DraftLessonNotesUseCase,
@@ -216,6 +217,40 @@ describe('parseGeneratedQuestions', () => {
     expect(() => parseGeneratedQuestions({ questions: [{ prompt: 1 }] })).toThrow('ناقص');
     expect(() => parseGeneratedQuestions({ questions: [{ prompt: 'س', explanation: '', choices: [1], correctIndex: 0 }] })).toThrow('خيارات');
     expect(() => parseGeneratedQuestions({ questions: [{ prompt: 'س', explanation: '', choices: ['أ'], correctIndex: '0' }] })).toThrow('الإجابة');
+  });
+});
+
+describe('اعتماد كل أسئلة الدرس دفعة واحدة', () => {
+  it('يعتمد المسودات فقط ويعيد عددها، ويمنع غير المدير', async () => {
+    const { deps, pathId, lessonId } = await setup();
+    await new GenerateQuestionsUseCase(deps).execute({ actor: admin, pathId, lessonId, count: 2 });
+    const [first] = await new ListLessonQuestionsUseCase(deps).execute({ actor: admin, lessonId });
+    await new ApproveQuestionUseCase(deps).execute({ actor: admin, questionId: first!.id });
+
+    await expect(new ApproveLessonQuestionsUseCase(deps).execute({ actor: stranger, lessonId })).rejects.toBeInstanceOf(ForbiddenError);
+    expect(await new ApproveLessonQuestionsUseCase(deps).execute({ actor: admin, lessonId })).toEqual({ approved: 1 });
+    expect((await new ListLessonQuestionsUseCase(deps).execute({ actor: admin, lessonId })).every((q) => q.isApproved)).toBe(true);
+    expect(await new ApproveLessonQuestionsUseCase(deps).execute({ actor: admin, lessonId })).toEqual({ approved: 0 });
+  });
+});
+
+describe('اعتماد الدروس دفعة (كورس أو وحدة)', () => {
+  it('يعتمد غير المعتمد في الوحدة أو الكورس، ويمنع غير المدير', async () => {
+    const { deps, pathId, lessonId, fields } = await setup();
+    const path = (await deps.paths.findById(pathId as never))!;
+    const course = path.courses[0]!;
+    const moduleId = course.modules[0]!.id;
+    await new AddLessonUseCase(deps).execute({ actor: admin, pathId, moduleId, ...fields, title: 'ثاني' });
+    await new SetLessonReviewUseCase(deps).execute({ actor: admin, pathId, lessonId, reviewed: true });
+    const lessons = async () => (await deps.paths.findById(pathId as never))!.courses[0]!.modules[0]!.lessons;
+
+    await expect(new ApproveLessonsUseCase(deps).execute({ actor: stranger, pathId, moduleId })).rejects.toBeInstanceOf(ForbiddenError);
+    expect(await new ApproveLessonsUseCase(deps).execute({ actor: admin, pathId, moduleId })).toEqual({ approved: 1 });
+    expect((await lessons()).every((l) => l.reviewedByHuman)).toBe(true);
+
+    await new UpdateLessonUseCase(deps).execute({ actor: admin, pathId, lessonId, ...fields, title: 'عُدّل' });
+    expect(await new ApproveLessonsUseCase(deps).execute({ actor: admin, pathId, courseId: course.id })).toEqual({ approved: 1 });
+    await expect(new ApproveLessonsUseCase(deps).execute({ actor: admin, pathId, courseId: 'nope' })).rejects.toThrow('الكورس');
   });
 });
 
