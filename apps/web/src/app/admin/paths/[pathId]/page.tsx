@@ -19,6 +19,7 @@ import { ConfirmSubmit } from '../../../../components/confirm-submit';
 import { formatDuration } from '../../../../components/format';
 import { ImportSourceCard } from '../../../../components/import-source-card';
 import { getAdminContainer } from '../../../../composition/admin';
+import { CoverField } from '../../../../components/cover-field';
 import { addCourseAction, deletePathAction, updatePathAction } from '../../actions';
 
 /** إجراءات هذه الصفحة (الاستيراد والإكمال الخلفي) تعمل تحت هذه المهلة */
@@ -72,6 +73,9 @@ export default async function AdminPathPage({
           </div>
           <div className="md:col-span-2">
             <Field label="وصف المسار" name="description" defaultValue={path.description} rows={3} />
+          </div>
+          <div className="md:col-span-2">
+            <CoverField seed={path.id} title={path.title} defaultValue={path.coverUrl} />
           </div>
           <div>
             <button type="submit" className={primaryButton}>

@@ -52,6 +52,10 @@
   --color-error-container: #ffdad6;
   --color-on-error-container: #410002;
 
+  /* غطاء داكن ثابت فوق صور الأغلفة (لا يتبدّل بالوضع الداكن): يضمن تباين النص الأبيض */
+  --color-scrim: #0c1b30;
+  --color-on-scrim: #ffffff;
+
   /* أسماء مستعارة قديمة */
   --color-ink: var(--color-primary);
   --color-ink-soft: #2a4468;
@@ -314,6 +318,20 @@ body {
   }
   .nav-item:hover { background: color-mix(in srgb, var(--color-on-surface) 8%, transparent); }
   .nav-item[aria-current='page'] { background: var(--color-secondary-container); color: var(--color-on-secondary-container); }
+
+  /*
+   * «الورقة والحبر» (docs/design-system.md القسم 10).
+   * الورقة: نقاط بلون واحد وشفافية منخفضة، للهيرو وترويسات الأقسام فقط. ليست تدرجًا لونيًا.
+   */
+  .paper {
+    background-image: radial-gradient(circle, color-mix(in srgb, var(--color-on-surface) 14%, transparent) 1px, transparent 1.6px);
+    background-size: 24px 24px;
+  }
+  /* نغمات الأغلفة: أدوار كحلية وتيلية فقط (الذهبي والبنفسجي محجوزان للإتقان والذكاء الاصطناعي) */
+  .cover-0 { --cover-bg: var(--color-primary); --cover-fg: var(--color-on-primary); --cover-ink: var(--color-secondary); }
+  .cover-1 { --cover-bg: var(--color-primary-container); --cover-fg: var(--color-on-primary-container); --cover-ink: var(--color-secondary-strong); }
+  .cover-2 { --cover-bg: var(--color-secondary-strong); --cover-fg: var(--color-on-primary); --cover-ink: var(--color-primary-container); }
+  .cover-3 { --cover-bg: var(--color-secondary-container); --cover-fg: var(--color-on-secondary-container); --cover-ink: var(--color-secondary-strong); }
 
   /*
    * خط التمييز: سلسلة من العُقد يربطها خط عنبري، تُستخدم لأن المحتوى تسلسل فعلي

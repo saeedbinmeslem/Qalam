@@ -15,6 +15,7 @@ const row: PathRow = {
   description: null,
   target_goal: 'هدف',
   subject: 'عام',
+  cover_url: 'https://res.cloudinary.com/demo/image/upload/v1/p.jpg',
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z',
   courses: [
@@ -191,5 +192,25 @@ describe('SupabasePathRepository', () => {
     const { client, deletes } = fakeClient([]);
     await new SupabasePathRepository(client).delete(createPathId('p1'));
     expect(deletes).toEqual([{ table: 'learning_paths', id: 'p1' }]);
+  });
+});
+
+describe('صورة الغلاف في Supabase', () => {
+  it('تُقرأ من cover_url للمسار والكورس، وغيابها يعني undefined', () => {
+    const path = mapPathRow({
+      ...row,
+      courses: row.courses?.map((c) => (c.id === 'co1' ? { ...c, cover_url: 'https://res.cloudinary.com/demo/image/upload/v1/c.jpg' } : c)) ?? null,
+    });
+    expect(path.coverUrl).toBe('https://res.cloudinary.com/demo/image/upload/v1/p.jpg');
+    expect(path.courses.find((c) => c.id === 'co1')?.coverUrl).toBe('https://res.cloudinary.com/demo/image/upload/v1/c.jpg');
+    expect(path.courses.find((c) => c.id === 'co2')?.coverUrl).toBeUndefined();
+  });
+
+  it('تُكتب cover_url (null عند الغياب) عند الحفظ', async () => {
+    const { client, upserts } = fakeClient([row]);
+    const path = mapPathRow(row);
+    await new SupabasePathRepository(client).save(path);
+    expect(upserts.find((u) => u.table === 'learning_paths')?.rows[0]?.cover_url).toBe(path.coverUrl);
+    expect(upserts.find((u) => u.table === 'courses')?.rows.map((r) => r.cover_url)).toEqual([null, null]);
   });
 });

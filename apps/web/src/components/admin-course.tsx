@@ -21,6 +21,7 @@ import {
 } from '../app/admin/actions';
 import { Card, Field, ReviewBadge, dangerButton, ghostButton, inputClass, primaryButton } from './admin-ui';
 import { ConfirmSubmit } from './confirm-submit';
+import { CoverField } from './cover-field';
 import { formatDuration } from './format';
 import { LessonFields } from './lesson-fields';
 
@@ -246,6 +247,9 @@ export function CourseSection({
           </label>
           <div className="md:col-span-2">
             <Field label="وصف الكورس" name="description" defaultValue={course.description} />
+          </div>
+          <div className="md:col-span-2">
+            <CoverField seed={path.id} title={course.title} defaultValue={course.coverUrl} />
           </div>
           <div>
             <button type="submit" className={primaryButton}>

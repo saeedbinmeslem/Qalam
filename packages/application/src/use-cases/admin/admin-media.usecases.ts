@@ -4,7 +4,7 @@
  */
 
 import type { AdminPolicy } from '@qalam/domain';
-import type { MediaUploadSignerPort, UploadTicket } from '../../ports/media-upload.port.js';
+import type { MediaUploadSignerPort, UploadKind, UploadTicket } from '../../ports/media-upload.port.js';
 import { requireAdmin, type AdminRequest } from './admin-deps.js';
 
 export class CreateUploadTicketUseCase {
@@ -13,8 +13,8 @@ export class CreateUploadTicketUseCase {
   ) {}
 
   /** null = الرفع غير مفعّل في هذه البيئة */
-  execute(request: AdminRequest): UploadTicket | null {
+  execute(request: AdminRequest & { kind?: UploadKind }): UploadTicket | null {
     requireAdmin(this.deps.policy, request.actor);
-    return this.deps.uploads.sign();
+    return this.deps.uploads.sign(request.kind);
   }
 }

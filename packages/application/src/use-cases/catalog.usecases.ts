@@ -32,6 +32,8 @@ export interface LibraryLesson {
   channelName: string;
   durationSeconds: number;
   reviewedByHuman: boolean;
+  /** معرّف يوتيوب للمصغّرة الرسمية؛ غائب للدروس المرفوعة */
+  youtubeVideoId?: string;
   pathId: PathId;
   pathTitle: string;
   moduleTitle: string;
@@ -59,6 +61,7 @@ export class SearchLessonLibraryUseCase {
           channelName: lesson.channelName,
           durationSeconds: lesson.segment.durationSeconds,
           reviewedByHuman: lesson.reviewedByHuman,
+          ...(lesson.youtubeVideoId ? { youtubeVideoId: lesson.youtubeVideoId } : {}),
           pathId: path.id,
           pathTitle: path.title,
           moduleTitle: module.title,

@@ -5,7 +5,9 @@
 import { createPathId } from '@qalam/domain';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { CoverBanner, LessonThumb } from '../../../../../components/cover-art';
 import { formatDuration, lessonsText, modulesText } from '../../../../../components/format';
+import { ProgressRing } from '../../../../../components/ui';
 import { getAuth } from '../../../../../composition/auth';
 import { getContainer } from '../../../../../composition/container';
 
@@ -34,39 +36,30 @@ export default async function CoursePage({ params }: { params: Promise<{ pathId:
 
   return (
     <>
-      <section className="bg-surface-container-low">
-        <div className="mx-auto max-w-6xl px-5 py-14 md:px-8 md:py-20">
-          <Link href={`/paths/${path.id}`} className="text-sm text-on-surface-variant hover:text-primary">
-            {path.title}
-          </Link>
-          <h1 className="mt-4 font-display text-display">{course.title}</h1>
-          {conceptName ? <p className="mt-2 text-on-surface-variant">المفهوم: {conceptName}</p> : null}
-          {course.description ? <p className="mt-3 max-w-[40rem] text-lg text-on-surface-variant">{course.description}</p> : null}
-          <p className="mt-6 text-on-surface">
-            {modulesText(course.modules.length)}، {lessonsText(course.lessonsCount)} · {formatDuration(course.totalDurationSeconds)}
-          </p>
-          {progress ? (
-            <div className="mt-6 max-w-md">
-              <div className="flex items-baseline justify-between text-sm text-on-surface-variant">
-                <span>
-                  أنجزت {doneCount} من {lessons.length}
-                </span>
-                <span>{percent}%</span>
-              </div>
-              <div
-                role="progressbar"
-                aria-label="نسبة إكمال الكورس"
-                aria-valuenow={percent}
-                aria-valuemin={0}
-                aria-valuemax={100}
-                className="mt-2 h-2 overflow-hidden rounded-full bg-surface-container-highest"
-              >
-                <div className="h-full rounded-full bg-primary" style={{ width: `${percent}%` }} />
-              </div>
+      <CoverBanner seed={path.id} title={course.title} imageUrl={course.coverUrl}>
+        <Link href={`/paths/${path.id}`} className="text-sm opacity-90 hover:underline">
+          {path.title}
+        </Link>
+        <h1 className="mt-4 font-display text-display">{course.title}</h1>
+        {conceptName ? <p className="mt-2 opacity-90">المفهوم: {conceptName}</p> : null}
+        {course.description ? <p className="mt-3 max-w-[40rem] text-lg opacity-90">{course.description}</p> : null}
+        <p className="mt-6">
+          {modulesText(course.modules.length)}، {lessonsText(course.lessonsCount)} · {formatDuration(course.totalDurationSeconds)}
+        </p>
+      </CoverBanner>
+
+      {progress ? (
+        <section aria-label="تقدمك" className="border-b border-outline-variant bg-surface-container-low">
+          <div className="mx-auto max-w-6xl px-5 py-6 md:px-8">
+            <div className="flex items-center gap-4">
+              <ProgressRing percent={percent} label="نسبة إكمال الكورس" size={64} />
+              <p className="text-on-surface-variant">
+                أنجزت {doneCount} من {lessons.length}
+              </p>
             </div>
-          ) : null}
-        </div>
-      </section>
+          </div>
+        </section>
+      ) : null}
 
       <div className="mx-auto max-w-6xl px-5 md:px-8 py-14">
         <ol className="stroke-list">
@@ -80,7 +73,15 @@ export default async function CoursePage({ params }: { params: Promise<{ pathId:
 
               <ul className="mt-5 divide-y divide-rule card-outlined">
                 {module.lessons.map((lesson) => (
-                  <li key={lesson.id} className="grid gap-1 p-4 md:grid-cols-[1fr_auto] md:gap-6">
+                  <li key={lesson.id} className="grid items-start gap-3 p-4 sm:grid-cols-[8rem_1fr_auto] md:gap-6">
+                    <Link href={lessonHref(lesson.id)} tabIndex={-1} aria-hidden="true" className="hidden sm:block">
+                      <LessonThumb
+                        videoId={lesson.youtubeVideoId}
+                        seed={path.id}
+                        title={lesson.title}
+                        className="aspect-video w-full rounded-sm"
+                      />
+                    </Link>
                     <div>
                       <Link href={lessonHref(lesson.id)} className="font-medium text-on-surface hover:underline">
                         {lesson.title}
@@ -109,7 +110,7 @@ export default async function CoursePage({ params }: { params: Promise<{ pathId:
                         </a>
                       </p>
                     </div>
-                    <p className="text-sm font-medium text-on-surface md:text-end">
+                    <p className="text-sm font-medium text-on-surface sm:text-end">
                       {formatDuration(lesson.segment.durationSeconds)}
                     </p>
                   </li>

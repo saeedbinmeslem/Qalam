@@ -20,6 +20,8 @@ interface PathDetails {
   description: string;
   targetGoal: string;
   subject: string;
+  /** غائب = بلا تغيير، فارغ = إزالة الغلاف */
+  coverUrl?: string;
 }
 
 /** هل المستخدم مدير؟ (تستعمله الواجهة لإظهار اللوحة أو رفضها) */
@@ -42,6 +44,7 @@ export class CreatePathUseCase {
       description: request.description,
       targetGoal: request.targetGoal,
       subject: request.subject,
+      coverUrl: request.coverUrl,
     });
     await this.deps.paths.save(path);
     return { pathId: path.id };
@@ -134,6 +137,8 @@ export class MoveModuleUseCase {
 interface CourseDetails {
   title: string;
   description: string;
+  /** غائب = بلا تغيير، فارغ = إزالة الغلاف */
+  coverUrl?: string;
 }
 
 /** كورس جديد داخل مفهوم من مفاهيم المسار نفسه */
@@ -153,6 +158,7 @@ export class AddCourseUseCase {
       conceptId,
       title: request.title,
       description: request.description,
+      coverUrl: request.coverUrl,
       orderIndex: path.nextCourseOrderIndex,
     });
     path.addCourse(course);
@@ -178,7 +184,14 @@ export class UpdateCourseUseCase {
       if (!concept || concept.pathId !== path.id) throw new NotFoundError('المفهوم');
       conceptId = concept.id;
     }
-    path.replaceCourse(course.updateDetails({ title: request.title, description: request.description, conceptId }));
+    path.replaceCourse(
+      course.updateDetails({
+        title: request.title,
+        description: request.description,
+        conceptId,
+        ...(request.coverUrl !== undefined ? { coverUrl: request.coverUrl } : {}),
+      }),
+    );
     await this.deps.paths.save(path);
   }
 }

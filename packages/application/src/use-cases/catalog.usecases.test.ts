@@ -68,6 +68,11 @@ describe('SearchLessonLibraryUseCase (مكتبة الدروس)', () => {
     expect(result.channels).toEqual(['قناة أ', 'قناة ب']);
   });
 
+  it('يضع معرّف يوتيوب لكل درس ليعرض الواجهة مصغّرته الرسمية', async () => {
+    const result = await library.execute();
+    expect(result.lessons.every((l) => l.youtubeVideoId === 'abcdefghijk')).toBe(true);
+  });
+
   it('يبحث بالعنوان متجاهلًا الهمزات والتشكيل', async () => {
     const result = await library.execute({ query: 'المُعالِج' });
     expect(result.lessons.map((l) => l.lessonId)).toEqual(['a']);

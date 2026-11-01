@@ -303,6 +303,32 @@ describe('الكورسات والوحدات', () => {
     expect(courses()).toEqual([['كورس', 1], ['ثانٍ', 2]]);
   });
 
+  it('يضبط غلاف المسار والكورس ويبقيه عند غياب الحقل ويزيله بالفارغ ويرفض الرابط الغريب', async () => {
+    const { deps, pathId, courseId } = await seeded();
+    const cover = 'https://res.cloudinary.com/demo/image/upload/v1/qalam/covers/a.jpg';
+    const path = () => (deps.paths as FakePaths).store.get(pathId)!;
+    const details = { title: 'ع', description: '', targetGoal: 'هـ', subject: 'م' };
+
+    await new UpdatePathUseCase(deps).execute({ actor: admin, pathId, ...details, coverUrl: cover });
+    await new UpdateCourseUseCase(deps).execute({ actor: admin, pathId, courseId, title: 'ك', description: '', coverUrl: cover });
+    expect(path().coverUrl).toBe(cover);
+    expect(path().findCourse(courseId as never)?.coverUrl).toBe(cover);
+
+    await new UpdatePathUseCase(deps).execute({ actor: admin, pathId, ...details });
+    await new UpdateCourseUseCase(deps).execute({ actor: admin, pathId, courseId, title: 'ك', description: '' });
+    expect(path().coverUrl).toBe(cover);
+    expect(path().findCourse(courseId as never)?.coverUrl).toBe(cover);
+
+    await new UpdatePathUseCase(deps).execute({ actor: admin, pathId, ...details, coverUrl: '' });
+    await new UpdateCourseUseCase(deps).execute({ actor: admin, pathId, courseId, title: 'ك', description: '', coverUrl: '' });
+    expect(path().coverUrl).toBeUndefined();
+    expect(path().findCourse(courseId as never)?.coverUrl).toBeUndefined();
+
+    await expect(
+      new UpdatePathUseCase(deps).execute({ actor: admin, pathId, ...details, coverUrl: 'https://evil.test/a.jpg' }),
+    ).rejects.toThrow();
+  });
+
   it('يعدّل الكورس وينقله بين مفاهيم المسار، ويحرّكه ويحذفه', async () => {
     const { deps, pathId, conceptId, courseId } = await seeded();
     const second = await new CreateConceptUseCase(deps).execute({ actor: admin, pathId, ...conceptFields, name: 'مفهوم ثانٍ' });

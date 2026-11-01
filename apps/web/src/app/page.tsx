@@ -4,7 +4,7 @@
  */
 import Link from 'next/link';
 import { formatDuration } from '../components/format';
-import { PathCard, StatTile, pageWidth } from '../components/ui';
+import { InkStroke, PathCard, pageWidth } from '../components/ui';
 import { getContainer } from '../composition/container';
 
 export const dynamic = 'force-dynamic';
@@ -55,46 +55,51 @@ export default async function HomePage() {
 
   return (
     <>
-      <section className="border-b border-outline-variant bg-surface-container-low">
-        <div className={`${pageWidth} grid gap-12 py-16 md:grid-cols-[1.1fr_1fr] md:py-24`}>
-          <div>
-            <p className="chip chip-primary">منصة تعلّم عربية تقيس الفهم</p>
-            <h1 className="mt-5 font-display text-4xl font-bold leading-[1.45] text-on-surface md:text-6xl md:leading-[1.35]">
-              تعلّم ما تحتاجه،
-              <br />
-              <span className="text-primary">وأثبت أنك فهمته.</span>
-            </h1>
-            <p className="text-body mt-6 max-w-xl text-lg text-on-surface-variant">
-              دروس مجانية مبعثرة في كل مكان. قلم يرتّبها لك في مسار واحد، ثم يقيس فهمك فعليًا ويغيّر الخطة
-              بحسب أدائك.
-            </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link href="/paths" className="btn-filled">
-                تصفّح المسارات
-              </Link>
-              <Link href="/about" className="btn-outlined">
-                كيف يعمل قلم؟
-              </Link>
-            </div>
+      <section className="paper relative overflow-hidden border-b border-outline-variant bg-surface-container-low">
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute -bottom-10 start-auto end-0 select-none font-display text-[16rem] font-black leading-none text-primary opacity-[0.06] md:-bottom-16 md:text-[24rem]"
+        >
+          ق
+        </span>
+        <div className={`${pageWidth} relative py-20 md:py-28`}>
+          <p className="chip chip-primary">منصة تعلّم عربية تقيس الفهم</p>
+          <h1 className="mt-6 max-w-3xl font-display text-4xl font-bold leading-[1.45] text-on-surface md:text-6xl md:leading-[1.35]">
+            تعلّم ما تحتاجه،
+            <br />
+            <span className="relative inline-block text-primary">
+              وأثبت أنك فهمته.
+              <InkStroke className="absolute inset-x-0 -bottom-3 h-3 w-full text-secondary" />
+            </span>
+          </h1>
+          <p className="text-body mt-8 max-w-xl text-lg text-on-surface-variant">
+            دروس مجانية مبعثرة في كل مكان. قلم يرتّبها لك في مسار واحد، ثم يقيس فهمك فعليًا ويغيّر الخطة بحسب
+            أدائك.
+          </p>
+          <div className="mt-10 flex flex-wrap gap-3">
+            <Link href="/paths" className="btn-filled">
+              تصفّح المسارات
+            </Link>
+            <Link href="/about" className="btn-outlined">
+              كيف يعمل قلم؟
+            </Link>
           </div>
-
-          {paths[0] ? (
-            <div className="self-center">
-              <p className="text-label mb-3 text-on-surface-variant">مثال من المسارات المتاحة</p>
-              <PathCard path={paths[0]} />
-            </div>
-          ) : (
-            <StepsList />
-          )}
         </div>
       </section>
 
-      <section aria-label="المنصة بالأرقام" className={`${pageWidth} -mt-8`}>
-        <div className="grid gap-4 sm:grid-cols-3">
-          <StatTile value={String(paths.length)} label="مسارًا تعليميًا" />
-          <StatTile value={String(lessons)} label="درسًا مرتبًا" hint="كل درس مقطع محدد من مصدره" />
-          <StatTile value={seconds > 0 ? formatDuration(seconds) : '—'} label="مدة المحتوى كاملًا" hint="مجموع مقاطع الدروس" />
-        </div>
+      <section aria-label="المنصة بالأرقام" className={`${pageWidth} pt-12`}>
+        <dl className="grid gap-8 border-b border-outline-variant pb-10 sm:grid-cols-3">
+          {[
+            { value: String(paths.length), label: 'مسارًا تعليميًا' },
+            { value: String(lessons), label: 'درسًا مرتبًا، كل درس مقطع محدد من مصدره' },
+            { value: seconds > 0 ? formatDuration(seconds) : '—', label: 'مدة المحتوى كاملًا' },
+          ].map((stat) => (
+            <div key={stat.label}>
+              <dd className="tabular font-display text-4xl font-bold text-primary">{stat.value}</dd>
+              <dt className="text-label mt-1 text-on-surface-variant">{stat.label}</dt>
+            </div>
+          ))}
+        </dl>
       </section>
 
       {paths[0] ? (
@@ -140,9 +145,9 @@ export default async function HomePage() {
         <h2 id="trust-title" className="font-display text-headline text-on-surface">
           محتوى تعرف مصدره وسبب اقتراحه
         </h2>
-        <ul className="mt-8 grid gap-4 md:grid-cols-3">
+        <ul className="mt-8 grid gap-8 md:grid-cols-3">
           {trust.map((t) => (
-            <li key={t.title} className="card-outlined p-6">
+            <li key={t.title} className="border-t-2 border-primary pt-5">
               <h3 className="font-display text-title text-on-surface">{t.title}</h3>
               <p className="mt-2 text-on-surface-variant">{t.body}</p>
             </li>
@@ -158,15 +163,23 @@ export default async function HomePage() {
       <section className={`${pageWidth} pt-20`}>
         <p className="text-label text-secondary-strong">كل ما تحتاجه</p>
         <h2 className="font-display text-headline text-on-surface">أقسام المنصة</h2>
-        <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="mt-8 grid gap-x-12 md:grid-cols-2">
           {sections.map((s) => (
             <li key={s.href}>
-              <Link href={s.href} className="card-filled block h-full p-6 transition-colors hover:bg-surface-container">
-                <h3 className="font-display text-title text-on-surface">
-                  {s.title}
-                  {s.badge ? <span className="chip chip-warn ms-2 align-middle">{s.badge}</span> : null}
-                </h3>
-                <p className="mt-2 text-on-surface-variant">{s.body}</p>
+              <Link
+                href={s.href}
+                className="group flex items-start justify-between gap-4 border-t border-outline-variant py-6 transition-colors hover:border-primary"
+              >
+                <span>
+                  <span className="font-display text-title text-on-surface group-hover:text-primary">
+                    {s.title}
+                    {s.badge ? <span className="chip chip-warn ms-2 align-middle">{s.badge}</span> : null}
+                  </span>
+                  <span className="mt-1 block text-on-surface-variant">{s.body}</span>
+                </span>
+                <span aria-hidden="true" className="pt-1 text-xl text-on-surface-variant transition-transform group-hover:-translate-x-1 group-hover:text-primary">
+                  ‹
+                </span>
               </Link>
             </li>
           ))}

@@ -8,6 +8,7 @@
  * `modules` عرض مسطّح لكل وحدات الكورسات بترتيبها (للقراءة فقط).
  */
 
+import { normalizeCoverUrl } from '../value-objects/cloudinary-media.js';
 import type { ConceptId, CourseId, LessonId, ModuleId, PathId } from '../value-objects/identifiers.js';
 import type { Course } from './course.js';
 import type { Lesson } from './lesson.js';
@@ -23,6 +24,8 @@ export interface LearningPathProps {
   targetGoal: string;
   /** لغة البرمجة أو المجال المستهدف */
   subject: string;
+  /** صورة غلاف المسار (رابط Cloudinary)، وإن غابت يظهر غلاف الحرف */
+  coverUrl?: string | undefined;
   /** كورسات المسار */
   courses?: Course[];
   createdAt?: Date;
@@ -35,6 +38,7 @@ export class LearningPath {
   readonly description: string;
   readonly targetGoal: string;
   readonly subject: string;
+  readonly coverUrl: string | undefined;
   readonly createdAt: Date;
   readonly updatedAt: Date;
   private _courses: Course[];
@@ -53,6 +57,7 @@ export class LearningPath {
     this.description = props.description.trim();
     this.targetGoal = props.targetGoal.trim();
     this.subject = props.subject.trim();
+    this.coverUrl = normalizeCoverUrl(props.coverUrl);
     this.createdAt = props.createdAt ?? new Date();
     this.updatedAt = props.updatedAt ?? new Date();
     this._courses = [...(props.courses ?? [])].sort((a, b) => a.orderIndex - b.orderIndex);
@@ -176,9 +181,12 @@ export class LearningPath {
     description: string;
     targetGoal: string;
     subject: string;
+    /** غائب = يبقى الغلاف كما هو، فارغ = يُزال */
+    coverUrl?: string;
   }): LearningPath {
     return new LearningPath({
       ...details,
+      coverUrl: details.coverUrl === undefined ? this.coverUrl : details.coverUrl,
       id: this.id,
       courses: this._courses,
       createdAt: this.createdAt,

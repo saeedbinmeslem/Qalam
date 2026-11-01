@@ -33,3 +33,29 @@ export function parseCloudinaryVideoUrl(input: string): CloudinaryVideo {
   if (!publicId) throw new Error('الرابط ليس رابط فيديو مرفوعًا في Cloudinary');
   return { url: url.toString(), publicId };
 }
+
+/**
+ * رابط صورة غلاف مرفوعة إلى Cloudinary: `https://res.cloudinary.com/<cloud>/image/upload/...` فقط (نفس منطق الفيديو).
+ * يعيد الرابط المعتمد، أو undefined إن كان الإدخال فارغًا (= لا غلاف، فيظهر غلاف الحرف).
+ */
+export function normalizeCoverUrl(input: string | undefined | null): string | undefined {
+  const trimmed = (input ?? '').trim();
+  if (!trimmed) return undefined;
+  let url: URL;
+  try {
+    url = new URL(trimmed);
+  } catch {
+    throw new Error('رابط صورة الغلاف غير صالح');
+  }
+  const parts = url.pathname.split('/').filter(Boolean);
+  if (
+    url.protocol !== 'https:' ||
+    url.hostname !== 'res.cloudinary.com' ||
+    parts[1] !== 'image' ||
+    parts[2] !== 'upload' ||
+    parts.length <= 3
+  ) {
+    throw new Error('صورة الغلاف يجب أن تكون مرفوعة في Cloudinary (res.cloudinary.com/.../image/upload) عبر https');
+  }
+  return url.toString();
+}

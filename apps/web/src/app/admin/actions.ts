@@ -94,6 +94,7 @@ export async function updatePathAction(data: FormData): Promise<void> {
       description: text(data, 'description'),
       targetGoal: text(data, 'targetGoal'),
       subject: text(data, 'subject'),
+      coverUrl: text(data, 'coverUrl'),
     }),
   );
 }
@@ -131,6 +132,7 @@ export async function updateCourseAction(data: FormData): Promise<void> {
       conceptId: text(data, 'conceptId') || undefined,
       title: text(data, 'title'),
       description: text(data, 'description'),
+      coverUrl: text(data, 'coverUrl'),
     }),
   );
 }

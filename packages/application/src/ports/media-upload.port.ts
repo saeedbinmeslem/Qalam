@@ -14,7 +14,10 @@ export interface UploadTicket {
   signature: string;
 }
 
+/** نوع الملف المرفوع: فيديو درس، أو صورة غلاف */
+export type UploadKind = 'video' | 'image';
+
 export interface MediaUploadSignerPort {
   /** يعيد null إذا لم تُضبط بيانات الخدمة (فلا يعرض النموذج الرفع) */
-  sign(): UploadTicket | null;
+  sign(kind?: UploadKind): UploadTicket | null;
 }

@@ -101,3 +101,25 @@ describe('تعديل المسار والوحدات والدروس', () => {
     expect(found?.lesson.title).toBe('m2-b');
   });
 });
+
+describe('صورة الغلاف', () => {
+  const cover = 'https://res.cloudinary.com/demo/image/upload/v1/qalam/covers/a.jpg';
+
+  it('المسار: التعديل بلا coverUrl يُبقي الغلاف، والفارغ يزيله، والقيمة تستبدله', () => {
+    const path = buildPath().updateDetails({ title: 'م', description: '', targetGoal: 'هـ', subject: 'ع', coverUrl: cover });
+    expect(path.coverUrl).toBe(cover);
+    expect(path.updateDetails({ title: 'م2', description: '', targetGoal: 'هـ', subject: 'ع' }).coverUrl).toBe(cover);
+    expect(path.updateDetails({ title: 'م', description: '', targetGoal: 'هـ', subject: 'ع', coverUrl: '' }).coverUrl).toBeUndefined();
+  });
+
+  it('المسار يرفض رابطًا غير Cloudinary', () => {
+    expect(() => buildPath().updateDetails({ title: 'م', description: '', targetGoal: 'هـ', subject: 'ع', coverUrl: 'https://evil.test/a.jpg' })).toThrow();
+  });
+
+  it('الكورس يحتفظ بغلافه عند تعديل التفاصيل وإعادة الترتيب ويزيله بالفارغ', () => {
+    const course = new Course({ id: createCourseId('co'), conceptId: createConceptId('c'), title: 'ك', description: '', orderIndex: 1, coverUrl: cover });
+    expect(course.updateDetails({ title: 'ك2', description: '' }).coverUrl).toBe(cover);
+    expect(course.withOrderIndex(3).coverUrl).toBe(cover);
+    expect(course.updateDetails({ title: 'ك', description: '', coverUrl: '' }).coverUrl).toBeUndefined();
+  });
+});

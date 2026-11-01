@@ -5,7 +5,7 @@
  * (وفق وثائق Cloudinary: لا يدخل فيه file ولا api_key ولا resource_type).
  */
 import { createHash } from 'node:crypto';
-import type { MediaUploadSignerPort, UploadTicket } from '@qalam/application';
+import type { MediaUploadSignerPort, UploadKind, UploadTicket } from '@qalam/application';
 
 export interface CloudinaryConfig {
   cloudName: string;
@@ -21,17 +21,17 @@ export class CloudinaryUploadSigner implements MediaUploadSignerPort {
     private readonly now: () => number = () => Date.now(),
   ) {}
 
-  sign(): UploadTicket | null {
+  sign(kind: UploadKind = 'video'): UploadTicket | null {
     const { cloudName, apiKey, apiSecret } = this.config;
     if (!cloudName || !apiKey || !apiSecret) return null;
 
-    const folder = this.config.folder ?? 'qalam/lessons';
+    const folder = kind === 'image' ? 'qalam/covers' : (this.config.folder ?? 'qalam/lessons');
     const timestamp = Math.floor(this.now() / 1000);
     const toSign = `folder=${folder}&timestamp=${timestamp}`;
     const signature = createHash('sha1').update(toSign + apiSecret).digest('hex');
 
     return {
-      uploadUrl: `https://api.cloudinary.com/v1_1/${cloudName}/video/upload`,
+      uploadUrl: `https://api.cloudinary.com/v1_1/${cloudName}/${kind}/upload`,
       apiKey,
       timestamp,
       folder,

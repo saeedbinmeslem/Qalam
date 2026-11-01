@@ -5,7 +5,7 @@
 import Link from 'next/link';
 import { getAuth } from '../../composition/auth';
 import { getContainer } from '../../composition/container';
-import { EmptyState, PageHeader, ProgressBar, StatTile, pageWidth } from '../../components/ui';
+import { EmptyState, PageHeader, ProgressBar, ProgressRing, StatTile, pageWidth } from '../../components/ui';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'تعلّمي — قلم' };
@@ -73,15 +73,13 @@ export default async function DashboardPage() {
 
         {resume && resume.progress.nextLesson ? (
           <section aria-labelledby="resume-title" className="card-filled flex flex-wrap items-center justify-between gap-6 p-6">
+            <ProgressRing percent={resume.progress.percent} label={`تقدمك في ${resume.path.title}`} size={88} />
             <div className="min-w-0 flex-1">
               <p className="text-label text-primary">تابع من حيث توقفت</p>
               <h2 id="resume-title" className="font-display text-title mt-1 text-on-surface">
                 {resume.progress.nextLesson.title}
               </h2>
               <p className="mt-1 text-sm text-on-surface-variant">{resume.path.title}</p>
-              <div className="mt-4 max-w-sm">
-                <ProgressBar percent={resume.progress.percent} label={`تقدمك في ${resume.path.title}`} />
-              </div>
             </div>
             <Link href={`/paths/${resume.path.id}/lessons/${resume.progress.nextLesson.id}`} className="btn-filled">
               تابع الدرس

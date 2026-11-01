@@ -5,6 +5,8 @@
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
+  // مكوّنات .tsx في apps/web تُعرض في الاختبارات بـ JSX الآلي (بلا import React)
+  esbuild: { jsx: 'automatic' },
   test: {
     // البحث عن ملفات الاختبار في جميع الحزم
     include: ['packages/*/src/**/*.test.ts', 'apps/web/src/**/*.test.ts'],

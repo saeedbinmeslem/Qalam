@@ -15,6 +15,16 @@ describe('CloudinaryUploadSigner', () => {
     expect(JSON.stringify(ticket)).not.toContain('secret456');
   });
 
+  it('الصورة ترفع إلى image/upload في مجلد الأغلفة بتوقيع صحيح', () => {
+    const ticket = new CloudinaryUploadSigner(config, () => 1_700_000_000_500).sign('image');
+    const expected = createHash('sha1')
+      .update('folder=qalam/covers&timestamp=1700000000' + 'secret456')
+      .digest('hex');
+    expect(ticket?.uploadUrl).toBe('https://api.cloudinary.com/v1_1/demo/image/upload');
+    expect(ticket?.folder).toBe('qalam/covers');
+    expect(ticket?.signature).toBe(expected);
+  });
+
   it('يعيد null عند غياب أي بيان', () => {
     expect(new CloudinaryUploadSigner({ cloudName: 'demo' }).sign()).toBeNull();
     expect(new CloudinaryUploadSigner({}).sign()).toBeNull();

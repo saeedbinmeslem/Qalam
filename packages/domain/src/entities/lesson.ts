@@ -81,6 +81,11 @@ export class Lesson {
     if (studyGuide) this.studyGuide = studyGuide;
   }
 
+  /** معرّف فيديو يوتيوب لدرس يُعرض من يوتيوب (للمصغّرة الرسمية)؛ غائب للدرس المرفوع إلى Cloudinary */
+  get youtubeVideoId(): string | undefined {
+    return !this.mediaUrl && /^[A-Za-z0-9_-]{11}$/.test(this.segment.videoId) ? this.segment.videoId : undefined;
+  }
+
   /** نسخة جديدة بالتعديلات (الكيان غير قابل للتعديل). المعرّف لا يتغيّر. */
   update(changes: Partial<Omit<LessonProps, 'id'>>): Lesson {
     return new Lesson({

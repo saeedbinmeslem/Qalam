@@ -69,6 +69,7 @@ export interface CourseRow {
   title: string;
   description: string | null;
   order_index: number;
+  cover_url?: string | null;
   modules: ModuleRow[] | null;
 }
 
@@ -78,6 +79,7 @@ export interface PathRow {
   description: string | null;
   target_goal: string;
   subject: string;
+  cover_url?: string | null;
   created_at: string;
   updated_at: string;
   courses: CourseRow[] | null;
@@ -93,6 +95,7 @@ export function mapPathRow(row: PathRow): LearningPath {
     description: row.description ?? '',
     targetGoal: row.target_goal,
     subject: row.subject,
+    coverUrl: row.cover_url ?? undefined,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
   });
@@ -104,6 +107,7 @@ export function mapPathRow(row: PathRow): LearningPath {
       title: courseRow.title,
       description: courseRow.description ?? '',
       orderIndex: courseRow.order_index,
+      coverUrl: courseRow.cover_url ?? undefined,
     });
     for (const moduleRow of courseRow.modules ?? []) {
       const module = new Module({
@@ -172,6 +176,7 @@ export class SupabasePathRepository implements PathRepositoryPort {
         description: path.description,
         target_goal: path.targetGoal,
         subject: path.subject,
+        cover_url: path.coverUrl ?? null,
         updated_at: new Date().toISOString(),
       },
     ]);
@@ -183,6 +188,7 @@ export class SupabasePathRepository implements PathRepositoryPort {
         concept_id: c.conceptId,
         title: c.title,
         description: c.description,
+        cover_url: c.coverUrl ?? null,
         order_index: c.orderIndex,
       })),
     );

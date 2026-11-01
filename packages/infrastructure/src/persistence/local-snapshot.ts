@@ -57,6 +57,7 @@ export function takeSnapshot(sources: SnapshotSources): LocalSnapshot {
       description: p.description,
       targetGoal: p.targetGoal,
       subject: p.subject,
+      coverUrl: p.coverUrl,
       createdAt: p.createdAt.toISOString(),
       updatedAt: p.updatedAt.toISOString(),
       courses: p.courses.map((c) => ({
@@ -65,6 +66,7 @@ export function takeSnapshot(sources: SnapshotSources): LocalSnapshot {
         title: c.title,
         description: c.description,
         orderIndex: c.orderIndex,
+        coverUrl: c.coverUrl,
         modules: c.modules.map((m) => ({
           id: m.id,
           title: m.title,
@@ -127,6 +129,7 @@ export function restoreSnapshot(snapshot: LocalSnapshot): RestoredSnapshot {
         description: p.description,
         targetGoal: p.targetGoal,
         subject: p.subject,
+        coverUrl: p.coverUrl,
         createdAt: new Date(p.createdAt),
         updatedAt: new Date(p.updatedAt),
       });
@@ -137,6 +140,7 @@ export function restoreSnapshot(snapshot: LocalSnapshot): RestoredSnapshot {
           title: c.title,
           description: c.description,
           orderIndex: c.orderIndex,
+          coverUrl: c.coverUrl,
         });
         for (const m of c.modules) {
           const module = new Module({

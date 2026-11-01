@@ -39,9 +39,9 @@ export default async function ConceptsPage() {
                 </h2>
                 <span className="chip">{group.concepts.length} مفهومًا</span>
               </div>
-              <ul className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <ul className="mt-8 grid gap-x-10 gap-y-10 md:grid-cols-2 lg:grid-cols-3">
                 {group.concepts.map((c) => (
-                  <li key={c.id} className="card-outlined flex flex-col p-5">
+                  <li key={c.id} className="flex flex-col border-s-4 border-secondary ps-5">
                     <h3 className="font-display text-title text-on-surface">{c.name}</h3>
                     {c.description ? <p className="mt-1 text-on-surface-variant">{c.description}</p> : null}
 

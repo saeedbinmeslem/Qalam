@@ -6,6 +6,7 @@
  * بمفرده إلى مفهوم)، ويضم وحدات مرتبة بدروسها. مثال: كورس «النظام الثنائي من الصفر» ضمن مفهوم «أنظمة العد».
  */
 
+import { normalizeCoverUrl } from '../value-objects/cloudinary-media.js';
 import type { ConceptId, CourseId, LessonId, ModuleId } from '../value-objects/identifiers.js';
 import type { Lesson } from './lesson.js';
 import { Module } from './module.js';
@@ -18,6 +19,8 @@ export interface CourseProps {
   description: string;
   /** ترتيب الكورس داخل المسار (يبدأ من 1) */
   orderIndex: number;
+  /** صورة غلاف الكورس (رابط Cloudinary)، وإن غابت يظهر غلاف الحرف */
+  coverUrl?: string | undefined;
   modules?: Module[];
 }
 
@@ -27,6 +30,7 @@ export class Course {
   readonly title: string;
   readonly description: string;
   readonly orderIndex: number;
+  readonly coverUrl: string | undefined;
   private _modules: Module[];
 
   constructor(props: CourseProps) {
@@ -41,6 +45,7 @@ export class Course {
     this.title = props.title.trim();
     this.description = props.description.trim();
     this.orderIndex = props.orderIndex;
+    this.coverUrl = normalizeCoverUrl(props.coverUrl);
     this._modules = [...(props.modules ?? [])].sort((a, b) => a.orderIndex - b.orderIndex);
   }
 
@@ -103,13 +108,14 @@ export class Course {
   }
 
   /** نسخة جديدة بالعنوان/الوصف/المفهوم المعدَّلة وبنفس الوحدات */
-  updateDetails(details: { title: string; description: string; conceptId?: ConceptId }): Course {
+  updateDetails(details: { title: string; description: string; conceptId?: ConceptId; coverUrl?: string }): Course {
     return new Course({
       id: this.id,
       conceptId: details.conceptId ?? this.conceptId,
       title: details.title,
       description: details.description,
       orderIndex: this.orderIndex,
+      coverUrl: details.coverUrl === undefined ? this.coverUrl : details.coverUrl,
       modules: this._modules,
     });
   }
@@ -121,6 +127,7 @@ export class Course {
       title: this.title,
       description: this.description,
       orderIndex,
+      coverUrl: this.coverUrl,
       modules: this._modules,
     });
   }

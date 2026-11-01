@@ -3,6 +3,7 @@
  * @description مكتبة الدروس: كل الدروس عبر المسارات مع بحث وتصفية بالمسار والقناة، ومصدر كل درس ظاهر دائمًا. بلا منطق عمل.
  */
 import Link from 'next/link';
+import { LessonThumb } from '../../components/cover-art';
 import { formatDuration } from '../../components/format';
 import { EmptyState, PageHeader, pageWidth } from '../../components/ui';
 import { getContainer } from '../../composition/container';
@@ -85,7 +86,11 @@ export default async function LibraryPage({
           ) : (
             <ul className="mt-4 space-y-3">
               {library.lessons.map((l) => (
-                <li key={l.lessonId} className="card-outlined p-5">
+                <li key={l.lessonId} className="card-outlined flex flex-col gap-4 p-5 sm:flex-row">
+                  <Link href={`/paths/${l.pathId}/lessons/${l.lessonId}`} tabIndex={-1} aria-hidden="true" className="block shrink-0 sm:w-44">
+                    <LessonThumb videoId={l.youtubeVideoId} seed={l.pathId} title={l.title} className="aspect-video w-full rounded-sm" />
+                  </Link>
+                  <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <Link
@@ -114,6 +119,7 @@ export default async function LibraryPage({
                   <p className="mt-3 border-t border-outline-variant pt-3 text-sm text-on-surface-variant">
                     المصدر: <span className="font-medium text-on-surface">{l.channelName}</span>
                   </p>
+                  </div>
                 </li>
               ))}
             </ul>
