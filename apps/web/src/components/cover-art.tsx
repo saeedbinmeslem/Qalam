@@ -153,6 +153,19 @@ export function youtubeThumbnailSrc(videoId: string, size: 'list' | 'large' = 'l
 }
 
 /**
+ * غلاف الكورس: صورة أول درس فيه من يوتيوب (hqdefault للترويسة، mqdefault للبطاقات)؛ والصورة المرفوعة يدويًا
+ * من لوحة التحكم تتقدّم عليها إن وُجدت. يرجع undefined إن لم يكن في الكورس درس من يوتيوب فيظهر غلاف الحرف.
+ */
+export function courseCoverUrl(
+  course: { coverUrl?: string | undefined; modules: ReadonlyArray<{ lessons: ReadonlyArray<{ youtubeVideoId?: string | undefined }> }> },
+  size: 'list' | 'large' = 'list',
+): string | undefined {
+  if (course.coverUrl) return course.coverUrl;
+  const videoId = course.modules.flatMap((m) => m.lessons).find((l) => l.youtubeVideoId)?.youtubeVideoId;
+  return videoId ? youtubeThumbnailSrc(videoId, size) : undefined;
+}
+
+/**
  * مصغّرة درس: صورة يوتيوب الرسمية إن كان الدرس منه (تُجلب من يوتيوب مباشرة ولا تُنسخ)، وإلا غلاف مولَّد بلون المسار.
  * العنوان مجاور لها دائمًا فالنص البديل فارغ. اسم القناة يُعرض بجوارها في الصفحات.
  */

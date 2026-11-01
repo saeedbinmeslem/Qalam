@@ -5,7 +5,7 @@
 import { createPathId } from '@qalam/domain';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { CoverArt, CoverBanner } from '../../../components/cover-art';
+import { CoverArt, CoverBanner, courseCoverUrl } from '../../../components/cover-art';
 import { formatDuration, lessonsText, modulesText } from '../../../components/format';
 import { ProgressRing } from '../../../components/ui';
 import { getAuth } from '../../../composition/auth';
@@ -170,7 +170,7 @@ export default async function PathPage({ params }: { params: Promise<{ pathId: s
                       <CoverArt
                         seed={path.id}
                         title={course.title}
-                        imageUrl={course.coverUrl}
+                        imageUrl={courseCoverUrl(course)}
                         className="hidden w-48 shrink-0 sm:block"
                       />
                       <div className="min-w-0 flex-1 p-6 md:p-7">

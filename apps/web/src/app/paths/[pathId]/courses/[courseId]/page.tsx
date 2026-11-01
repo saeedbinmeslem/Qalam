@@ -5,7 +5,7 @@
 import { createPathId } from '@qalam/domain';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { CoverBanner, LessonThumb } from '../../../../../components/cover-art';
+import { CoverBanner, LessonThumb, courseCoverUrl } from '../../../../../components/cover-art';
 import { formatDuration, lessonsText, modulesText } from '../../../../../components/format';
 import { ProgressRing } from '../../../../../components/ui';
 import { getAuth } from '../../../../../composition/auth';
@@ -36,7 +36,7 @@ export default async function CoursePage({ params }: { params: Promise<{ pathId:
 
   return (
     <>
-      <CoverBanner seed={path.id} title={course.title} imageUrl={course.coverUrl}>
+      <CoverBanner seed={path.id} title={course.title} imageUrl={courseCoverUrl(course, 'large')}>
         <Link href={`/paths/${path.id}`} className="text-sm opacity-90 hover:underline">
           {path.title}
         </Link>

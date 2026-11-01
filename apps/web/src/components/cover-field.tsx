@@ -15,11 +15,13 @@ interface Props {
   /** العنوان الذي يؤخذ منه الحرف الأول في المعاينة */
   title: string;
   defaultValue?: string | undefined;
+  /** صورة تُعرض تلقائيًا عند غياب المرفوعة (صورة أول درس للكورس)؛ لا تُحفظ في الحقل */
+  fallbackUrl?: string | undefined;
 }
 
 type UploadState = { phase: 'idle' } | { phase: 'uploading'; percent: number } | { phase: 'error'; message: string };
 
-export function CoverField({ seed, title, defaultValue }: Props) {
+export function CoverField({ seed, title, defaultValue, fallbackUrl }: Props) {
   const inputId = useId();
   const [url, setUrl] = useState(defaultValue ?? '');
   const [upload, setUpload] = useState<UploadState>({ phase: 'idle' });
@@ -39,11 +41,15 @@ export function CoverField({ seed, title, defaultValue }: Props) {
   return (
     <div className="grid gap-4 sm:grid-cols-[14rem_1fr] sm:items-start">
       <input type="hidden" name="coverUrl" value={url} />
-      <CoverArt seed={seed} title={title} imageUrl={url || undefined} className="aspect-video w-full rounded-md border border-outline-variant" />
+      <CoverArt seed={seed} title={title} imageUrl={url || fallbackUrl || undefined} className="aspect-video w-full rounded-md border border-outline-variant" />
       <div className="space-y-3">
         <p className="text-label text-on-surface">صورة الغلاف</p>
         <p className="field-hint !mt-0">
-          {url ? 'الصورة تظهر خلفية للبطاقة والترويسة.' : 'لا صورة: يظهر غلاف بالحرف الأول من العنوان.'}
+          {url
+            ? 'الصورة تظهر خلفية للبطاقة والترويسة.'
+            : fallbackUrl
+              ? 'لا صورة مرفوعة: يأخذ الكورس تلقائيًا صورة أول درس فيه من يوتيوب.'
+              : 'لا صورة: يظهر غلاف بالحرف الأول من العنوان.'}
         </p>
         <div className="flex flex-wrap gap-2">
           <label htmlFor={inputId} className={`btn-outlined btn-sm ${uploading ? 'pointer-events-none opacity-50' : ''}`}>

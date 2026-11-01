@@ -19,6 +19,7 @@ import { ConfirmSubmit } from '../../../../components/confirm-submit';
 import { formatDuration } from '../../../../components/format';
 import { ImportSourceCard } from '../../../../components/import-source-card';
 import { getAdminContainer } from '../../../../composition/admin';
+import { CoverArt, courseCoverUrl } from '../../../../components/cover-art';
 import { CoverField } from '../../../../components/cover-field';
 import { addCourseAction, deletePathAction, updatePathAction } from '../../actions';
 
@@ -114,16 +115,24 @@ export default async function AdminPathPage({
                     <Link
                       key={course.id}
                       href={`/admin/paths/${path.id}/courses/${course.id}`}
-                      className="card-outlined block p-5 transition hover:border-outline"
+                      className="card-outlined flex gap-4 overflow-hidden transition hover:border-outline"
                     >
-                      <h4 className="font-display text-lg font-bold text-on-surface">
-                        {course.orderIndex}. {course.title}
-                      </h4>
-                      <p className="mt-1 text-xs text-on-surface-variant">
-                        {course.modules.length} وحدة · {course.lessonsCount} درس · {formatDuration(course.totalDurationSeconds)}
-                        {pending > 0 ? ` · ${pending} بانتظار المراجعة` : course.lessonsCount > 0 ? ' · كل الدروس معتمدة' : ''}
-                      </p>
-                      {course.description ? <p className="mt-2 text-sm text-on-surface-variant">{course.description}</p> : null}
+                      <CoverArt
+                        seed={path.id}
+                        title={course.title}
+                        imageUrl={courseCoverUrl(course)}
+                        className="hidden w-40 shrink-0 sm:block"
+                      />
+                      <div className="min-w-0 flex-1 p-5">
+                        <h4 className="font-display text-lg font-bold text-on-surface">
+                          {course.orderIndex}. {course.title}
+                        </h4>
+                        <p className="mt-1 text-xs text-on-surface-variant">
+                          {course.modules.length} وحدة · {course.lessonsCount} درس · {formatDuration(course.totalDurationSeconds)}
+                          {pending > 0 ? ` · ${pending} بانتظار المراجعة` : course.lessonsCount > 0 ? ' · كل الدروس معتمدة' : ''}
+                        </p>
+                        {course.description ? <p className="mt-2 text-sm text-on-surface-variant">{course.description}</p> : null}
+                      </div>
                     </Link>
                   );
                 })}

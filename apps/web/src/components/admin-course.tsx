@@ -21,6 +21,7 @@ import {
 } from '../app/admin/actions';
 import { Card, Field, ReviewBadge, dangerButton, ghostButton, inputClass, primaryButton } from './admin-ui';
 import { ConfirmSubmit } from './confirm-submit';
+import { LessonThumb, courseCoverUrl } from './cover-art';
 import { CoverField } from './cover-field';
 import { formatDuration } from './format';
 import { LessonFields } from './lesson-fields';
@@ -82,7 +83,13 @@ function ModuleCard({ path, module, back }: { path: LearningPath; module: Module
       ) : (
         <ul className="divide-y divide-rule card-outlined">
           {module.lessons.map((lesson, index) => (
-            <li key={lesson.id} className="grid gap-2 p-3 md:grid-cols-[1fr_auto] md:items-center">
+            <li key={lesson.id} className="grid gap-3 p-3 md:grid-cols-[7rem_1fr_auto] md:items-center">
+              <LessonThumb
+                videoId={lesson.youtubeVideoId}
+                seed={path.id}
+                title={lesson.title}
+                className="hidden aspect-video w-full rounded-sm md:block"
+              />
               <div>
                 <Link href={`/admin/paths/${path.id}/lessons/${lesson.id}`} className="font-medium text-on-surface hover:underline">
                   {index + 1}. {lesson.title}
@@ -249,7 +256,7 @@ export function CourseSection({
             <Field label="وصف الكورس" name="description" defaultValue={course.description} />
           </div>
           <div className="md:col-span-2">
-            <CoverField seed={path.id} title={course.title} defaultValue={course.coverUrl} />
+            <CoverField seed={path.id} title={course.title} defaultValue={course.coverUrl} fallbackUrl={courseCoverUrl({ modules: course.modules })} />
           </div>
           <div>
             <button type="submit" className={primaryButton}>
