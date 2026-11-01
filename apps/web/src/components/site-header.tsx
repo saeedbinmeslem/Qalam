@@ -55,9 +55,14 @@ export async function SiteHeader() {
               </form>
             </>
           ) : (
-            <Link href="/login" className="btn-filled btn-sm">
-              دخول
-            </Link>
+            <>
+              <Link href="/signup" className="btn-text btn-sm hidden sm:inline-flex">
+                إنشاء حساب
+              </Link>
+              <Link href="/login" className="btn-filled btn-sm">
+                دخول
+              </Link>
+            </>
           )}
         </div>
       </div>

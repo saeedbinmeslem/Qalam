@@ -13,9 +13,11 @@ const COOLDOWN_SECONDS = 30;
 export function ResendCodeButton({
   action,
   next,
+  flow,
 }: {
   action: (formData: FormData) => Promise<void>;
   next: string;
+  flow: 'login' | 'signup' | 'forgot';
 }) {
   const [remaining, setRemaining] = useState(COOLDOWN_SECONDS);
 
@@ -28,6 +30,7 @@ export function ResendCodeButton({
   return (
     <form action={action}>
       <input type="hidden" name="next" value={next} />
+      <input type="hidden" name="flow" value={flow} />
       <button
         type="submit"
         disabled={remaining > 0}

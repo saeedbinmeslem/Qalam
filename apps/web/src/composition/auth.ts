@@ -5,9 +5,14 @@
  */
 import {
   GetCurrentUserUseCase,
+  RequestPasswordResetUseCase,
   RequestSignInUseCase,
+  ResendCodeUseCase,
+  ResetPasswordUseCase,
   SignOutUseCase,
+  SignUpUseCase,
   VerifySignInCodeUseCase,
+  VerifySignUpCodeUseCase,
   type AuthPort,
 } from '@qalam/application';
 import { DevCookieAuth, SupabaseAuth } from '@qalam/infrastructure';
@@ -15,8 +20,13 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
 export interface AuthUseCases {
+  signUp: SignUpUseCase;
   requestSignIn: RequestSignInUseCase;
+  resendCode: ResendCodeUseCase;
+  requestPasswordReset: RequestPasswordResetUseCase;
+  resetPassword: ResetPasswordUseCase;
   verifySignInCode: VerifySignInCodeUseCase;
+  verifySignUpCode: VerifySignUpCodeUseCase;
   getCurrentUser: GetCurrentUserUseCase;
   signOut: SignOutUseCase;
   /** في الوضع التطويري لا يُرسل بريد ويُسجَّل الدخول فورًا */
@@ -48,37 +58,43 @@ export async function createSupabaseServerClient() {
   );
 }
 
+function buildAuth(auth: AuthPort, mode: AuthUseCases['mode']): AuthUseCases {
+  return {
+    signUp: new SignUpUseCase(auth),
+    requestSignIn: new RequestSignInUseCase(auth),
+    resendCode: new ResendCodeUseCase(auth),
+    requestPasswordReset: new RequestPasswordResetUseCase(auth),
+    resetPassword: new ResetPasswordUseCase(auth),
+    verifySignInCode: new VerifySignInCodeUseCase(auth),
+    verifySignUpCode: new VerifySignUpCodeUseCase(auth),
+    getCurrentUser: new GetCurrentUserUseCase(auth),
+    signOut: new SignOutUseCase(auth),
+    mode,
+  };
+}
+
 export async function getAuth(): Promise<AuthUseCases> {
   if (isSupabaseConfigured()) {
-    const auth = new SupabaseAuth(await createSupabaseServerClient());
-    return {
-      requestSignIn: new RequestSignInUseCase(auth),
-    verifySignInCode: new VerifySignInCodeUseCase(auth),
-      getCurrentUser: new GetCurrentUserUseCase(auth),
-      signOut: new SignOutUseCase(auth),
-      mode: 'supabase',
-    };
+    return buildAuth(new SupabaseAuth(await createSupabaseServerClient()), 'supabase');
   }
 
   if (process.env.NODE_ENV === 'production') {
     // الإنتاج بلا مفاتيح: لا دخول تطويري. الزائر يُعامل كغير مسجَّل، ومحاولة الدخول تفشل بوضوح
+    const fail = (message: string) => async () => {
+      throw new Error(`${message}: مفاتيح Supabase غير مضبوطة`);
+    };
     const unconfigured: AuthPort = {
-      requestSignInCode: async () => {
-        throw new Error('تعذّر إرسال رمز الدخول: مفاتيح Supabase غير مضبوطة');
-      },
-      verifySignInCode: async () => {
-        throw new Error('رمز الدخول خاطئ: مفاتيح Supabase غير مضبوطة');
-      },
+      signUp: fail('تعذّر إنشاء الحساب'),
+      requestSignInCode: fail('تعذّر إرسال رمز الدخول'),
+      resendCode: fail('تعذّر إرسال الرمز'),
+      requestPasswordReset: fail('تعذّر إرسال رمز الاستعادة'),
+      resetPassword: fail('تعذّر تغيير كلمة المرور'),
+      verifySignInCode: fail('رمز الدخول خاطئ'),
+      verifySignUpCode: fail('رمز التأكيد خاطئ'),
       getCurrentUser: async () => null,
       signOut: async () => {},
     };
-    return {
-      requestSignIn: new RequestSignInUseCase(unconfigured),
-      verifySignInCode: new VerifySignInCodeUseCase(unconfigured),
-      getCurrentUser: new GetCurrentUserUseCase(unconfigured),
-      signOut: new SignOutUseCase(unconfigured),
-      mode: 'supabase',
-    };
+    return buildAuth(unconfigured, 'supabase');
   }
 
   const store = await cookies();
@@ -87,11 +103,5 @@ export async function getAuth(): Promise<AuthUseCases> {
     set: (name, value) => store.set(name, value, { httpOnly: true, sameSite: 'lax', path: '/' }),
     delete: (name) => store.delete(name),
   });
-  return {
-    requestSignIn: new RequestSignInUseCase(auth),
-    verifySignInCode: new VerifySignInCodeUseCase(auth),
-    getCurrentUser: new GetCurrentUserUseCase(auth),
-    signOut: new SignOutUseCase(auth),
-    mode: 'dev',
-  };
+  return buildAuth(auth, 'dev');
 }

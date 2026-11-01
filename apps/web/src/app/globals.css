@@ -180,7 +180,10 @@ html {
 }
 
 body {
-  background: var(--color-surface);
+  /* خلفية «الورقة» لكل الصفحات: نقاط بلون واحد وشفافية منخفضة فوق لون السطح (انظر .paper) */
+  background-color: var(--color-surface);
+  background-image: radial-gradient(circle, color-mix(in srgb, var(--color-on-surface) 12%, transparent) 1px, transparent 1.6px);
+  background-size: 24px 24px;
   color: var(--color-on-surface);
   font-family: var(--font-sans);
   line-height: 1.8;
