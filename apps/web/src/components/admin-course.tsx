@@ -74,19 +74,19 @@ function ModuleCard({ path, module, back }: { path: LearningPath; module: Module
         </div>
       }
     >
-      {module.description ? <p className="-mt-2 mb-4 text-sm text-muted">{module.description}</p> : null}
+      {module.description ? <p className="-mt-2 mb-4 text-sm text-on-surface-variant">{module.description}</p> : null}
 
       {module.lessons.length === 0 ? (
-        <p className="text-sm text-muted">لا دروس في هذه الوحدة بعد.</p>
+        <p className="text-sm text-on-surface-variant">لا دروس في هذه الوحدة بعد.</p>
       ) : (
         <ul className="divide-y divide-rule card-outlined">
           {module.lessons.map((lesson, index) => (
             <li key={lesson.id} className="grid gap-2 p-3 md:grid-cols-[1fr_auto] md:items-center">
               <div>
-                <Link href={`/admin/paths/${path.id}/lessons/${lesson.id}`} className="font-medium text-ink hover:underline">
+                <Link href={`/admin/paths/${path.id}/lessons/${lesson.id}`} className="font-medium text-on-surface hover:underline">
                   {index + 1}. {lesson.title}
                 </Link>
-                <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
+                <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-on-surface-variant">
                   <span dir="ltr">
                     {formatTimecode(lesson.segment.startSeconds)}–{formatTimecode(lesson.segment.endSeconds)}
                   </span>
@@ -124,7 +124,7 @@ function ModuleCard({ path, module, back }: { path: LearningPath; module: Module
       )}
 
       <details className="mt-4 card-filled p-4">
-        <summary className="cursor-pointer font-medium text-ink">إضافة درس إلى هذه الوحدة</summary>
+        <summary className="cursor-pointer font-medium text-on-surface">إضافة درس إلى هذه الوحدة</summary>
         <form action={addLessonAction} className="mt-4 space-y-4">
           <input type="hidden" name="pathId" value={path.id} />
           <input type="hidden" name="moduleId" value={module.id} />
@@ -133,12 +133,12 @@ function ModuleCard({ path, module, back }: { path: LearningPath; module: Module
           <button type="submit" className={primaryButton}>
             إضافة الدرس
           </button>
-          <p className="text-xs text-muted">يُضاف الدرس «بانتظار المراجعة» ولا يُعتمد إلا بعد مشاهدتك له.</p>
+          <p className="text-xs text-on-surface-variant">يُضاف الدرس «بانتظار المراجعة» ولا يُعتمد إلا بعد مشاهدتك له.</p>
         </form>
       </details>
 
       <details className="mt-3 card-filled p-4">
-        <summary className="cursor-pointer font-medium text-ink">تعديل الوحدة أو حذفها</summary>
+        <summary className="cursor-pointer font-medium text-on-surface">تعديل الوحدة أو حذفها</summary>
         <form action={updateModuleAction} className="mt-4 grid gap-4 md:grid-cols-2">
           <input type="hidden" name="pathId" value={path.id} />
           <input type="hidden" name="moduleId" value={module.id} />
@@ -151,7 +151,7 @@ function ModuleCard({ path, module, back }: { path: LearningPath; module: Module
             </button>
           </div>
         </form>
-        <form action={deleteModuleAction} className="mt-4 border-t border-rule pt-4">
+        <form action={deleteModuleAction} className="mt-4 border-t border-outline-variant pt-4">
           <input type="hidden" name="pathId" value={path.id} />
           <input type="hidden" name="moduleId" value={module.id} />
           <input type="hidden" name="returnTo" value={back} />
@@ -177,16 +177,16 @@ export function CourseSection({
   const back = `/admin/paths/${path.id}/courses/${course.id}`;
   const pending = course.modules.flatMap((m) => m.lessons).filter((l) => !l.reviewedByHuman).length;
   return (
-    <section className="card-outlined p-5 shadow-sm">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-rule pb-4">
+    <section className="card-outlined p-5">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-outline-variant pb-4">
         <div>
-          <h4 className="font-display text-lg font-extrabold text-ink">
+          <h4 className="font-display text-lg font-bold text-on-surface">
             {course.orderIndex}. {course.title}
           </h4>
-          <p className="text-xs text-muted">
+          <p className="text-xs text-on-surface-variant">
             {course.modules.length} وحدة · {course.lessonsCount} درس · {formatDuration(course.totalDurationSeconds)}
           </p>
-          {course.description ? <p className="mt-1 text-sm text-muted">{course.description}</p> : null}
+          {course.description ? <p className="mt-1 text-sm text-on-surface-variant">{course.description}</p> : null}
         </div>
         <div className="flex flex-wrap gap-2">
           {pending > 0 ? (
@@ -212,7 +212,7 @@ export function CourseSection({
       </div>
 
       <details className="mt-4 card-filled p-4">
-        <summary className="cursor-pointer font-medium text-ink">وحدة جديدة في هذا الكورس</summary>
+        <summary className="cursor-pointer font-medium text-on-surface">وحدة جديدة في هذا الكورس</summary>
         <form action={addModuleAction} className="mt-4 grid gap-4 md:grid-cols-2">
           <input type="hidden" name="pathId" value={path.id} />
           <input type="hidden" name="courseId" value={course.id} />
@@ -228,14 +228,14 @@ export function CourseSection({
       </details>
 
       <details className="mt-3 card-filled p-4">
-        <summary className="cursor-pointer font-medium text-ink">تعديل الكورس أو نقله أو حذفه</summary>
+        <summary className="cursor-pointer font-medium text-on-surface">تعديل الكورس أو نقله أو حذفه</summary>
         <form action={updateCourseAction} className="mt-4 grid gap-4 md:grid-cols-2">
           <input type="hidden" name="pathId" value={path.id} />
           <input type="hidden" name="courseId" value={course.id} />
           <input type="hidden" name="returnTo" value={back} />
           <Field label="عنوان الكورس" name="title" defaultValue={course.title} required />
           <label className="block">
-            <span className="block text-sm font-medium text-ink">المفهوم</span>
+            <span className="block text-sm font-medium text-on-surface">المفهوم</span>
             <select name="conceptId" defaultValue={course.conceptId} className={inputClass}>
               {concepts.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -253,7 +253,7 @@ export function CourseSection({
             </button>
           </div>
         </form>
-        <form action={deleteCourseAction} className="mt-4 border-t border-rule pt-4">
+        <form action={deleteCourseAction} className="mt-4 border-t border-outline-variant pt-4">
           <input type="hidden" name="pathId" value={path.id} />
           <input type="hidden" name="courseId" value={course.id} />
           <ConfirmSubmit

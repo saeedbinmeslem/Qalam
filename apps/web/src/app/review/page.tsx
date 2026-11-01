@@ -86,7 +86,7 @@ export default async function ReviewPage() {
             <ul className="mt-5 space-y-4">
               {dash.attention.map(({ path, advice }) => (
                 <li key={path.id} className="card-outlined border-s-4 border-s-highlighter p-5">
-                  <span className="chip chip-warn">{actionLabels[advice!.decision.action]}</span>
+                  <span className="chip chip-ai">{actionLabels[advice!.decision.action]}</span>
                   <p className="font-display text-title mt-3 text-on-surface">{advice!.lessonTitle}</p>
                   <p className="text-sm text-on-surface-variant">{path.title}</p>
                   <p className="mt-3 text-on-surface">{advice!.decision.reason}</p>
@@ -116,7 +116,7 @@ export default async function ReviewPage() {
                     </Link>
                     <p className="text-sm text-on-surface-variant">{path.title}</p>
                   </div>
-                  <span className="chip chip-warn">آخر نتيجة {percent}%</span>
+                  <span className="chip">آخر نتيجة {percent}%</span>
                 </li>
               ))}
             </ul>

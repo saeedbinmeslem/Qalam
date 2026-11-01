@@ -34,20 +34,20 @@ export default async function CoursePage({ params }: { params: Promise<{ pathId:
 
   return (
     <>
-      <section className="bg-ink text-on-primary">
-        <div className="mx-auto max-w-6xl px-5 md:px-8 py-14">
-          <Link href={`/paths/${path.id}`} className="text-sm text-on-primary/70 hover:text-on-primary">
+      <section className="bg-surface-container-low">
+        <div className="mx-auto max-w-6xl px-5 py-14 md:px-8 md:py-20">
+          <Link href={`/paths/${path.id}`} className="text-sm text-on-surface-variant hover:text-primary">
             {path.title}
           </Link>
-          <h1 className="mt-4 font-display text-3xl font-extrabold leading-[1.5] md:text-4xl">{course.title}</h1>
-          {conceptName ? <p className="mt-2 text-on-primary/70">المفهوم: {conceptName}</p> : null}
-          {course.description ? <p className="mt-3 max-w-[40rem] text-lg text-on-primary/80">{course.description}</p> : null}
-          <p className="mt-6 text-on-primary/90">
+          <h1 className="mt-4 font-display text-display">{course.title}</h1>
+          {conceptName ? <p className="mt-2 text-on-surface-variant">المفهوم: {conceptName}</p> : null}
+          {course.description ? <p className="mt-3 max-w-[40rem] text-lg text-on-surface-variant">{course.description}</p> : null}
+          <p className="mt-6 text-on-surface">
             {modulesText(course.modules.length)}، {lessonsText(course.lessonsCount)} · {formatDuration(course.totalDurationSeconds)}
           </p>
           {progress ? (
             <div className="mt-6 max-w-md">
-              <div className="flex items-baseline justify-between text-sm text-on-primary/80">
+              <div className="flex items-baseline justify-between text-sm text-on-surface-variant">
                 <span>
                   أنجزت {doneCount} من {lessons.length}
                 </span>
@@ -59,9 +59,9 @@ export default async function CoursePage({ params }: { params: Promise<{ pathId:
                 aria-valuenow={percent}
                 aria-valuemin={0}
                 aria-valuemax={100}
-                className="mt-2 h-2 overflow-hidden rounded-full bg-on-primary/20"
+                className="mt-2 h-2 overflow-hidden rounded-full bg-surface-container-highest"
               >
-                <div className="h-full rounded-full bg-highlighter" style={{ width: `${percent}%` }} />
+                <div className="h-full rounded-full bg-primary" style={{ width: `${percent}%` }} />
               </div>
             </div>
           ) : null}
@@ -75,41 +75,41 @@ export default async function CoursePage({ params }: { params: Promise<{ pathId:
               <span className="stroke-node" aria-hidden="true">
                 {index + 1}
               </span>
-              <h2 className="font-display text-lg font-semibold text-ink">{module.title}</h2>
-              <p className="mt-1 text-muted">{module.description}</p>
+              <h2 className="font-display text-lg font-semibold text-on-surface">{module.title}</h2>
+              <p className="mt-1 text-on-surface-variant">{module.description}</p>
 
               <ul className="mt-5 divide-y divide-rule card-outlined">
                 {module.lessons.map((lesson) => (
                   <li key={lesson.id} className="grid gap-1 p-4 md:grid-cols-[1fr_auto] md:gap-6">
                     <div>
-                      <Link href={lessonHref(lesson.id)} className="font-medium text-ink hover:underline">
+                      <Link href={lessonHref(lesson.id)} className="font-medium text-on-surface hover:underline">
                         {lesson.title}
                       </Link>
                       {progress?.skippedLessonIds.has(lesson.id) ? (
-                        <span className="ms-2 rounded-full bg-highlighter/25 px-2 py-0.5 text-xs font-medium text-ink">
+                        <span className="ms-2 chip chip-mastery">
                           تم تخطيه (أتقنتَ مفهومه)
                         </span>
                       ) : null}
                       {progress?.completedLessonIds.has(lesson.id) ? (
-                        <span className="ms-2 chip chip-primary">✓ مكتمل</span>
+                        <span className="ms-2 chip chip-progress">✓ مكتمل</span>
                       ) : null}
                       {progress?.quizPercentByLesson.has(lesson.id) ? (
                         <span className="ms-2 chip">آخر اختبار: {progress.quizPercentByLesson.get(lesson.id)}%</span>
                       ) : null}
-                      {lesson.summary ? <p className="mt-1 text-sm text-muted">{lesson.summary}</p> : null}
-                      <p className="mt-2 text-sm text-muted">
+                      {lesson.summary ? <p className="mt-1 text-sm text-on-surface-variant">{lesson.summary}</p> : null}
+                      <p className="mt-2 text-sm text-on-surface-variant">
                         المصدر:{' '}
                         <a
                           href={lesson.sourceUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-sea underline underline-offset-2 hover:text-sea-dark"
+                          className="text-primary underline underline-offset-2 hover:text-secondary-strong"
                         >
                           {lesson.channelName}
                         </a>
                       </p>
                     </div>
-                    <p className="text-sm font-medium text-ink md:text-end">
+                    <p className="text-sm font-medium text-on-surface md:text-end">
                       {formatDuration(lesson.segment.durationSeconds)}
                     </p>
                   </li>

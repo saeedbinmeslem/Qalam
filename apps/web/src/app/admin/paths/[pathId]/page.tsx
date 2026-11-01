@@ -17,10 +17,9 @@ import {
 } from '../../../../components/admin-ui';
 import { ConfirmSubmit } from '../../../../components/confirm-submit';
 import { formatDuration } from '../../../../components/format';
-import { JobLoader } from '../../../../components/background-jobs';
-import { InlinePending, PendingButton } from '../../../../components/inline-pending';
+import { ImportSourceCard } from '../../../../components/import-source-card';
 import { getAdminContainer } from '../../../../composition/admin';
-import { addCourseAction, deletePathAction, importPlaylistAction, updatePathAction } from '../../actions';
+import { addCourseAction, deletePathAction, updatePathAction } from '../../actions';
 
 /** إجراءات هذه الصفحة (الاستيراد والإكمال الخلفي) تعمل تحت هذه المهلة */
 export const maxDuration = 300;
@@ -48,10 +47,10 @@ export default async function AdminPathPage({
 
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <Link href="/admin" className="text-sm text-muted hover:text-ink">
+          <Link href="/admin" className="text-sm text-on-surface-variant hover:text-on-surface">
             ← كل المسارات
           </Link>
-          <h1 className="font-display text-2xl font-extrabold text-ink">{path.title}</h1>
+          <h1 className="font-display text-headline text-on-surface">{path.title}</h1>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link href={`/admin/concepts?path=${path.id}`} className={ghostButton}>
@@ -82,30 +81,11 @@ export default async function AdminPathPage({
         </form>
       </Card>
 
-      <Card title="استيراد قائمة يوتيوب ككورس">
-        <form action={importPlaylistAction} data-inline-loader className="space-y-4">
-          <input type="hidden" name="pathId" value={path.id} />
-          <Field
-            label="رابط القائمة"
-            name="playlistUrl"
-            required
-            dir="ltr"
-            placeholder="https://www.youtube.com/playlist?list=..."
-            hint="الصق الرابط فقط. تصير القائمة كلها كورسًا واحدًا: يحدد الذكاء الاصطناعي مفهومه من مفاهيم هذا المسار (أو ينشئ مفهومًا جديدًا بمتطلباته)، ويقسّمه إلى وحدات ودروس، وتؤخذ المدة والقناة والمصدر من يوتيوب."
-          />
-          <PendingButton className={primaryButton}>استيراد الكورس</PendingButton>
-          <InlinePending label="جارٍ بدء العملية…" />
-          <JobLoader matchKey={`import:${path.id}:new`} label="جارٍ استيراد القائمة وتوليد محتواها…" />
-          <p className="text-xs text-muted">
-            تُستورد القائمة كاملة دفعة واحدة مهما طالت، والمكرر يُتجاوز. بعد البناء تُولَّد الملاحظات وملخصات القراءة ومسودات الأسئلة في الخلفية
-            (قد تستغرق دقائق؛ تابع حالتها في الشريط أعلى الصفحة وتصفّح بحرية). كل شيء يدخل «بانتظار المراجعة» ولا يراه المتعلم معتمدًا إلا بعد موافقتك.
-          </p>
-        </form>
-      </Card>
+      <ImportSourceCard pathId={path.id} concepts={conceptOptions} />
 
-      <h2 className="mb-4 mt-12 font-display text-xl font-extrabold text-ink">المفاهيم والكورسات</h2>
+      <h2 className="mb-4 mt-12 font-display text-xl font-bold text-on-surface">المفاهيم والكورسات</h2>
       {concepts.length === 0 ? (
-        <p className="text-muted">
+        <p className="text-on-surface-variant">
           لا مفاهيم في هذا المسار بعد. استورد قائمة (ينشئ النموذج المفهوم) أو{' '}
           <Link href={`/admin/concepts?path=${path.id}`} className="underline">
             أضف مفهومًا
@@ -118,28 +98,28 @@ export default async function AdminPathPage({
           const courses = path.courses.filter((c) => c.conceptId === concept.id);
           return (
             <section key={concept.id} aria-labelledby={`concept-${concept.id}`}>
-              <h3 id={`concept-${concept.id}`} className="font-display text-lg font-extrabold text-ink">
+              <h3 id={`concept-${concept.id}`} className="font-display text-lg font-bold text-on-surface">
                 المفهوم: {concept.name}
               </h3>
-              {concept.description ? <p className="mb-3 text-sm text-muted">{concept.description}</p> : null}
+              {concept.description ? <p className="mb-3 text-sm text-on-surface-variant">{concept.description}</p> : null}
               <div className="space-y-4">
-                {courses.length === 0 ? <p className="text-sm text-muted">لا كورسات في هذا المفهوم بعد.</p> : null}
+                {courses.length === 0 ? <p className="text-sm text-on-surface-variant">لا كورسات في هذا المفهوم بعد.</p> : null}
                 {courses.map((course) => {
                   const pending = course.modules.flatMap((m) => m.lessons).filter((l) => !l.reviewedByHuman).length;
                   return (
                     <Link
                       key={course.id}
                       href={`/admin/paths/${path.id}/courses/${course.id}`}
-                      className="card-outlined block p-5 shadow-sm transition hover:border-ink"
+                      className="card-outlined block p-5 transition hover:border-outline"
                     >
-                      <h4 className="font-display text-lg font-extrabold text-ink">
+                      <h4 className="font-display text-lg font-bold text-on-surface">
                         {course.orderIndex}. {course.title}
                       </h4>
-                      <p className="mt-1 text-xs text-muted">
+                      <p className="mt-1 text-xs text-on-surface-variant">
                         {course.modules.length} وحدة · {course.lessonsCount} درس · {formatDuration(course.totalDurationSeconds)}
                         {pending > 0 ? ` · ${pending} بانتظار المراجعة` : course.lessonsCount > 0 ? ' · كل الدروس معتمدة' : ''}
                       </p>
-                      {course.description ? <p className="mt-2 text-sm text-muted">{course.description}</p> : null}
+                      {course.description ? <p className="mt-2 text-sm text-on-surface-variant">{course.description}</p> : null}
                     </Link>
                   );
                 })}
@@ -154,7 +134,7 @@ export default async function AdminPathPage({
               <input type="hidden" name="pathId" value={path.id} />
               <Field label="عنوان الكورس" name="title" required />
               <label className="block">
-                <span className="block text-sm font-medium text-ink">المفهوم</span>
+                <span className="block text-sm font-medium text-on-surface">المفهوم</span>
                 <select name="conceptId" required className={inputClass}>
                   {conceptOptions.map((c) => (
                     <option key={c.id} value={c.id}>
@@ -176,7 +156,7 @@ export default async function AdminPathPage({
         ) : null}
       </div>
 
-      <div className="mt-12 border-t border-rule pt-6">
+      <div className="mt-12 border-t border-outline-variant pt-6">
         <form action={deletePathAction}>
           <input type="hidden" name="pathId" value={path.id} />
           <ConfirmSubmit

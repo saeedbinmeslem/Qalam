@@ -28,7 +28,7 @@ export function LessonFields({ defaults = {} }: { defaults?: LessonDefaults }) {
       />
       <Field label="اسم القناة أو المصدر" name="channelName" defaultValue={defaults.channelName} required hint="يُعرض دائمًا مع الدرس حفظًا للحقوق (للفيديو المرفوع اكتب اسم صاحب المحتوى)." />
       <label className="block">
-        <span className="block text-sm font-medium text-ink">لغة الشرح</span>
+        <span className="block text-sm font-medium text-on-surface">لغة الشرح</span>
         <select name="language" defaultValue={defaults.language ?? 'ar'} className={inputClass}>
           <option value="ar">العربية</option>
           <option value="en">الإنجليزية</option>

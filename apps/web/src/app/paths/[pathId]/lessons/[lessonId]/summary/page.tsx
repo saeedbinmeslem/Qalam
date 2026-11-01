@@ -28,34 +28,34 @@ export default async function LessonSummaryPage({ params }: { params: Promise<{ 
   return (
     <article className="mx-auto max-w-3xl px-5 py-10 print:max-w-none print:px-0 print:py-0">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3 print:hidden">
-        <Link href={`/paths/${pathId}/lessons/${lessonId}`} className="text-sm text-muted hover:underline">
+        <Link href={`/paths/${pathId}/lessons/${lessonId}`} className="text-sm text-on-surface-variant hover:underline">
           ← العودة إلى الدرس
         </Link>
         <PrintButton className="btn-filled" targetId="summary-sheet" fileName={`ملخص-${lesson.title}`} />
       </div>
 
-      <div id="summary-sheet" className="bg-sheet p-2">
+      <div id="summary-sheet" className="bg-surface-container-lowest p-2">
       <header className="mb-6 flex items-center justify-between border-b-2 border-primary pb-4">
         <QalamLogo size={40} />
-        <span className="text-sm text-muted">ملخص من منصة قلم · qalam</span>
+        <span className="text-sm text-on-surface-variant">ملخص من منصة قلم · qalam</span>
       </header>
-      <p className="text-sm text-muted">
+      <p className="text-sm text-on-surface-variant">
         {pathTitle} / {module.title}
       </p>
-      <h1 className="mt-2 font-display text-3xl font-extrabold leading-[1.5] text-ink">{lesson.title}</h1>
-      <p className="mt-1 text-sm text-muted">المصدر: {lesson.channelName}</p>
+      <h1 className="mt-2 font-display text-display text-on-surface">{lesson.title}</h1>
+      <p className="mt-1 text-sm text-on-surface-variant">المصدر: {lesson.channelName}</p>
 
       <div className="mt-8 space-y-7">
         {sections.map((section, index) => (
           <section key={index} data-pdf-block className="break-inside-avoid">
-            {section.heading ? <h2 className="font-display text-xl font-semibold text-ink">{section.heading}</h2> : null}
+            {section.heading ? <h2 className="font-display text-xl font-semibold text-on-surface">{section.heading}</h2> : null}
             {section.paragraphs.map((paragraph, i) => (
-              <p key={i} className="mt-2 leading-8 text-ink">
+              <p key={i} className="mt-2 leading-8 text-on-surface">
                 {paragraph}
               </p>
             ))}
             {section.points.length > 0 ? (
-              <ul className="mt-2 list-disc space-y-1 ps-6 leading-8 text-ink">
+              <ul className="mt-2 list-disc space-y-1 ps-6 leading-8 text-on-surface">
                 {section.points.map((point, i) => (
                   <li key={i}>{point}</li>
                 ))}
@@ -65,10 +65,10 @@ export default async function LessonSummaryPage({ params }: { params: Promise<{ 
         ))}
       </div>
 
-      <p data-pdf-block className="mt-10 border-t border-rule pt-4 text-xs text-muted">
+      <p data-pdf-block className="mt-10 border-t border-outline-variant pt-4 text-xs text-on-surface-variant">
         أُعدّ هذا الملخص بواسطة منصة «قلم» بالذكاء الاصطناعي اعتمادًا على محتوى الدرس. الفيديو هو المرجع الأصلي، وراجعه عند أي التباس.
       </p>
-      <footer className="mt-6 flex items-center justify-center gap-2 text-sm text-muted">
+      <footer className="mt-6 flex items-center justify-center gap-2 text-sm text-on-surface-variant">
         <QalamLogo size={22} /> <span>منصة قلم للتعلّم الذكي</span>
       </footer>
       </div>

@@ -6,7 +6,7 @@
  * التحقق من الصلاحية يتم داخل كل use case (لا نعتمد على إخفاء الصفحة).
  * الأخطاء تعود للصفحة برسالة عربية في ?error=.
  */
-import { ForbiddenError, UnauthenticatedError } from '@qalam/application';
+import { ForbiddenError, UnauthenticatedError, type VideoImportItem } from '@qalam/application';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { after } from 'next/server';
@@ -288,6 +288,56 @@ export async function importPlaylistAction(data: FormData): Promise<void> {
       const imported = await admin.importPlaylist.execute({ actor: admin.actor, pathId, courseId, playlistUrl });
       const generated = await enrichAndSummarize(admin, pathId, courseId, startedAt).catch((e: Error) => `الاستيراد تم لكن التوليد تعثّر: ${e.message}`);
       return `أُضيف ${imported.lessons} درسًا إلى «${imported.courseTitle}». ${generated}`;
+    },
+  );
+}
+
+/**
+ * فيديوهات مستقلة بلا قائمة: عناصر مرتبة (روابط يوتيوب و/أو مرفوعة من الجهاز) تصير كورسًا واحدًا بترتيب الإضافة.
+ * العناصر تصل كـJSON في حقل `items` من مكوّن الاستيراد، وتُتحقق بنية كل عنصر هنا قبل الـuse case.
+ */
+function parseVideoItems(raw: string): VideoImportItem[] {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new Error('قائمة الفيديوهات غير صالحة');
+  }
+  if (!Array.isArray(parsed)) throw new Error('قائمة الفيديوهات غير صالحة');
+  return parsed.flatMap((item: Record<string, unknown>): VideoImportItem[] => {
+    if (item?.kind === 'youtube' && typeof item.url === 'string') {
+      return item.url.trim() ? [{ kind: 'youtube', url: item.url }] : [];
+    }
+    if (item?.kind === 'upload' && typeof item.mediaUrl === 'string' && item.mediaUrl.trim()) {
+      return [
+        {
+          kind: 'upload',
+          mediaUrl: item.mediaUrl,
+          title: typeof item.title === 'string' ? item.title : '',
+          durationSeconds: Number(item.durationSeconds) || 0,
+        },
+      ];
+    }
+    return [];
+  });
+}
+
+export async function importVideosAction(data: FormData): Promise<void> {
+  const pathId = text(data, 'pathId');
+  const courseTitle = text(data, 'courseTitle');
+  const conceptId = text(data, 'conceptId') || undefined;
+  await runInBackground(
+    pathPage(pathId),
+    { key: `import:${pathId}:new`, label: 'استيراد فيديوهات مستقلة' },
+    async (admin) => {
+      const imported = await admin.importVideos.execute({
+        actor: admin.actor,
+        pathId,
+        courseTitle,
+        conceptId,
+        items: parseVideoItems(text(data, 'items')),
+      });
+      return `أُضيف ${imported.lessons} درسًا إلى «${imported.courseTitle}»`;
     },
   );
 }

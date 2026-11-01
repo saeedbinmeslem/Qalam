@@ -50,7 +50,7 @@ export default async function ConceptsPage() {
                         <p className="text-label text-on-surface-variant">يسبقه</p>
                         <ul className="mt-2 flex flex-wrap gap-2">
                           {c.prerequisites.map((p) => (
-                            <li key={p.id} className="chip chip-warn">
+                            <li key={p.id} className="chip">
                               {p.name}
                             </li>
                           ))}

@@ -16,14 +16,36 @@ const steps = [
   { title: 'تتعدّل خطتك', body: 'مراجعة أو درس بديل أو تقدّم أسرع، مع ذكر سبب كل قرار.' },
 ];
 
+const trust = [
+  { title: 'المصدر ظاهر دائمًا', body: 'اسم القناة ورابط الفيديو الأصلي عند كل درس، والعرض عبر مشغّل يوتيوب الرسمي دون نسخ أو إعادة استضافة.' },
+  { title: 'مراجعة بشرية موسومة', body: 'ترى في مكتبة الدروس أي درس راجعه المالك وأيّها ما زال بانتظار المراجعة.' },
+  { title: 'قرارات الخطة معلَّلة', body: 'كل اقتراح بمراجعة أو درس بديل أو تقدّم أسرع يأتي مع سببه من نتائجك.' },
+];
+
 const sections = [
   { href: '/paths', title: 'المسارات', body: 'خطط تعلّم مرتبة من الأساس إلى المتقدم.' },
   { href: '/library', title: 'مكتبة الدروس', body: 'ابحث في كل الدروس وصفّها بالقناة والمسار.' },
   { href: '/concepts', title: 'خريطة المفاهيم', body: 'اعرف ما يسبق كل مفهوم وأين تتعلمه.' },
   { href: '/dashboard', title: 'تعلّمي', body: 'تقدمك واقتراحات الوكيل في مكان واحد.' },
   { href: '/review', title: 'المراجعة', body: 'ما يحتاج أن تعود إليه قبل أن تنساه.' },
-  { href: '/practice', title: 'التمارين العملية', body: 'كود حقيقي يُشغَّل ويُصحَّح. قيد البناء.' },
+  { href: '/practice', title: 'التمارين العملية', body: 'كود حقيقي يُشغَّل ويُصحَّح.', badge: 'قيد البناء' },
 ];
+
+function StepsList() {
+  return (
+    <ol className="stroke-list self-center" aria-label="كيف يعمل قلم">
+      {steps.map((step, index) => (
+        <li key={step.title} className="stroke-item">
+          <span className="stroke-node" aria-hidden="true">
+            {index + 1}
+          </span>
+          <h3 className="font-display text-title text-on-surface">{step.title}</h3>
+          <p className="mt-1 text-on-surface-variant">{step.body}</p>
+        </li>
+      ))}
+    </ol>
+  );
+}
 
 export default async function HomePage() {
   const { listLearningPaths } = await getContainer();
@@ -37,7 +59,7 @@ export default async function HomePage() {
         <div className={`${pageWidth} grid gap-12 py-16 md:grid-cols-[1.1fr_1fr] md:py-24`}>
           <div>
             <p className="chip chip-primary">منصة تعلّم عربية تقيس الفهم</p>
-            <h1 className="mt-5 font-display text-4xl font-extrabold leading-[1.45] text-on-surface md:text-6xl md:leading-[1.35]">
+            <h1 className="mt-5 font-display text-4xl font-bold leading-[1.45] text-on-surface md:text-6xl md:leading-[1.35]">
               تعلّم ما تحتاجه،
               <br />
               <span className="text-primary">وأثبت أنك فهمته.</span>
@@ -56,17 +78,14 @@ export default async function HomePage() {
             </div>
           </div>
 
-          <ol className="stroke-list self-center" aria-label="كيف يعمل قلم">
-            {steps.map((step, index) => (
-              <li key={step.title} className="stroke-item">
-                <span className="stroke-node" aria-hidden="true">
-                  {index + 1}
-                </span>
-                <h2 className="font-display text-title text-on-surface">{step.title}</h2>
-                <p className="mt-1 text-on-surface-variant">{step.body}</p>
-              </li>
-            ))}
-          </ol>
+          {paths[0] ? (
+            <div className="self-center">
+              <p className="text-label mb-3 text-on-surface-variant">مثال من المسارات المتاحة</p>
+              <PathCard path={paths[0]} />
+            </div>
+          ) : (
+            <StepsList />
+          )}
         </div>
       </section>
 
@@ -74,14 +93,27 @@ export default async function HomePage() {
         <div className="grid gap-4 sm:grid-cols-3">
           <StatTile value={String(paths.length)} label="مسارًا تعليميًا" />
           <StatTile value={String(lessons)} label="درسًا مرتبًا" hint="كل درس مقطع محدد من مصدره" />
-          <StatTile value={seconds > 0 ? formatDuration(seconds) : '—'} label="إجمالي مدة المشاهدة" />
+          <StatTile value={seconds > 0 ? formatDuration(seconds) : '—'} label="مدة المحتوى كاملًا" hint="مجموع مقاطع الدروس" />
         </div>
       </section>
+
+      {paths[0] ? (
+        <section aria-labelledby="how-title" className={`${pageWidth} grid gap-10 pt-20 md:grid-cols-[1fr_1.3fr]`}>
+          <div>
+            <p className="text-label text-secondary-strong">الفكرة</p>
+            <h2 id="how-title" className="font-display text-headline text-on-surface">
+              من المشاهدة إلى الفهم، في أربع خطوات
+            </h2>
+            <p className="mt-3 text-on-surface-variant">المشاهدة وحدها لا تعني الفهم، فنقيسه ونعدّل الخطة بحسبه.</p>
+          </div>
+          <StepsList />
+        </section>
+      ) : null}
 
       <section id="paths" className={`${pageWidth} scroll-mt-20 pt-20`}>
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-label text-primary">ابدأ من هنا</p>
+            <p className="text-label text-secondary-strong">ابدأ من هنا</p>
             <h2 className="font-display text-headline text-on-surface">المسارات المتاحة</h2>
           </div>
           <Link href="/paths" className="btn-text">
@@ -103,14 +135,37 @@ export default async function HomePage() {
         )}
       </section>
 
+      <section aria-labelledby="trust-title" className={`${pageWidth} pt-20`}>
+        <p className="text-label text-secondary-strong">الثقة</p>
+        <h2 id="trust-title" className="font-display text-headline text-on-surface">
+          محتوى تعرف مصدره وسبب اقتراحه
+        </h2>
+        <ul className="mt-8 grid gap-4 md:grid-cols-3">
+          {trust.map((t) => (
+            <li key={t.title} className="card-outlined p-6">
+              <h3 className="font-display text-title text-on-surface">{t.title}</h3>
+              <p className="mt-2 text-on-surface-variant">{t.body}</p>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-4">
+          <Link href="/about#sources" className="btn-text">
+            المصادر والحقوق ‹
+          </Link>
+        </p>
+      </section>
+
       <section className={`${pageWidth} pt-20`}>
-        <p className="text-label text-primary">كل ما تحتاجه</p>
+        <p className="text-label text-secondary-strong">كل ما تحتاجه</p>
         <h2 className="font-display text-headline text-on-surface">أقسام المنصة</h2>
         <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {sections.map((s) => (
             <li key={s.href}>
               <Link href={s.href} className="card-filled block h-full p-6 transition-colors hover:bg-surface-container">
-                <h3 className="font-display text-title text-on-surface">{s.title}</h3>
+                <h3 className="font-display text-title text-on-surface">
+                  {s.title}
+                  {s.badge ? <span className="chip chip-warn ms-2 align-middle">{s.badge}</span> : null}
+                </h3>
                 <p className="mt-2 text-on-surface-variant">{s.body}</p>
               </Link>
             </li>

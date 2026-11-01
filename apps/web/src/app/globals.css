@@ -1,32 +1,52 @@
 @import 'tailwindcss';
 
 /*
- * رموز التصميم وفق Material Design 3 (انظر .claude/skills/material-design).
+ * رموز التصميم بهوية «قلم» (انظر docs/design-system.md و docs/BRAND.md).
  * أدوار لونية دلالية: لا تستخدم hex داخل المكوّنات، بل الدور.
- * بذرة اللون: أخضر مزرق (teal)، مع tertiary عنبري يمثّل «قلم التمييز».
+ *
+ * ألوان الهوية: كحلي #142B4A (الأساسي) · تيل #20B6A5 (التقدّم والتعلّم النشط) ·
+ * بنفسجي #8B7CF6 (ميزات الذكاء الاصطناعي، بقدر قليل) · ذهبي #C8A96A (الإتقان والإنجاز فقط).
+ *
+ * التباين: التيل والذهبي والبنفسجي بحالتها الأصلية لا تصلح لنص صغير على الأبيض
+ * (نسبة تقريبية 2.5 و2.2 و3.4 إلى 1). لذلك للأسطح والخطوط والأشرطة نستخدم اللون الأصلي،
+ * وللنص نستخدم الدور «-strong» أو الدور tertiary.
+ *
  * الأسماء القديمة (ink, paper, sheet, rule, sea, highlighter, text, muted) أسماء مستعارة
  * للأدوار الجديدة كي تبقى الصفحات الحالية تعمل؛ استخدم الأدوار في الكود الجديد.
  */
 @theme {
-  --color-primary: #0b6b5e;
+  --color-primary: #142b4a;
   --color-on-primary: #ffffff;
-  --color-primary-container: #b7f0e2;
-  --color-on-primary-container: #00201b;
-  --color-secondary-container: #cde8e1;
-  --color-on-secondary-container: #07201b;
-  --color-tertiary: #7a5900;
-  --color-tertiary-container: #ffdea0;
-  --color-on-tertiary-container: #261a00;
-  --color-surface: #f4fbf8;
+  --color-primary-container: #dce5f2;
+  --color-on-primary-container: #0c1b30;
+
+  /* تيل: التقدّم والحالة النشطة. secondary للأسطح، secondary-strong للنص */
+  --color-secondary: #20b6a5;
+  --color-secondary-strong: #0b7a6e;
+  --color-secondary-container: #d4f1ed;
+  --color-on-secondary-container: #05403a;
+
+  /* ذهبي: الإتقان والإنجاز فقط. tertiary نص آمن التباين، highlighter للتعبئة */
+  --color-tertiary: #7a5f1e;
+  --color-tertiary-container: #f1e6c9;
+  --color-on-tertiary-container: #3a2c08;
+
+  /* بنفسجي: ميزات الذكاء الاصطناعي (اسأل قلم، الملخصات، سبب القرار) */
+  --color-violet: #8b7cf6;
+  --color-violet-strong: #5a4bd1;
+  --color-violet-container: #e8e5fd;
+  --color-on-violet-container: #2f2582;
+
+  --color-surface: #f5f7fa;
   --color-surface-container-lowest: #ffffff;
-  --color-surface-container-low: #eef5f2;
-  --color-surface-container: #e8efec;
-  --color-surface-container-high: #e2eae6;
-  --color-surface-container-highest: #dce4e1;
-  --color-on-surface: #171d1b;
-  --color-on-surface-variant: #3f4946;
-  --color-outline: #6f7976;
-  --color-outline-variant: #bfc9c5;
+  --color-surface-container-low: #eef2f7;
+  --color-surface-container: #e7ecf2;
+  --color-surface-container-high: #e0e6ed;
+  --color-surface-container-highest: #d8dfe8;
+  --color-on-surface: #142b4a;
+  --color-on-surface-variant: #5a6a7f;
+  --color-outline: #7a8798;
+  --color-outline-variant: #cbd3dd;
   --color-error: #ba1a1a;
   --color-on-error: #ffffff;
   --color-error-container: #ffdad6;
@@ -34,18 +54,19 @@
 
   /* أسماء مستعارة قديمة */
   --color-ink: var(--color-primary);
-  --color-ink-soft: #0a574d;
+  --color-ink-soft: #2a4468;
   --color-paper: var(--color-surface);
   --color-sheet: var(--color-surface-container-lowest);
   --color-rule: var(--color-outline-variant);
-  --color-highlighter: #f2b632;
+  --color-highlighter: #c8a96a;
   --color-sea: var(--color-primary);
-  --color-sea-dark: #00504a;
+  --color-sea-dark: var(--color-secondary-strong);
   --color-text: var(--color-on-surface);
   --color-muted: var(--color-on-surface-variant);
 
-  --font-sans: var(--font-mada), system-ui, sans-serif;
-  --font-display: var(--font-mada), system-ui, sans-serif;
+  /* الخط الأساسي KOMission للنص والعناوين؛ الخطوط التالية احتياطية للحروف التي لا يغطيها */
+  --font-sans: var(--font-komission), var(--font-inter), var(--font-tajawal), system-ui, sans-serif;
+  --font-display: var(--font-komission), var(--font-inter), var(--font-plex-arabic), system-ui, sans-serif;
 
   /* سلّم الأشكال */
   --radius-xs: 4px;
@@ -53,6 +74,10 @@
   --radius-md: 12px;
   --radius-lg: 16px;
   --radius-xl: 28px;
+
+  /* منحنيات الحركة (M3): standard لتغيّر الحالة، decelerate لدخول العناصر */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-emphasized-decel: cubic-bezier(0.05, 0.7, 0.1, 1);
 
   /* الارتفاع: مستويان فقط للعناصر العائمة */
   --shadow-elevation-1: 0 1px 2px rgb(0 0 0 / 0.14), 0 1px 3px 1px rgb(0 0 0 / 0.08);
@@ -63,7 +88,8 @@
  * الوضع الداكن: الأصل يتبع إعداد الجهاز عبر prefers-color-scheme، وإذا اختار المتعلم يدويًا
  * يضع theme-toggle السمة data-theme="light|dark" على <html> فتتغلب على إعداد الجهاز.
  * القيم نفسها مكرّرة في الموضعين لأن CSS لا يدعم mixins؛ عدّلهما معًا.
- * الأدوار الداكنة وفق M3: السطح قريب من الأسود المخضرّ، واللون الأساسي يصبح فاتحًا للتباين.
+ * هوية الداكن مشتقة من الكحلي: السطح كحلي شبه أسود، واللون الأساسي يصبح فاتحًا للتباين.
+ * (ألوان الوضع الداكن ليست من وثيقة الهوية الأصلية، وتنتظر مراجعة المالك.)
  */
 :root {
   color-scheme: light dark;
@@ -77,62 +103,72 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --color-primary: #7fd6c5;
-    --color-on-primary: #003730;
-    --color-primary-container: #005046;
-    --color-on-primary-container: #b7f0e2;
-    --color-secondary-container: #334b46;
-    --color-on-secondary-container: #cde8e1;
-    --color-tertiary: #f0bf4d;
-    --color-tertiary-container: #5c4300;
-    --color-on-tertiary-container: #ffdea0;
-    --color-surface: #0e1513;
-    --color-surface-container-lowest: #090f0e;
-    --color-surface-container-low: #161d1b;
-    --color-surface-container: #1a211f;
-    --color-surface-container-high: #252b2a;
-    --color-surface-container-highest: #303634;
-    --color-on-surface: #dde4e1;
-    --color-on-surface-variant: #bfc9c5;
-    --color-outline: #899390;
-    --color-outline-variant: #3f4946;
+    --color-primary: #a8c0e8;
+    --color-on-primary: #0b1c34;
+    --color-primary-container: #22406a;
+    --color-on-primary-container: #dce5f2;
+    --color-secondary: #4fd1c1;
+    --color-secondary-strong: #5fd6c8;
+    --color-secondary-container: #174a47;
+    --color-on-secondary-container: #bfede8;
+    --color-tertiary: #d9bf86;
+    --color-tertiary-container: #4a3a14;
+    --color-on-tertiary-container: #f1e6c9;
+    --color-violet: #a99dfa;
+    --color-violet-strong: #b9affb;
+    --color-violet-container: #3a3377;
+    --color-on-violet-container: #e8e5fd;
+    --color-surface: #0d1726;
+    --color-surface-container-lowest: #08101c;
+    --color-surface-container-low: #121e31;
+    --color-surface-container: #172539;
+    --color-surface-container-high: #1f2e44;
+    --color-surface-container-highest: #2a3a52;
+    --color-on-surface: #e3eaf4;
+    --color-on-surface-variant: #a9b6c8;
+    --color-outline: #7c8ba0;
+    --color-outline-variant: #33445c;
     --color-error: #ffb4ab;
     --color-on-error: #690005;
     --color-error-container: #93000a;
     --color-on-error-container: #ffdad6;
-    --color-ink-soft: #5fbfae;
-    --color-highlighter: #e0a82a;
-    --color-sea-dark: #9fe0d3;
+    --color-ink-soft: #8fb0e0;
+    --color-highlighter: #d9bf86;
   }
 }
 
 :root[data-theme='dark'] {
-  --color-primary: #7fd6c5;
-  --color-on-primary: #003730;
-  --color-primary-container: #005046;
-  --color-on-primary-container: #b7f0e2;
-  --color-secondary-container: #334b46;
-  --color-on-secondary-container: #cde8e1;
-  --color-tertiary: #f0bf4d;
-  --color-tertiary-container: #5c4300;
-  --color-on-tertiary-container: #ffdea0;
-  --color-surface: #0e1513;
-  --color-surface-container-lowest: #090f0e;
-  --color-surface-container-low: #161d1b;
-  --color-surface-container: #1a211f;
-  --color-surface-container-high: #252b2a;
-  --color-surface-container-highest: #303634;
-  --color-on-surface: #dde4e1;
-  --color-on-surface-variant: #bfc9c5;
-  --color-outline: #899390;
-  --color-outline-variant: #3f4946;
+  --color-primary: #a8c0e8;
+  --color-on-primary: #0b1c34;
+  --color-primary-container: #22406a;
+  --color-on-primary-container: #dce5f2;
+  --color-secondary: #4fd1c1;
+  --color-secondary-strong: #5fd6c8;
+  --color-secondary-container: #174a47;
+  --color-on-secondary-container: #bfede8;
+  --color-tertiary: #d9bf86;
+  --color-tertiary-container: #4a3a14;
+  --color-on-tertiary-container: #f1e6c9;
+  --color-violet: #a99dfa;
+  --color-violet-strong: #b9affb;
+  --color-violet-container: #3a3377;
+  --color-on-violet-container: #e8e5fd;
+  --color-surface: #0d1726;
+  --color-surface-container-lowest: #08101c;
+  --color-surface-container-low: #121e31;
+  --color-surface-container: #172539;
+  --color-surface-container-high: #1f2e44;
+  --color-surface-container-highest: #2a3a52;
+  --color-on-surface: #e3eaf4;
+  --color-on-surface-variant: #a9b6c8;
+  --color-outline: #7c8ba0;
+  --color-outline-variant: #33445c;
   --color-error: #ffb4ab;
   --color-on-error: #690005;
   --color-error-container: #93000a;
   --color-on-error-container: #ffdad6;
-  --color-ink-soft: #5fbfae;
-  --color-highlighter: #e0a82a;
-  --color-sea-dark: #9fe0d3;
+  --color-ink-soft: #8fb0e0;
+  --color-highlighter: #d9bf86;
 }
 
 html {
@@ -144,10 +180,16 @@ body {
   color: var(--color-on-surface);
   font-family: var(--font-sans);
   line-height: 1.8;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--color-primary-container);
+  color: var(--color-on-primary-container);
 }
 
 :focus-visible {
-  outline: 3px solid var(--color-tertiary);
+  outline: 3px solid var(--color-secondary-strong);
   outline-offset: 3px;
   border-radius: var(--radius-xs);
 }
@@ -163,11 +205,13 @@ body {
 
 @layer components {
   /* ===== سلّم الطباعة ===== */
-  .text-display { font-size: 2.25rem; line-height: 2.75rem; font-weight: 800; }
+  .text-display { font-size: 2.25rem; line-height: 2.75rem; font-weight: 700; }
   .text-headline { font-size: 1.75rem; line-height: 2.25rem; font-weight: 700; }
   .text-title { font-size: 1.375rem; line-height: 1.75rem; font-weight: 600; }
   .text-body { font-size: 1rem; line-height: 1.75rem; }
   .text-label { font-size: 0.875rem; line-height: 1.25rem; font-weight: 600; }
+  .text-caption { font-size: 0.75rem; line-height: 1rem; }
+  .tabular { font-variant-numeric: tabular-nums; }
 
   /* ===== الأزرار (متغيرات MUI: contained/tonal/outlined/text) =====
      طبقة الحالة عبر color-mix: hover 8%، pressed 12%. */
@@ -183,7 +227,7 @@ body {
     font-weight: 600;
     line-height: 1.25rem;
     cursor: pointer;
-    transition: background-color 150ms, box-shadow 150ms;
+    transition: background-color 100ms var(--ease-standard), box-shadow 200ms var(--ease-standard);
   }
   .btn-filled { background: var(--color-primary); color: var(--color-on-primary); }
   .btn-filled:hover { background: color-mix(in srgb, var(--color-primary), var(--color-on-primary) 8%); box-shadow: var(--shadow-elevation-1); }
@@ -208,11 +252,38 @@ body {
   .card-outlined { background: var(--color-surface-container-lowest); border: 1px solid var(--color-outline-variant); border-radius: var(--radius-md); }
   .card-filled { background: var(--color-surface-container-low); border-radius: var(--radius-md); }
   .card-elevated { background: var(--color-surface-container-lowest); border-radius: var(--radius-md); box-shadow: var(--shadow-elevation-1); }
+  /* بطاقة قابلة للنقر: تتغيّر النغمة لا الظل */
+  .card-interactive { transition: background-color 200ms var(--ease-standard), border-color 200ms var(--ease-standard); }
+  .card-interactive:hover { background: var(--color-surface-container-low); border-color: var(--color-outline); }
 
-  /* ===== الشرائح والشارات ===== */
+  /* ===== جدول البيانات (لوحة التحكم) ===== */
+  .data-table { background: var(--color-surface-container-lowest); border: 1px solid var(--color-outline-variant); border-radius: var(--radius-md); overflow: hidden; }
+  .data-table-head { display: grid; gap: 1rem; padding: 0.625rem 1.25rem; background: var(--color-surface-container-low); border-bottom: 1px solid var(--color-outline-variant); font-size: 0.75rem; font-weight: 600; color: var(--color-on-surface-variant); }
+  .data-table-row { display: grid; gap: 1rem; align-items: center; min-height: 3rem; padding: 0.75rem 1.25rem; transition: background-color 100ms var(--ease-standard); }
+  .data-table-row + .data-table-row { border-top: 1px solid var(--color-outline-variant); }
+  .data-table-row:hover { background: color-mix(in srgb, var(--color-on-surface) 4%, transparent); }
+
+  /* ===== هيكل لوحة التحكم ===== */
+  .admin-nav { display: flex; gap: 0.25rem; overflow-x: auto; }
+  .admin-nav-item { display: flex; align-items: center; min-height: 2.5rem; padding-inline: 1rem; border-radius: 9999px; font-size: 0.875rem; font-weight: 600; color: var(--color-on-surface-variant); white-space: nowrap; transition: background-color 100ms var(--ease-standard); }
+  .admin-nav-item:hover { background: color-mix(in srgb, var(--color-on-surface) 8%, transparent); }
+  .admin-nav-item[aria-current='page'] { background: var(--color-secondary-container); color: var(--color-on-secondary-container); }
+  @media (min-width: 1024px) {
+    .admin-nav { flex-direction: column; overflow: visible; }
+    .admin-nav-item { border-radius: var(--radius-xl); }
+  }
+
+  /* ===== الشرائح والشارات (الأدوار: primary افتراضي، progress تيل، mastery ذهبي، ai بنفسجي، warn محايد) ===== */
   .chip { display: inline-flex; align-items: center; border-radius: 9999px; padding: 0.125rem 0.75rem; font-size: 0.75rem; font-weight: 600; line-height: 1.5rem; background: var(--color-surface-container-high); color: var(--color-on-surface-variant); }
   .chip-primary { background: var(--color-primary-container); color: var(--color-on-primary-container); }
-  .chip-warn { background: var(--color-tertiary-container); color: var(--color-on-tertiary-container); }
+  /* حالة معلّقة أو قيد البناء: محايدة بحد، فالذهبي محجوز للإتقان والإنجاز */
+  .chip-warn { background: transparent; box-shadow: inset 0 0 0 1px var(--color-outline); color: var(--color-on-surface); }
+  /* تيل: تقدّم وتعلّم نشط */
+  .chip-progress { background: var(--color-secondary-container); color: var(--color-on-secondary-container); }
+  /* ذهبي: إتقان أو إكمال فعلي فقط */
+  .chip-mastery { background: var(--color-tertiary-container); color: var(--color-on-tertiary-container); }
+  /* بنفسجي: ميزة أو قرار بالذكاء الاصطناعي */
+  .chip-ai { background: var(--color-violet-container); color: var(--color-on-violet-container); }
 
   /* ===== حقل النص (outlined) ===== */
   .field {
@@ -223,7 +294,7 @@ body {
     background: var(--color-surface-container-lowest);
     padding: 0.625rem 0.875rem;
     text-align: start;
-    transition: border-color 150ms, box-shadow 150ms;
+    transition: border-color 100ms var(--ease-standard), box-shadow 100ms var(--ease-standard);
   }
   .field:hover { border-color: var(--color-on-surface); }
   .field:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 1px var(--color-primary); }
@@ -239,7 +310,7 @@ body {
     font-size: 0.875rem;
     font-weight: 600;
     color: var(--color-on-surface-variant);
-    transition: background-color 150ms;
+    transition: background-color 100ms var(--ease-standard);
   }
   .nav-item:hover { background: color-mix(in srgb, var(--color-on-surface) 8%, transparent); }
   .nav-item[aria-current='page'] { background: var(--color-secondary-container); color: var(--color-on-secondary-container); }
@@ -259,7 +330,7 @@ body {
     inset-block-end: -0.2rem;
     width: 6px;
     border-radius: 3px;
-    background: var(--color-highlighter);
+    background: var(--color-secondary);
     opacity: 0.85;
   }
   .stroke-item:last-child::before { display: none; }

@@ -3,7 +3,7 @@
  * @description إدارة مفاهيم **مسار واحد** ومتطلباتها السابقة. المفهوم يتبع مسارًا (لا مفاهيم عامة) ويضم كورسًا أو أكثر.
  */
 import Link from 'next/link';
-import { Card, ErrorBanner, Field, dangerButton, ghostButton, inputClass, primaryButton } from '../../../components/admin-ui';
+import { AdminPageHeader, Card, ErrorBanner, Field, dangerButton, ghostButton, inputClass, primaryButton } from '../../../components/admin-ui';
 import { createPathId } from '@qalam/domain';
 import { notFound } from 'next/navigation';
 import { ConfirmSubmit } from '../../../components/confirm-submit';
@@ -19,7 +19,7 @@ const LEVELS = [
 function LevelSelect({ value }: { value?: number }) {
   return (
     <label className="block">
-      <span className="block text-sm font-medium text-ink">المستوى</span>
+      <span className="block text-sm font-medium text-on-surface">المستوى</span>
       <select name="level" defaultValue={value ?? 1} className={inputClass}>
         {LEVELS.map((l) => (
           <option key={l.value} value={l.value}>
@@ -41,7 +41,7 @@ function Prerequisites({
   if (options.length === 0) return null;
   return (
     <fieldset className="md:col-span-2">
-      <legend className="text-sm font-medium text-ink">المتطلبات السابقة</legend>
+      <legend className="text-sm font-medium text-on-surface">المتطلبات السابقة</legend>
       <div className="mt-2 flex flex-wrap gap-x-5 gap-y-2">
         {options.map((o) => (
           <label key={o.id} className="flex items-center gap-2 text-sm">
@@ -68,19 +68,18 @@ export default async function AdminConcepts({
     return (
       <>
         <ErrorBanner message={error} />
-        <h1 className="font-display text-2xl font-extrabold text-ink">المفاهيم</h1>
-        <p className="mt-1 text-muted">لكل مسار مفاهيمه الخاصة. اختر مسارًا لإدارة مفاهيمه.</p>
-        <ul className="mt-5 divide-y divide-rule card-outlined">
+        <AdminPageHeader title="المفاهيم" description="لكل مسار مفاهيمه الخاصة. اختر مسارًا لإدارة مفاهيمه." />
+        <div className="data-table">
           {paths.map((p) => (
-            <li key={p.id} className="flex items-center justify-between gap-3 p-4">
-              <span className="font-medium text-ink">{p.title}</span>
+            <div key={p.id} className="data-table-row grid-cols-[1fr_auto]">
+              <span className="text-on-surface">{p.title}</span>
               <Link href={`/admin/concepts?path=${p.id}`} className={ghostButton}>
                 مفاهيم المسار
               </Link>
-            </li>
+            </div>
           ))}
-          {paths.length === 0 ? <li className="p-4 text-muted">لا مسارات بعد.</li> : null}
-        </ul>
+          {paths.length === 0 ? <p className="p-5 text-on-surface-variant">لا مسارات بعد.</p> : null}
+        </div>
       </>
     );
   }
@@ -93,21 +92,22 @@ export default async function AdminConcepts({
   return (
     <>
       <ErrorBanner message={error} />
-      <Link href={`/admin/paths/${pathId}`} className="text-sm text-muted hover:text-ink">
+      <Link href={`/admin/paths/${pathId}`} className="text-sm text-on-surface-variant hover:text-on-surface">
         ← {found.path.title}
       </Link>
-      <h1 className="font-display text-2xl font-extrabold text-ink">مفاهيم المسار</h1>
-      <p className="mt-1 text-muted">
-        المفهوم محور تعلّم داخل هذا المسار فقط، وتحته كورس أو أكثر. المتطلبات السابقة من مفاهيم المسار نفسه وتحدد ترتيب
-        التعلّم، ولا يُسمح بدورات بينها. يمكنك تركها للاستيراد التلقائي فينشئ المفهوم عند الحاجة.
-      </p>
+      <div className="mt-3">
+        <AdminPageHeader
+          title="مفاهيم المسار"
+          description="المفهوم محور تعلّم داخل هذا المسار فقط، وتحته كورس أو أكثر. المتطلبات السابقة من مفاهيم المسار نفسه وتحدد ترتيب التعلّم، ولا يُسمح بدورات بينها. يمكنك تركها للاستيراد التلقائي فينشئ المفهوم عند الحاجة."
+        />
+      </div>
 
       <div className="mt-6 space-y-3">
         {concepts.map((concept) => (
           <details key={concept.id} className="card-outlined p-4">
             <summary className="cursor-pointer">
-              <span className="font-medium text-ink">{concept.name}</span>
-              <span className="ms-3 text-sm text-muted">
+              <span className="font-medium text-on-surface">{concept.name}</span>
+              <span className="ms-3 text-sm text-on-surface-variant">
                 {LEVELS.find((l) => l.value === concept.level)?.label ?? `المستوى ${concept.level}`}
                 {concept.prerequisiteIds.length > 0 ? ` · يسبقه ${concept.prerequisiteIds.length}` : ''}
               </span>
@@ -130,7 +130,7 @@ export default async function AdminConcepts({
                 </button>
               </div>
             </form>
-            <form action={deleteConceptAction} className="mt-4 border-t border-rule pt-4">
+            <form action={deleteConceptAction} className="mt-4 border-t border-outline-variant pt-4">
               <input type="hidden" name="pathId" value={pathId} />
               <input type="hidden" name="conceptId" value={concept.id} />
               <ConfirmSubmit message={`حذف المفهوم «${concept.name}»؟`} className={dangerButton}>
@@ -139,7 +139,7 @@ export default async function AdminConcepts({
             </form>
           </details>
         ))}
-        {concepts.length === 0 ? <p className="text-muted">لا مفاهيم في هذا المسار بعد.</p> : null}
+        {concepts.length === 0 ? <p className="text-on-surface-variant">لا مفاهيم في هذا المسار بعد.</p> : null}
       </div>
 
       <div className="mt-10">

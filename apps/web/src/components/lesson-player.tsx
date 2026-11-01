@@ -21,11 +21,11 @@ export function LessonPlayer({ lesson }: { lesson: Lesson }) {
   const src = `${lesson.mediaUrl}#t=${lesson.segment.startSeconds},${lesson.segment.endSeconds}`;
   return (
     <figure>
-      <div className="aspect-video overflow-hidden rounded-lg bg-ink">
+      <div className="aspect-video overflow-hidden rounded-xl bg-black">
         <video src={src} controls preload="metadata" className="h-full w-full" aria-label={lesson.title} />
       </div>
-      <figcaption className="mt-3 text-sm text-muted">
-        المصدر: <span className="font-medium text-ink">{lesson.channelName}</span>
+      <figcaption className="mt-3 text-sm text-on-surface-variant">
+        المصدر: <span className="font-medium text-on-surface">{lesson.channelName}</span>
       </figcaption>
     </figure>
   );

@@ -31,7 +31,7 @@ export function ResendCodeButton({
       <button
         type="submit"
         disabled={remaining > 0}
-        className="text-sm text-muted underline underline-offset-4 disabled:cursor-not-allowed disabled:no-underline disabled:opacity-60"
+        className="text-sm text-on-surface-variant underline underline-offset-4 disabled:cursor-not-allowed disabled:no-underline disabled:opacity-60"
       >
         {remaining > 0 ? `أعد إرسال الرمز بعد ${remaining} ثانية` : 'أعد إرسال الرمز'}
       </button>

@@ -87,7 +87,7 @@ export function BackgroundJobs() {
         <div
           key={job.id}
           className={`flex items-start justify-between gap-3 rounded-md p-3 text-sm ${
-            job.status === 'failed' ? 'bg-error-container text-on-error-container' : 'bg-surface-container text-ink'
+            job.status === 'failed' ? 'bg-error-container text-on-error-container' : 'bg-surface-container text-on-surface'
           }`}
         >
           <div className="flex items-start gap-3">

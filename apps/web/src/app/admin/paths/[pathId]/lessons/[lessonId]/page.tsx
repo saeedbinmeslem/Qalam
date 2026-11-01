@@ -55,19 +55,19 @@ export default async function AdminLessonPage({
   return (
     <>
       <ErrorBanner message={error} />
-      <Link href={courseHref} className="text-sm text-muted hover:text-ink">
+      <Link href={courseHref} className="text-sm text-on-surface-variant hover:text-on-surface">
         ← {result.path.title} / {course.title}
       </Link>
-      <h1 className="mb-6 mt-1 font-display text-2xl font-extrabold text-ink">{lesson.title}</h1>
+      <h1 className="mb-6 mt-1 font-display text-headline text-on-surface">{lesson.title}</h1>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="space-y-4">
           <LessonPlayer lesson={lesson} />
           <Card title="المراجعة البشرية">
-            <p className="mb-3 flex items-center gap-3 text-sm text-muted">
+            <p className="mb-3 flex items-center gap-3 text-sm text-on-surface-variant">
               الحالة الحالية: <ReviewBadge reviewed={lesson.reviewedByHuman} />
             </p>
-            <p className="mb-4 text-sm text-muted">
+            <p className="mb-4 text-sm text-on-surface-variant">
               المقطع {formatTimecode(lesson.segment.startSeconds)}–{formatTimecode(lesson.segment.endSeconds)}. شاهده
               وتحقق من الصحة والوضوح ومناسبة المستوى وجودة الصوت واللغة، ثم اعتمده.
             </p>
@@ -82,7 +82,7 @@ export default async function AdminLessonPage({
             </form>
           </Card>
           <Card title="ملاحظات المصدر">
-            <p className="mb-3 text-sm text-muted">
+            <p className="mb-3 text-sm text-on-surface-variant">
               تُبنى عليها أسئلة الاختبار. يقرأ الذكاء الاصطناعي المقطع من يوتيوب ويكتب مسودة بما قيل فيه فقط؛
               <strong> راجعها وصحّحها بعد مشاهدة المقطع</strong> قبل توليد الأسئلة.
             </p>
@@ -92,7 +92,7 @@ export default async function AdminLessonPage({
               <button type="submit" className={ghostButton} disabled={Boolean(lesson.notes)} title={lesson.notes ? 'للدرس ملاحظات بالفعل' : undefined}>
                 ولّد مسودة الملاحظات من الفيديو
               </button>
-              {lesson.notes ? <span className="ms-3 text-xs text-muted">مكتوبة (عدّلها من «بيانات الدرس»)</span> : null}
+              {lesson.notes ? <span className="ms-3 text-xs text-on-surface-variant">مكتوبة (عدّلها من «بيانات الدرس»)</span> : null}
             </form>
           </Card>
         </div>
@@ -118,14 +118,14 @@ export default async function AdminLessonPage({
             <button type="submit" className={primaryButton}>
               حفظ التعديلات
             </button>
-            <p className="text-xs text-muted">أي تعديل على المحتوى يسحب اعتماد المراجعة ليُراجَع من جديد.</p>
+            <p className="text-xs text-on-surface-variant">أي تعديل على المحتوى يسحب اعتماد المراجعة ليُراجَع من جديد.</p>
           </form>
         </Card>
       </div>
 
       <div className="mt-10">
         <Card title="ملخص للقراءة (و PDF)">
-          <p className="mb-4 text-sm text-muted">
+          <p className="mb-4 text-sm text-on-surface-variant">
             لمن يفضّل القراءة على المشاهدة. يُولَّد الملخص تلقائيًا عندما يضغط المتعلم «لخّص لي الدرس» (من «ملاحظاتك» فقط)، ثم يُحفظ هنا لتراجعه وتعدّله أو
             تكتب ملخصًا بنفسك. صيغة التحرير: سطر <code dir="ltr">## عنوان</code> يبدأ قسمًا، و<code dir="ltr">- نقطة</code> لعنصر فيه.
           </p>
@@ -142,7 +142,7 @@ export default async function AdminLessonPage({
 
       <div className="mt-10">
         <Card title="أسئلة الاختبار">
-          <p className="mb-4 text-sm text-muted">
+          <p className="mb-4 text-sm text-on-surface-variant">
             يولّد الذكاء الاصطناعي مسودات أسئلة من «ملاحظاتك» أعلاه فقط. لا يرى المتعلم أي سؤال قبل أن تعتمده أنت، وتعديل السؤال
             يعيده مسودة.
           </p>
@@ -151,23 +151,23 @@ export default async function AdminLessonPage({
             <input type="hidden" name="pathId" value={pathId} />
             <input type="hidden" name="lessonId" value={lessonId} />
             <label className="block">
-              <span className="block text-sm font-medium text-ink">عدد الأسئلة</span>
+              <span className="block text-sm font-medium text-on-surface">عدد الأسئلة</span>
               <input type="number" name="count" defaultValue={3} min={1} max={8} className="field w-24" />
             </label>
             <button type="submit" className={primaryButton} disabled={!lesson.notes} title={lesson.notes ? undefined : 'اكتب ملاحظات الدرس أولًا'}>
               ولّد أسئلة بالذكاء الاصطناعي
             </button>
-            {lesson.notes ? null : <span className="text-sm text-red-700">اكتب ملاحظات الدرس واحفظها أولًا.</span>}
+            {lesson.notes ? null : <span className="text-sm text-error">اكتب ملاحظات الدرس واحفظها أولًا.</span>}
           </form>
 
           <details className="mb-6 card-filled p-4">
-            <summary className="cursor-pointer font-medium text-ink">أو اكتب سؤالًا بنفسك</summary>
+            <summary className="cursor-pointer font-medium text-on-surface">أو اكتب سؤالًا بنفسك</summary>
             <form action={addQuestionAction} className="mt-4 space-y-3">
               <input type="hidden" name="pathId" value={pathId} />
               <input type="hidden" name="lessonId" value={lessonId} />
               <Field label="نص السؤال" name="prompt" required rows={2} />
               <fieldset>
-                <legend className="text-sm font-medium text-ink">الخيارات (3 إلى 5، اختر الصحيح)</legend>
+                <legend className="text-sm font-medium text-on-surface">الخيارات (3 إلى 5، اختر الصحيح)</legend>
                 <div className="mt-2 space-y-2">
                   {[0, 1, 2, 3, 4].map((i) => (
                     <div key={i} className="flex items-center gap-2">
@@ -185,7 +185,7 @@ export default async function AdminLessonPage({
           </details>
 
           {questions.length === 0 ? (
-            <p className="text-sm text-muted">لا أسئلة بعد.</p>
+            <p className="text-sm text-on-surface-variant">لا أسئلة بعد.</p>
           ) : (
             <>
             {draftCount > 0 ? (
@@ -195,20 +195,20 @@ export default async function AdminLessonPage({
                 <button type="submit" className={primaryButton}>
                   راجعتُ الأسئلة وأعتمدها كلها ({draftCount})
                 </button>
-                <span className="text-xs text-muted">يعتمد كل المسودات دفعة واحدة؛ راجعها أولًا.</span>
+                <span className="text-xs text-on-surface-variant">يعتمد كل المسودات دفعة واحدة؛ راجعها أولًا.</span>
               </form>
             ) : null}
             <ul className="space-y-4">
               {questions.map((q, index) => (
                 <li key={q.id} className="card-outlined p-4">
                   <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
-                    <span className="font-medium text-ink">سؤال {index + 1}</span>
+                    <span className="font-medium text-on-surface">سؤال {index + 1}</span>
                     {q.isApproved ? (
                       <span className="chip chip-primary">معتمد</span>
                     ) : (
-                      <span className="rounded-full bg-highlighter/25 px-2.5 py-0.5 font-medium text-ink">مسودة</span>
+                      <span className="chip chip-warn">مسودة</span>
                     )}
-                    <span className="text-muted">{q.origin === 'ai' ? 'من الذكاء الاصطناعي' : 'يدوي'}</span>
+                    <span className="text-on-surface-variant">{q.origin === 'ai' ? 'من الذكاء الاصطناعي' : 'يدوي'}</span>
                   </div>
 
                   <form action={updateQuestionAction} className="space-y-3">
@@ -217,7 +217,7 @@ export default async function AdminLessonPage({
                     <input type="hidden" name="questionId" value={q.id} />
                     <Field label="نص السؤال" name="prompt" defaultValue={q.prompt} required rows={2} />
                     <fieldset>
-                      <legend className="text-sm font-medium text-ink">الخيارات (اختر الصحيح)</legend>
+                      <legend className="text-sm font-medium text-on-surface">الخيارات (اختر الصحيح)</legend>
                       <div className="mt-2 space-y-2">
                         {q.choices.map((choice, i) => (
                           <div key={i} className="flex items-center gap-2">
@@ -233,7 +233,7 @@ export default async function AdminLessonPage({
                     </button>
                   </form>
 
-                  <div className="mt-3 flex flex-wrap gap-2 border-t border-rule pt-3">
+                  <div className="mt-3 flex flex-wrap gap-2 border-t border-outline-variant pt-3">
                     {q.isApproved ? null : (
                       <form action={approveQuestionAction}>
                         <input type="hidden" name="pathId" value={pathId} />

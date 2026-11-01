@@ -53,18 +53,18 @@ export default async function LessonPage({
   const lessonHref = (id: string) => `/paths/${pathId}/lessons/${id}`;
 
   return (
-    <div className="mx-auto max-w-4xl px-5 py-10">
-      <nav aria-label="مسار التنقل" className="text-sm text-muted">
+    <div className="mx-auto max-w-4xl px-5 py-12 md:px-8 md:py-16">
+      <nav aria-label="مسار التنقل" className="text-sm text-on-surface-variant">
         <Link href={`/paths/${pathId}`} className="hover:underline">
           {pathTitle}
         </Link>{' '}
         / {module.title}
       </nav>
 
-      <h1 className="mt-4 font-display text-3xl font-extrabold leading-[1.5] text-ink">
+      <h1 className="mt-4 font-display text-display text-on-surface">
         {lesson.title}
       </h1>
-      <p className="mt-1 text-muted">
+      <p className="mt-1 text-on-surface-variant">
         شاهد هذا المقطع فقط ({formatDuration(lesson.segment.durationSeconds)}) من الفيديو.
       </p>
 
@@ -83,7 +83,7 @@ export default async function LessonPage({
               <input type="hidden" name="pathId" value={pathId} />
               <input type="hidden" name="lessonId" value={lessonId} />
               <PendingButton className="btn-outlined btn-sm">لخّص لي الدرس بالذكاء الاصطناعي</PendingButton>
-              <span className="ms-3 text-xs text-muted">تقرأه بدل المشاهدة، ويمكنك حفظه PDF.</span>
+              <span className="ms-3 text-xs text-on-surface-variant">تقرأه بدل المشاهدة، ويمكنك حفظه PDF.</span>
               <InlinePending label="قلم يلخّص الدرس… يمكنك التصفح ريثما ينتهي" />
             </form>
           )}
@@ -97,8 +97,8 @@ export default async function LessonPage({
 
       {lesson.summary ? (
         <section className="mt-8 max-w-[40rem]">
-          <h2 className="font-display text-lg font-semibold text-ink">ما ستخرج به</h2>
-          <p className="mt-2 text-muted">{lesson.summary}</p>
+          <h2 className="font-display text-lg font-semibold text-on-surface">ما ستخرج به</h2>
+          <p className="mt-2 text-on-surface-variant">{lesson.summary}</p>
         </section>
       ) : null}
 
@@ -106,21 +106,21 @@ export default async function LessonPage({
 
       {quiz.length > 0 ? (
         <section className="mt-10 max-w-[40rem]" aria-labelledby="quiz-title">
-          <h2 id="quiz-title" className="font-display text-xl font-semibold text-ink">
+          <h2 id="quiz-title" className="font-display text-xl font-semibold text-on-surface">
             اختبر فهمك
           </h2>
-          <p className="mt-1 text-sm text-muted">عدد الأسئلة: {quiz.length}. اختر إجابة واحدة لكل سؤال.</p>
+          <p className="mt-1 text-sm text-on-surface-variant">عدد الأسئلة: {quiz.length}. اختر إجابة واحدة لكل سؤال.</p>
           <form action={submitQuizAction} className="mt-5 space-y-6">
             <input type="hidden" name="pathId" value={pathId} />
             <input type="hidden" name="lessonId" value={lessonId} />
             {quiz.map((question, index) => (
               <fieldset key={question.id} className="card-outlined p-4">
-                <legend className="px-1 font-medium text-ink">
+                <legend className="px-1 font-medium text-on-surface">
                   {index + 1}. {question.prompt}
                 </legend>
                 <div className="mt-2 space-y-2">
                   {question.choices.map((choice, i) => (
-                    <label key={i} className="flex cursor-pointer items-start gap-3 rounded-md p-2 hover:bg-paper">
+                    <label key={i} className="flex cursor-pointer items-start gap-3 rounded-md p-2 hover:bg-surface-container-low">
                       <input type="radio" name={`q_${question.id}`} value={i} required className="mt-1.5" />
                       <span>{choice}</span>
                     </label>
@@ -130,7 +130,7 @@ export default async function LessonPage({
             ))}
             <button
               type="submit"
-              className="btn-filled"
+              className="btn-tonal"
             >
               تسليم الإجابات
             </button>
@@ -138,11 +138,11 @@ export default async function LessonPage({
         </section>
       ) : null}
 
-      <p className="mt-8 text-sm text-muted">
+      <p className="mt-8 text-sm text-on-surface-variant">
         تقدمك في المسار: {progress.completedCount} من {progress.totalCount} ({progress.percent}%)
       </p>
       {alreadyCompleted ? (
-        <p role="status" className="mt-2 inline-block chip chip-primary">
+        <p role="status" className="mt-2 inline-block chip chip-progress">
           ✓ أكملت هذا الدرس
         </p>
       ) : null}
@@ -165,18 +165,18 @@ export default async function LessonPage({
         </button>
       </form>
 
-      <nav aria-label="الدروس" className="mt-12 flex justify-between gap-4 border-t border-rule pt-6">
+      <nav aria-label="الدروس" className="mt-12 flex justify-between gap-4 border-t border-outline-variant pt-6">
         {previous ? (
-          <Link href={lessonHref(previous.id)} className="text-ink hover:underline">
-            <span className="block text-sm text-muted">الدرس السابق</span>
+          <Link href={lessonHref(previous.id)} className="text-on-surface hover:underline">
+            <span className="block text-sm text-on-surface-variant">الدرس السابق</span>
             {previous.title}
           </Link>
         ) : (
           <span />
         )}
         {next ? (
-          <Link href={lessonHref(next.id)} className="text-end text-ink hover:underline">
-            <span className="block text-sm text-muted">الدرس التالي</span>
+          <Link href={lessonHref(next.id)} className="text-end text-on-surface hover:underline">
+            <span className="block text-sm text-on-surface-variant">الدرس التالي</span>
             {next.title}
           </Link>
         ) : (

@@ -14,7 +14,7 @@ interface YouTubePlayerProps {
 export function YouTubePlayer({ embedUrl, title, channelName, sourceUrl }: YouTubePlayerProps) {
   return (
     <figure>
-      <div className="aspect-video overflow-hidden rounded-lg bg-ink">
+      <div className="aspect-video overflow-hidden rounded-xl bg-black">
         <iframe
           src={embedUrl}
           title={title}
@@ -25,13 +25,13 @@ export function YouTubePlayer({ embedUrl, title, channelName, sourceUrl }: YouTu
           referrerPolicy="strict-origin-when-cross-origin"
         />
       </div>
-      <figcaption className="mt-3 text-sm text-muted">
-        القناة: <span className="font-medium text-ink">{channelName}</span> ·{' '}
+      <figcaption className="mt-3 text-sm text-on-surface-variant">
+        القناة: <span className="font-medium text-on-surface">{channelName}</span> ·{' '}
         <a
           href={sourceUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-sea underline underline-offset-2 hover:text-sea-dark"
+          className="text-primary underline underline-offset-2 hover:text-secondary-strong"
         >
           شاهد الفيديو الأصلي على يوتيوب
         </a>

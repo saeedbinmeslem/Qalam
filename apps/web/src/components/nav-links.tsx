@@ -40,7 +40,10 @@ export function NavLinks({ items }: { items: NavItem[] }) {
       {/* الجوال: قائمة بلا JavaScript إضافي عبر details */}
       <details className="group relative lg:hidden">
         <summary className="nav-item cursor-pointer list-none gap-2 border border-outline-variant" aria-label="القائمة">
-          <span aria-hidden="true">☰</span> القائمة
+          <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <path d="M4 7h16M4 12h16M4 17h16" />
+          </svg>
+          القائمة
         </summary>
         <nav
           aria-label="التنقل الرئيسي (جوال)"

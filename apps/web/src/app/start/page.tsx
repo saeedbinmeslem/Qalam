@@ -57,7 +57,7 @@ export default async function StartPage({ searchParams }: { searchParams: Promis
           <button type="submit" className="btn-filled">
             اختر لي المسار وابنِ خطتي
           </button>
-          <p className="text-sm text-muted">
+          <p className="text-sm text-on-surface-variant">
             يختار الذكاء الاصطناعي من مسارات المنصة فقط، ولا يخترع مصادر. تستطيع أيضًا{' '}
             <Link href="/paths" className="text-primary underline">
               تصفح المسارات بنفسك

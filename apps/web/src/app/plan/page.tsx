@@ -64,11 +64,11 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
         ) : null}
 
         <section aria-label="هدفك" className="card-outlined space-y-2 p-5">
-          <p className="text-sm text-muted">
-            شغفك: <span className="text-ink">{goal.interest}</span>
+          <p className="text-sm text-on-surface-variant">
+            شغفك: <span className="text-on-surface">{goal.interest}</span>
           </p>
-          <p className="text-sm text-muted">
-            مجالك: <span className="text-ink">{goal.field}</span> · المستوى: {levelLabels[goal.level] ?? goal.level} ·{' '}
+          <p className="text-sm text-on-surface-variant">
+            مجالك: <span className="text-on-surface">{goal.field}</span> · المستوى: {levelLabels[goal.level] ?? goal.level} ·{' '}
             {goal.hoursPerWeek} ساعات أسبوعيًا
           </p>
           <ProgressBar percent={progress.percent} label={`${progress.completedCount} مكتمل و${progress.skippedCount} متخطى من ${progress.totalCount}`} />
@@ -89,32 +89,32 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
             </form>
           </div>
           {!plan ? (
-            <p className="mt-3 text-muted">لم تُبنَ خطتك بعد. اضغط «حدّث خطتي».</p>
+            <p className="mt-3 text-on-surface-variant">لم تُبنَ خطتك بعد. اضغط «حدّث خطتي».</p>
           ) : plan.weeks.length === 0 ? (
-            <p className="mt-3 text-muted">أنهيت كل دروس المسار. أحسنت!</p>
+            <p className="mt-3 text-on-surface-variant">أنهيت كل دروس المسار. أحسنت!</p>
           ) : (
             <>
-              <p className="mt-2 text-muted">{plan.summary}</p>
+              <p className="mt-2 text-on-surface-variant">{plan.summary}</p>
               <ol className="mt-5 space-y-4">
                 {plan.weeks.map((week) => (
                   <li key={week.week} className="card-outlined p-5">
                     <p className="text-label text-primary">الأسبوع {week.week} · نحو {week.minutes} دقيقة</p>
-                    <h3 className="mt-1 font-display text-lg font-semibold text-ink">{week.title}</h3>
-                    <p className="mt-1 text-sm text-muted">{week.focus}</p>
+                    <h3 className="mt-1 font-display text-lg font-semibold text-on-surface">{week.title}</h3>
+                    <p className="mt-1 text-sm text-on-surface-variant">{week.focus}</p>
                     <ul className="mt-3 space-y-2">
                       {week.lessons.map((lesson) => (
                         <li key={lesson.id} className="flex items-center justify-between gap-3">
-                          <Link href={`/paths/${goal.pathId}/lessons/${lesson.id}`} className="text-ink hover:underline">
+                          <Link href={`/paths/${goal.pathId}/lessons/${lesson.id}`} className="text-on-surface hover:underline">
                             {lesson.title}
                           </Link>
-                          <span className={lesson.status === 'next' ? 'chip chip-primary' : 'text-xs text-muted'}>{statusLabels[lesson.status]}</span>
+                          <span className={lesson.status === 'next' ? 'chip chip-primary' : 'text-xs text-on-surface-variant'}>{statusLabels[lesson.status]}</span>
                         </li>
                       ))}
                     </ul>
                   </li>
                 ))}
               </ol>
-              <p className="mt-3 text-xs text-muted">{plan.usedAi ? 'صيغت عناوين الأسابيع وأسبابها بالذكاء الاصطناعي من دروس المنصة فقط.' : 'بُنيت الخطة من ساعاتك ونتيجة اختبارك. يصوغ الذكاء الاصطناعي عناوين الأسابيع وأسبابها في الخلفية؛ حدّث الصفحة بعد دقيقة.'}</p>
+              <p className="mt-3 text-xs text-on-surface-variant">{plan.usedAi ? 'صيغت عناوين الأسابيع وأسبابها بالذكاء الاصطناعي من دروس المنصة فقط.' : 'بُنيت الخطة من ساعاتك ونتيجة اختبارك. يصوغ الذكاء الاصطناعي عناوين الأسابيع وأسبابها في الخلفية؛ حدّث الصفحة بعد دقيقة.'}</p>
             </>
           )}
         </section>
@@ -124,13 +124,13 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
             سجلّ ما درستَه
           </h2>
           {history.length === 0 ? (
-            <p className="mt-3 text-muted">لم تُكمل درسًا بعد. ابدأ من الدرس التالي أعلاه.</p>
+            <p className="mt-3 text-on-surface-variant">لم تُكمل درسًا بعد. ابدأ من الدرس التالي أعلاه.</p>
           ) : (
             <ul className="mt-3 space-y-2">
               {history.map((h) => (
-                <li key={`${h.lessonId}-${h.at.getTime()}`} className="flex justify-between gap-3 text-ink">
+                <li key={`${h.lessonId}-${h.at.getTime()}`} className="flex justify-between gap-3 text-on-surface">
                   <span>✓ {h.title}</span>
-                  <time className="text-xs text-muted" dateTime={h.at.toISOString()}>
+                  <time className="text-xs text-on-surface-variant" dateTime={h.at.toISOString()}>
                     {h.at.toLocaleDateString('ar')}
                   </time>
                 </li>

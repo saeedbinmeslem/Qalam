@@ -97,9 +97,9 @@ export function PrintButton({
           aria-modal="true"
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
         >
-          <div className="w-full max-w-sm rounded-2xl bg-sheet p-6 shadow-xl">
-            <p className="text-lg font-semibold text-ink">سيتم تنزيل الشرح كملف PDF</p>
-            <p className="mt-2 text-sm text-muted">إذا كان الشرح طويلًا فسيُقسَّم تلقائيًا على عدد الصفحات اللازم.</p>
+          <div className="w-full max-w-sm rounded-2xl bg-surface-container-lowest p-6 shadow-xl">
+            <p className="text-lg font-semibold text-on-surface">سيتم تنزيل الشرح كملف PDF</p>
+            <p className="mt-2 text-sm text-on-surface-variant">إذا كان الشرح طويلًا فسيُقسَّم تلقائيًا على عدد الصفحات اللازم.</p>
             {error ? <p className="mt-3 text-sm text-error">{error}</p> : null}
             <div className="mt-5 flex gap-3">
               <button type="button" className="btn-filled" onClick={download} disabled={busy}>

@@ -40,6 +40,7 @@ export * from './use-cases/admin/admin-lessons.usecases.js';
 export * from './use-cases/admin/admin-concepts.usecases.js';
 export * from './ports/playlist-catalog.port.js';
 export * from './use-cases/admin/admin-playlist-import.usecases.js';
+export * from './use-cases/admin/admin-videos-import.usecases.js';
 export * from './use-cases/admin/admin-path-enrichment.usecases.js';
 export * from './use-cases/admin/admin-background-jobs.usecases.js';
 export * from './use-cases/admin/admin-title-translation.usecases.js';

@@ -21,16 +21,16 @@ export async function SiteHeader() {
   const user = await auth.getCurrentUser.execute();
 
   return (
-    <header className="sticky top-0 z-30 border-b border-outline-variant bg-surface-container-lowest/95 backdrop-blur">
-      <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-5 py-3 md:px-8">
-        <div className="flex items-center gap-6">
+    <header className="sticky top-0 z-30 border-b border-outline-variant bg-surface-container-lowest">
+      <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-2 px-5 py-3 sm:gap-4 md:px-8">
+        <div className="flex items-center gap-3 sm:gap-6">
           <Link href="/" aria-label="قلم — الرئيسية">
             <QalamLogo size={34} />
           </Link>
           <NavLinks items={primaryNav} />
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2">
           <ThemeToggle />
           {user ? (
             <>

@@ -3,8 +3,9 @@
  * @description لوحة التحكم: قائمة المسارات مع تقدم المراجعة، وإنشاء مسار جديد.
  */
 import Link from 'next/link';
-import { Card, ErrorBanner, Field, primaryButton } from '../../components/admin-ui';
+import { AdminPageHeader, Card, ErrorBanner, Field, primaryButton } from '../../components/admin-ui';
 import { formatDuration, lessonsText, modulesText } from '../../components/format';
+import { StatTile } from '../../components/ui';
 import { getAdminContainer } from '../../composition/admin';
 import { createPathAction } from './actions';
 
@@ -12,35 +13,58 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
   const { error } = await searchParams;
   const { listPaths } = await getAdminContainer();
   const paths = await listPaths.execute();
+  const totalLessons = paths.reduce((sum, p) => sum + p.lessonsCount, 0);
+  const totalReviewed = paths.reduce((sum, p) => sum + p.reviewedLessonsCount, 0);
 
   return (
     <>
       <ErrorBanner message={error} />
 
-      <h1 className="font-display text-2xl font-extrabold text-ink">المسارات</h1>
+      <AdminPageHeader title="المسارات" description="إدارة المسارات والدروس ومتابعة تقدّم المراجعة البشرية." />
+
+      <div className="mb-8 grid gap-4 sm:grid-cols-3">
+        <StatTile value={String(paths.length)} label="مسارًا" />
+        <StatTile value={String(totalLessons)} label="درسًا" />
+        <StatTile
+          value={totalLessons > 0 ? `${Math.round((totalReviewed / totalLessons) * 100)}%` : '—'}
+          label="نسبة المراجعة البشرية"
+          hint={`${totalReviewed} من ${totalLessons} درسًا`}
+        />
+      </div>
+
       {paths.length === 0 ? (
-        <p className="mt-4 text-muted">لا توجد مسارات بعد. أنشئ أول مسار من النموذج أدناه.</p>
+        <p className="text-on-surface-variant">لا توجد مسارات بعد. أنشئ أول مسار من النموذج أدناه.</p>
       ) : (
-        <ul className="mt-5 divide-y divide-rule card-outlined">
-          {paths.map((path) => (
-            <li key={path.id} className="grid gap-2 p-4 md:grid-cols-[1fr_auto] md:items-center">
-              <div>
-                <Link href={`/admin/paths/${path.id}`} className="font-display text-lg font-semibold text-ink hover:underline">
-                  {path.title}
-                </Link>
-                <p className="text-sm text-muted">
-                  {path.subject} · {modulesText(path.modulesCount)}، {lessonsText(path.lessonsCount)} ·{' '}
-                  {formatDuration(path.totalDurationSeconds)}
+        <div className="data-table" role="table" aria-label="المسارات">
+          <div className="data-table-head hidden md:grid md:grid-cols-[1fr_auto_auto]" role="row">
+            <span role="columnheader">المسار</span>
+            <span role="columnheader">المحتوى</span>
+            <span role="columnheader" className="w-32 text-end">
+              المراجعة
+            </span>
+          </div>
+          {paths.map((path) => {
+            const done = path.lessonsCount > 0 && path.reviewedLessonsCount === path.lessonsCount;
+            return (
+              <div key={path.id} role="row" className="data-table-row md:grid-cols-[1fr_auto_auto]">
+                <div role="cell">
+                  <Link href={`/admin/paths/${path.id}`} className="text-title font-display text-on-surface hover:text-primary">
+                    {path.title}
+                  </Link>
+                  <p className="text-caption text-on-surface-variant">{path.subject}</p>
+                </div>
+                <p role="cell" className="tabular text-sm text-on-surface-variant">
+                  {modulesText(path.modulesCount)}، {lessonsText(path.lessonsCount)} · {formatDuration(path.totalDurationSeconds)}
+                </p>
+                <p role="cell" className="tabular w-32 md:text-end">
+                  <span className={done ? 'chip chip-primary' : 'chip chip-warn'}>
+                    {path.reviewedLessonsCount} / {path.lessonsCount}
+                  </span>
                 </p>
               </div>
-              <p
-                className={`text-sm font-medium ${path.reviewedLessonsCount === path.lessonsCount && path.lessonsCount > 0 ? 'text-sea-dark' : 'text-ink'}`}
-              >
-                مراجَع {path.reviewedLessonsCount} من {path.lessonsCount}
-              </p>
-            </li>
-          ))}
-        </ul>
+            );
+          })}
+        </div>
       )}
 
       <div className="mt-10">

@@ -6,6 +6,7 @@
  * الرفع يتم من المتصفح مباشرة إلى Cloudinary بتوقيع من الخادم؛ ما يصل لنموذجنا رابط نصي ومدة فقط.
  */
 import { useState } from 'react';
+import { uploadVideo } from './cloudinary-upload';
 
 interface Props {
   defaults: { videoUrl?: string; start?: string; end?: string; mediaUrl?: string };
@@ -16,8 +17,6 @@ type UploadState =
   | { phase: 'uploading'; percent: number }
   | { phase: 'error'; message: string };
 
-const MAX_BYTES = 100 * 1024 * 1024; // حدّ رفع الفيديو الواحد في الخطة المجانية لـ Cloudinary
-
 export function LessonVideoSource({ defaults }: Props) {
   const [mode, setMode] = useState<'youtube' | 'upload'>(defaults.mediaUrl ? 'upload' : 'youtube');
   const [mediaUrl, setMediaUrl] = useState(defaults.mediaUrl ?? '');
@@ -26,44 +25,11 @@ export function LessonVideoSource({ defaults }: Props) {
 
   async function onPick(file: File | undefined) {
     if (!file) return;
-    if (file.size > MAX_BYTES) {
-      setUpload({ phase: 'error', message: 'حجم الفيديو أكبر من 100 ميجابايت. اضغطه أو قصّه ثم أعد المحاولة.' });
-      return;
-    }
     setUpload({ phase: 'uploading', percent: 0 });
     try {
-      const response = await fetch('/api/admin/upload-ticket', { method: 'POST' });
-      const ticket = await response.json();
-      if (!response.ok) throw new Error(ticket.error ?? 'تعذّر بدء الرفع');
-
-      const body = new FormData();
-      body.set('file', file);
-      body.set('api_key', ticket.apiKey);
-      body.set('timestamp', String(ticket.timestamp));
-      body.set('folder', ticket.folder);
-      body.set('signature', ticket.signature);
-
-      const result = await new Promise<{ secure_url: string; duration?: number }>((resolve, reject) => {
-        const request = new XMLHttpRequest();
-        request.open('POST', ticket.uploadUrl);
-        request.upload.onprogress = (event) => {
-          if (event.lengthComputable) setUpload({ phase: 'uploading', percent: Math.round((event.loaded / event.total) * 100) });
-        };
-        request.onload = () => {
-          try {
-            const json = JSON.parse(request.responseText);
-            if (request.status >= 200 && request.status < 300) resolve(json);
-            else reject(new Error(json.error?.message ?? 'رفضت Cloudinary الملف'));
-          } catch {
-            reject(new Error('ردّ غير مفهوم من Cloudinary'));
-          }
-        };
-        request.onerror = () => reject(new Error('انقطع الاتصال أثناء الرفع'));
-        request.send(body);
-      });
-
-      setMediaUrl(result.secure_url);
-      setDuration(result.duration ? String(result.duration) : '');
+      const uploaded = await uploadVideo(file, (percent) => setUpload({ phase: 'uploading', percent }));
+      setMediaUrl(uploaded.url);
+      setDuration(uploaded.durationSeconds ? String(uploaded.durationSeconds) : '');
       setUpload({ phase: 'idle' });
     } catch (error) {
       setUpload({ phase: 'error', message: error instanceof Error ? error.message : 'فشل الرفع' });
@@ -104,7 +70,7 @@ export function LessonVideoSource({ defaults }: Props) {
             />
           </label>
           {upload.phase === 'uploading' ? (
-            <p role="status" className="text-sm text-muted">
+            <p role="status" className="text-sm text-on-surface-variant">
               جارٍ الرفع… {upload.percent}%
             </p>
           ) : null}
@@ -114,11 +80,11 @@ export function LessonVideoSource({ defaults }: Props) {
             </p>
           ) : null}
           {mediaUrl ? (
-            <p className="break-all text-xs text-muted" dir="ltr">
+            <p className="break-all text-xs text-on-surface-variant" dir="ltr">
               تم الرفع: {mediaUrl}
             </p>
           ) : (
-            <p className="text-xs text-muted">يُرفع إلى Cloudinary ويُحفظ رابطه نصًا فقط. الحد 100 ميجابايت.</p>
+            <p className="text-xs text-on-surface-variant">يُرفع إلى Cloudinary ويُحفظ رابطه نصًا فقط. الحد 100 ميجابايت.</p>
           )}
         </div>
       ) : (

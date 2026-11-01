@@ -45,35 +45,35 @@ export default async function PathPage({ params }: { params: Promise<{ pathId: s
 
   return (
     <>
-      <section className="bg-ink text-on-primary">
-        <div className="mx-auto max-w-6xl px-5 md:px-8 py-14">
-          <Link href="/paths" className="text-sm text-on-primary/70 hover:text-on-primary">
+      <section className="bg-surface-container-low">
+        <div className="mx-auto max-w-6xl px-5 py-14 md:px-8 md:py-20">
+          <Link href="/paths" className="text-sm text-on-surface-variant hover:text-primary">
             كل المسارات
           </Link>
-          <h1 className="mt-4 font-display text-3xl font-extrabold leading-[1.5] md:text-4xl">
+          <h1 className="mt-4 font-display text-display text-on-surface">
             {path.title}
           </h1>
-          <p className="mt-3 max-w-[40rem] text-lg text-on-primary/80">{path.description}</p>
-          <dl className="mt-8 flex flex-wrap gap-x-10 gap-y-3 text-on-primary/90">
+          <p className="mt-3 max-w-[40rem] text-lg text-on-surface-variant">{path.description}</p>
+          <dl className="mt-8 flex flex-wrap gap-x-10 gap-y-3 text-on-surface">
             <div>
-              <dt className="text-sm text-on-primary/60">الهدف</dt>
+              <dt className="text-sm text-on-surface-variant">الهدف</dt>
               <dd>{path.targetGoal}</dd>
             </div>
             <div>
-              <dt className="text-sm text-on-primary/60">المحتوى</dt>
+              <dt className="text-sm text-on-surface-variant">المحتوى</dt>
               <dd>
                 {modulesText(totalModulesCount)}، {lessonsText(totalLessonsCount)}
               </dd>
             </div>
             <div>
-              <dt className="text-sm text-on-primary/60">مدة المشاهدة</dt>
+              <dt className="text-sm text-on-surface-variant">مدة المشاهدة</dt>
               <dd>{formatDuration(path.totalDurationSeconds)}</dd>
             </div>
           </dl>
 
           {progress ? (
             <div className="mt-8 max-w-md">
-              <div className="flex items-baseline justify-between text-sm text-on-primary/80">
+              <div className="flex items-baseline justify-between text-sm text-on-surface-variant">
                 <span>
                   أكملت {progress.completedCount}
                   {progress.skippedCount > 0 ? ` وتخطّيت ${progress.skippedCount}` : ''} من {progress.totalCount}
@@ -86,14 +86,14 @@ export default async function PathPage({ params }: { params: Promise<{ pathId: s
                 aria-valuenow={progress.percent}
                 aria-valuemin={0}
                 aria-valuemax={100}
-                className="mt-2 h-2 overflow-hidden rounded-full bg-on-primary/20"
+                className="mt-2 h-2 overflow-hidden rounded-full bg-surface-container-highest"
               >
-                <div className="h-full rounded-full bg-highlighter" style={{ width: `${progress.percent}%` }} />
+                <div className="h-full rounded-full bg-primary" style={{ width: `${progress.percent}%` }} />
               </div>
               {diagnosticAvailable ? (
                 <Link
                   href={`/paths/${path.id}/diagnostic`}
-                  className="mt-5 me-3 inline-block rounded-lg border border-on-primary/40 px-5 py-2.5 font-medium text-on-primary transition-colors hover:bg-on-primary/10"
+                  className="btn-outlined mt-5 me-3"
                 >
                   اختبار تشخيصي: تخطَّ ما تعرفه
                 </Link>
@@ -101,12 +101,12 @@ export default async function PathPage({ params }: { params: Promise<{ pathId: s
               {progress.nextLesson ? (
                 <Link
                   href={lessonHref(progress.nextLesson.id)}
-                  className="mt-5 inline-block rounded-lg bg-highlighter px-5 py-2.5 font-medium text-ink transition-opacity hover:opacity-90"
+                  className="btn-filled mt-5"
                 >
                   {progress.completedCount === 0 ? 'ابدأ المسار' : 'تابع من حيث توقفت'}
                 </Link>
               ) : (
-                <p className="mt-5 font-medium text-highlighter">أكملت هذا المسار 🎉</p>
+                <p className="mt-5 font-medium text-primary">أكملت هذا المسار 🎉</p>
               )}
             </div>
           ) : null}
@@ -115,39 +115,39 @@ export default async function PathPage({ params }: { params: Promise<{ pathId: s
 
       {advice ? (
         <section aria-labelledby="why-title" className="mx-auto max-w-6xl px-5 md:px-8 pt-10">
-          <div className="card-outlined border-s-4 border-s-highlighter p-5">
-            <p className="text-sm font-medium text-muted">
+          <div className="card-filled border-s-4 border-violet p-6">
+            <p className="chip chip-ai">
               اقتراح وكيل التعلّم: {actionLabels[advice.decision.action]}
             </p>
-            <p className="mt-1 font-display text-lg font-semibold text-ink">
+            <p className="mt-1 font-display text-lg font-semibold text-on-surface">
               {advice.decision.action === 'proceed'
                 ? `الدرس التالي: ${advice.lessonTitle}`
                 : advice.decision.action === 'alternative_lesson'
                   ? `جرّب: ${advice.alternativeLessonTitle ?? advice.lessonTitle}`
                   : advice.lessonTitle}
             </p>
-            <h2 id="why-title" className="mt-4 text-sm font-semibold text-ink">
+            <h2 id="why-title" className="mt-4 text-sm font-semibold text-on-surface">
               لماذا اقترحنا هذا؟
             </h2>
-            <p className="mt-1 text-ink">{advice.decision.reason}</p>
-            {advice.explanation ? <p className="mt-2 text-muted">{advice.explanation}</p> : null}
+            <p className="mt-1 text-on-surface">{advice.decision.reason}</p>
+            {advice.explanation ? <p className="mt-2 text-on-surface-variant">{advice.explanation}</p> : null}
             <Link
               href={lessonHref(
                 advice.decision.action === 'alternative_lesson' && advice.decision.alternativeLessonId
                   ? advice.decision.alternativeLessonId
                   : advice.decision.lessonId,
               )}
-              className="mt-4 inline-block text-sea underline underline-offset-2 hover:text-sea-dark"
+              className="mt-4 inline-block text-primary underline underline-offset-2 hover:text-secondary-strong"
             >
               افتح الدرس
             </Link>
             {history.length > 0 ? (
-              <details className="mt-4 text-sm text-muted">
-                <summary className="cursor-pointer text-ink">اقتراحات سابقة</summary>
+              <details className="mt-4 text-sm text-on-surface-variant">
+                <summary className="cursor-pointer text-on-surface">اقتراحات سابقة</summary>
                 <ul className="mt-2 space-y-2">
                   {history.map((h) => (
                     <li key={h.decidedAt.toISOString()}>
-                      <span className="font-medium text-ink">{actionLabels[h.action]}</span> —{' '}
+                      <span className="font-medium text-on-surface">{actionLabels[h.action]}</span> —{' '}
                       {lessonTitles.get(h.lessonId) ?? h.lessonId}: {h.reason}
                     </li>
                   ))}
@@ -162,11 +162,11 @@ export default async function PathPage({ params }: { params: Promise<{ pathId: s
         {concepts
           .filter((concept) => path.courses.some((c) => c.conceptId === concept.id))
           .map((concept) => (
-            <section key={concept.id} className="mb-14" aria-labelledby={`concept-${concept.id}`}>
-              <h2 id={`concept-${concept.id}`} className="font-display text-2xl font-extrabold text-ink">
+            <section key={concept.id} className="mb-20" aria-labelledby={`concept-${concept.id}`}>
+              <h2 id={`concept-${concept.id}`} className="font-display text-headline text-on-surface">
                 {concept.name}
               </h2>
-              {concept.description ? <p className="mt-1 text-muted">{concept.description}</p> : null}
+              {concept.description ? <p className="mt-1 text-on-surface-variant">{concept.description}</p> : null}
 
               {path.courses
                 .filter((course) => course.conceptId === concept.id)
@@ -179,15 +179,15 @@ export default async function PathPage({ params }: { params: Promise<{ pathId: s
                     <Link
                       key={course.id}
                       href={`/paths/${path.id}/courses/${course.id}`}
-                      className="card-outlined mt-6 block p-5 shadow-sm transition-colors hover:border-ink md:p-6"
+                      className="card-filled card-interactive mt-6 block p-6 md:p-7"
                     >
-                      <h3 className="font-display text-xl font-semibold text-ink">{course.title}</h3>
-                      <p className="mt-1 text-xs text-muted">
+                      <h3 className="font-display text-xl font-semibold text-on-surface">{course.title}</h3>
+                      <p className="mt-1 text-xs text-on-surface-variant">
                         {modulesText(course.modules.length)}، {lessonsText(course.lessonsCount)} · {formatDuration(course.totalDurationSeconds)}
                       </p>
-                      {course.description ? <p className="mt-1 text-sm text-muted">{course.description}</p> : null}
+                      {course.description ? <p className="mt-1 text-sm text-on-surface-variant">{course.description}</p> : null}
                       {progress ? (
-                        <p className="mt-3 text-sm font-medium text-ink">
+                        <p className="mt-3 text-sm font-medium text-on-surface">
                           أنجزت {done} من {lessons.length}
                         </p>
                       ) : null}

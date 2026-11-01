@@ -4,7 +4,7 @@
  * playlistItems للترتيب والعناوين، وvideos للمدة والقناة. بيانات وصفية فقط (لا نسخ للفيديو).
  * الفيديوهات الخاصة والمحذوفة تُهمل لأن واجهة يوتيوب لا تعيد لها بيانات.
  */
-import type { PlaylistCatalogPort, PlaylistVideo } from '@qalam/application';
+import type { PlaylistCatalogPort, PlaylistVideo, VideoMetadataPort } from '@qalam/application';
 
 const API = 'https://www.googleapis.com/youtube/v3';
 /** حد أمان فقط (لا حد عملي): الكورس يُستورد كاملًا مهما طال، ويوتيوب يعيد 50 عنصرًا في الصفحة */
@@ -33,7 +33,7 @@ export function parseIsoDuration(iso: string): number {
   return (d ?? 0) * 86400 + (h ?? 0) * 3600 + (min ?? 0) * 60 + (s ?? 0);
 }
 
-export class YouTubePlaylistCatalog implements PlaylistCatalogPort {
+export class YouTubePlaylistCatalog implements PlaylistCatalogPort, VideoMetadataPort {
   constructor(
     private readonly apiKey: string | undefined,
     private readonly fetchImpl: Fetch = fetch,
@@ -78,6 +78,27 @@ export class YouTubePlaylistCatalog implements PlaylistCatalogPort {
     }
     // نحافظ على ترتيب القائمة ونُسقط المحذوف/الخاص (لا يعيده videos)
     return ids.flatMap((id) => byId.get(id) ?? []);
+  }
+
+  async getVideos(videoIds: string[]): Promise<PlaylistVideo[]> {
+    if (!this.apiKey) throw new Error('قراءة بيانات الفيديو غير مفعّلة: أضف YOUTUBE_API_KEY (مجاني من Google Cloud)');
+    const found: PlaylistVideo[] = [];
+    for (let i = 0; i < videoIds.length; i += 50) {
+      const data = await this.get<VideosResponse>('videos', {
+        part: 'snippet,contentDetails',
+        id: videoIds.slice(i, i + 50).join(','),
+      });
+      for (const v of data.items ?? []) {
+        found.push({
+          videoId: v.id,
+          title: v.snippet?.title ?? '',
+          channelName: v.snippet?.channelTitle ?? '',
+          description: v.snippet?.description ?? '',
+          durationSeconds: parseIsoDuration(v.contentDetails?.duration ?? ''),
+        });
+      }
+    }
+    return found;
   }
 
   private async get<T>(resource: string, params: Record<string, string>): Promise<T> {

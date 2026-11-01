@@ -49,6 +49,19 @@ export function Field({ label, name, defaultValue, required, dir, hint, rows, pl
   );
 }
 
+/** ترويسة صفحة اللوحة: عنوان ووصف وإجراء رئيسي واحد */
+export function AdminPageHeader({ title, description, actions }: { title: string; description?: string; actions?: ReactNode }) {
+  return (
+    <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
+      <div className="max-w-2xl">
+        <h1 className="font-display text-headline text-on-surface">{title}</h1>
+        {description ? <p className="mt-1 text-on-surface-variant">{description}</p> : null}
+      </div>
+      {actions ? <div className="flex flex-wrap gap-3">{actions}</div> : null}
+    </header>
+  );
+}
+
 export function ErrorBanner({ message }: { message?: string }) {
   if (!message) return null;
   return (

@@ -47,11 +47,11 @@ export default async function AdminCoursePage({
 
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <Link href={`/admin/paths/${path.id}`} className="text-sm text-muted hover:text-ink">
+          <Link href={`/admin/paths/${path.id}`} className="text-sm text-on-surface-variant hover:text-on-surface">
             ← {path.title}
           </Link>
-          <h1 className="font-display text-2xl font-extrabold text-ink">{course.title}</h1>
-          {conceptName ? <p className="text-sm text-muted">المفهوم: {conceptName}</p> : null}
+          <h1 className="font-display text-headline text-on-surface">{course.title}</h1>
+          {conceptName ? <p className="text-sm text-on-surface-variant">المفهوم: {conceptName}</p> : null}
         </div>
         <Link href={`/paths/${path.id}`} className={ghostButton}>
           عرض كما يراه المتعلم
@@ -62,7 +62,7 @@ export default async function AdminCoursePage({
         <form action={enrichPathAction} data-inline-loader className="mb-6 card-outlined p-5">
           <input type="hidden" name="pathId" value={path.id} />
           <input type="hidden" name="courseId" value={course.id} />
-          <p className="mb-3 text-sm text-muted">
+          <p className="mb-3 text-sm text-on-surface-variant">
             {pendingText} من أصل {course.lessonsCount} درسًا في هذا الكورس بلا ملاحظات أو ملخص بعد. إن لم تكتمل الخلفية (أو انتهت حصة النموذج) فأكملها من هنا.
           </p>
           <PendingButton className={ghostButton}>أكمل الملاحظات والملخصات والأسئلة</PendingButton>
@@ -75,7 +75,7 @@ export default async function AdminCoursePage({
         <form action={translateTitlesAction} data-inline-loader className="mb-6 card-outlined p-5">
           <input type="hidden" name="pathId" value={path.id} />
           <input type="hidden" name="courseId" value={course.id} />
-          <p className="mb-3 text-sm text-muted">
+          <p className="mb-3 text-sm text-on-surface-variant">
             {englishTitles} درسًا عنوانه بالإنجليزية (من يوتيوب). تُترجم إلى العربية مع إبقاء المصطلحات التقنية كما هي.
           </p>
           <PendingButton className={ghostButton}>ترجمة العناوين إلى العربية</PendingButton>
@@ -85,7 +85,7 @@ export default async function AdminCoursePage({
       ) : null}
 
       <details className="mb-6 card-outlined p-5">
-        <summary className="cursor-pointer font-medium text-ink">إكمال إضافة دروس القائمة (إن لم تُضَف كاملة)</summary>
+        <summary className="cursor-pointer font-medium text-on-surface">إكمال إضافة دروس القائمة (إن لم تُضَف كاملة)</summary>
         <form action={importPlaylistAction} data-inline-loader className="mt-4 space-y-4">
           <input type="hidden" name="pathId" value={path.id} />
           <input type="hidden" name="courseId" value={course.id} />

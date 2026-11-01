@@ -26,6 +26,7 @@ import {
   GenerateQuestionsUseCase,
   GenerateStudyGuideUseCase,
   ImportPlaylistUseCase,
+  ImportVideosUseCase,
   SetStudyGuideUseCase,
   SummarizeLessonUseCase,
   ListLessonQuestionsUseCase,
@@ -154,6 +155,7 @@ export interface AdminContainer {
   deleteConcept: DeleteConceptUseCase;
   draftLessonNotes: DraftLessonNotesUseCase;
   importPlaylist: ImportPlaylistUseCase;
+  importVideos: ImportVideosUseCase;
   enrichPath: EnrichPathUseCase;
   translateTitles: TranslateLessonTitlesUseCase;
   startJob: StartBackgroundJobUseCase;
@@ -206,6 +208,10 @@ export async function getAdminContainer(): Promise<AdminContainer> {
     importPlaylist: new ImportPlaylistUseCase({
       ...deps,
       playlists: new YouTubePlaylistCatalog(process.env.YOUTUBE_API_KEY),
+    }),
+    importVideos: new ImportVideosUseCase({
+      ...deps,
+      videos: new YouTubePlaylistCatalog(process.env.YOUTUBE_API_KEY),
     }),
     enrichPath: new EnrichPathUseCase(deps),
     translateTitles: new TranslateLessonTitlesUseCase(deps),

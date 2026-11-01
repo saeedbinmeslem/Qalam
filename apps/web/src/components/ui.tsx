@@ -40,7 +40,7 @@ export function PageHeader({ eyebrow, title, description, crumbs, actions }: Pag
         ) : null}
         <div className="flex flex-wrap items-end justify-between gap-6">
           <div className="max-w-3xl">
-            {eyebrow ? <p className="text-label text-primary">{eyebrow}</p> : null}
+            {eyebrow ? <p className="text-label text-secondary-strong">{eyebrow}</p> : null}
             <h1 className="mt-1 font-display text-headline text-on-surface md:text-display">{title}</h1>
             {description ? <p className="text-body mt-3 text-on-surface-variant">{description}</p> : null}
           </div>
@@ -61,7 +61,10 @@ export function ProgressBar({ percent, label }: { percent: number; label: string
       aria-valuemax={100}
       className="h-2 overflow-hidden rounded-full bg-surface-container-highest"
     >
-      <div className="h-full rounded-full bg-primary" style={{ width: `${percent}%` }} />
+      <div
+        className="h-full rounded-full bg-secondary-strong transition-[width] duration-300 ease-[var(--ease-emphasized-decel)]"
+        style={{ width: `${percent}%` }}
+      />
     </div>
   );
 }
@@ -69,9 +72,9 @@ export function ProgressBar({ percent, label }: { percent: number; label: string
 export function StatTile({ value, label, hint }: { value: string; label: string; hint?: string }) {
   return (
     <div className="card-filled p-5">
-      <p className="font-display text-3xl font-extrabold text-primary">{value}</p>
-      <p className="text-label mt-1 text-on-surface">{label}</p>
-      {hint ? <p className="mt-0.5 text-xs text-on-surface-variant">{hint}</p> : null}
+      <p className="tabular font-display text-3xl font-bold text-on-surface">{value}</p>
+      <p className="text-label mt-1 text-on-surface-variant">{label}</p>
+      {hint ? <p className="text-caption mt-0.5 text-on-surface-variant">{hint}</p> : null}
     </div>
   );
 }
@@ -103,21 +106,34 @@ export function PathCard({ path }: { path: PathCardData }) {
   return (
     <Link
       href={`/paths/${path.id}`}
-      className="card-outlined group flex h-full flex-col p-6 transition-shadow hover:shadow-[var(--shadow-elevation-2)]"
+      className="card-outlined card-interactive group flex h-full flex-col p-6"
     >
       <span className="chip chip-primary self-start">{path.subject}</span>
       <h3 className="font-display text-title mt-4 text-on-surface group-hover:text-primary">{path.title}</h3>
-      <p className="mt-2 line-clamp-3 flex-1 text-on-surface-variant">{path.description}</p>
-      <dl className="mt-5 flex flex-wrap gap-x-4 gap-y-1 text-sm text-on-surface-variant">
-        <dd>{modulesText(path.modulesCount)}</dd>
-        <dd>{lessonsText(path.lessonsCount)}</dd>
-        <dd>{formatDuration(path.totalDurationSeconds)}</dd>
+      <p className="mt-2 line-clamp-2 flex-1 text-on-surface-variant">{path.description}</p>
+      <dl className="mt-5 flex flex-wrap gap-x-4 gap-y-1 border-t border-outline-variant pt-4 text-sm text-on-surface-variant">
+        <div>
+          <dt className="sr-only">الوحدات</dt>
+          <dd>{modulesText(path.modulesCount)}</dd>
+        </div>
+        <div>
+          <dt className="sr-only">الدروس</dt>
+          <dd>{lessonsText(path.lessonsCount)}</dd>
+        </div>
+        <div>
+          <dt className="sr-only">المدة</dt>
+          <dd>{formatDuration(path.totalDurationSeconds)}</dd>
+        </div>
       </dl>
       {path.percent !== undefined ? (
         <div className="mt-4">
           <div className="mb-1 flex justify-between text-xs text-on-surface-variant">
             <span>تقدّمك</span>
-            <span>{path.percent}%</span>
+            {path.percent >= 100 ? (
+              <span className="chip chip-mastery">✓ مكتمل</span>
+            ) : (
+              <span className="tabular">{path.percent}%</span>
+            )}
           </div>
           <ProgressBar percent={path.percent} label={`تقدمك في ${path.title}`} />
         </div>

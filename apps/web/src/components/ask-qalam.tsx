@@ -12,11 +12,11 @@ export function AskQalam({ pathId, lessonId }: { pathId: string; lessonId: strin
   const [state, action, pending] = useActionState<AskState, FormData>(askLessonAction, {});
 
   return (
-    <section className="mt-10 max-w-[40rem]" aria-labelledby="ask-title">
-      <h2 id="ask-title" className="font-display text-xl font-semibold text-ink">
+    <section className="mt-10 max-w-[40rem] border-s-4 border-violet ps-5" aria-labelledby="ask-title">
+      <h2 id="ask-title" className="font-display text-xl font-semibold text-on-surface">
         اسأل قلم عن هذا الدرس
       </h2>
-      <p className="mt-1 text-sm text-muted">يجيبك من مادة الدرس فقط، فإن لم تكفِ أخبرك بصدق.</p>
+      <p className="mt-1 text-sm text-on-surface-variant">يجيبك من مادة الدرس فقط، فإن لم تكفِ أخبرك بصدق.</p>
       <form action={action} data-inline-loader className="mt-4 space-y-3">
         <input type="hidden" name="pathId" value={pathId} />
         <input type="hidden" name="lessonId" value={lessonId} />
@@ -43,9 +43,9 @@ export function AskQalam({ pathId, lessonId }: { pathId: string; lessonId: strin
       ) : null}
       {state.answer ? (
         <div role="status" className="card-outlined mt-4 p-4">
-          <p className="whitespace-pre-line leading-8 text-ink">{state.answer}</p>
+          <p className="whitespace-pre-line leading-8 text-on-surface">{state.answer}</p>
           {state.grounded ? null : (
-            <p className="mt-2 text-xs text-muted">هذه الإجابة ليست من مادة الدرس؛ راجع الفيديو للتأكد.</p>
+            <p className="mt-2 text-xs text-on-surface-variant">هذه الإجابة ليست من مادة الدرس؛ راجع الفيديو للتأكد.</p>
           )}
         </div>
       ) : null}

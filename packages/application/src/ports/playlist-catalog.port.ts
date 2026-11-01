@@ -13,6 +13,12 @@ export interface PlaylistVideo {
   description: string;
 }
 
+/** منفذ قراءة بيانات فيديوهات مفردة بمعرّفاتها (لاستيراد فيديوهات مستقلة بلا قائمة) */
+export interface VideoMetadataPort {
+  /** يعيد ما وُجد منها (الخاص والمحذوف يُسقط)؛ الترتيب غير مضمون فيرتّبه المستدعي بمعرّفاته */
+  getVideos(videoIds: string[]): Promise<PlaylistVideo[]>;
+}
+
 export interface PlaylistCatalogPort {
   /** يعيد فيديوهات القائمة بترتيبها؛ يرمي خطأ عربيًا إن كانت خاصة أو غير موجودة أو الخدمة غير مضبوطة */
   listVideos(playlistId: string): Promise<PlaylistVideo[]>;

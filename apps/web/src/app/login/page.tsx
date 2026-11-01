@@ -41,18 +41,18 @@ export default async function LoginPage({
   return (
     <div className="mx-auto max-w-md px-5 py-16">
       <QalamMark size={56} />
-      <h1 className="mt-5 font-display text-3xl font-extrabold text-ink">الدخول إلى قلم</h1>
+      <h1 className="mt-5 font-display text-display text-on-surface">الدخول إلى قلم</h1>
 
       {awaitingCode ? (
         <div className="mt-6 space-y-4">
-          <p role="status" className="rounded-lg border border-sea bg-sheet p-5 text-ink">
+          <p role="status" className="rounded-lg border border-primary bg-surface-container-lowest p-5 text-on-surface">
             أرسلنا رمزًا من 6 أرقام إلى <bdi dir="ltr" className="font-medium">{pendingEmail}</bdi>. اكتبه هنا
             لتدخل. لم يصلك شيء؟ تفقّد مجلد الرسائل غير المرغوبة.
           </p>
           <form action={verifyCodeAction} className="space-y-4">
             <input type="hidden" name="next" value={target} />
             <div>
-              <label htmlFor="code" className="block font-medium text-ink">
+              <label htmlFor="code" className="block font-medium text-on-surface">
                 رمز الدخول
               </label>
               <input
@@ -70,7 +70,7 @@ export default async function LoginPage({
                 aria-describedby={error ? 'code-error' : undefined}
               />
               {error ? (
-                <p id="code-error" role="alert" className="mt-2 text-sm text-red-700">
+                <p id="code-error" role="alert" className="mt-2 text-sm text-error">
                   {errors[error] ?? errors.code}
                 </p>
               ) : null}
@@ -85,7 +85,7 @@ export default async function LoginPage({
           <ResendCodeButton action={resendCodeAction} next={target} />
           <form action={resetSignInAction}>
             <input type="hidden" name="next" value={target} />
-            <button type="submit" className="text-sm text-muted underline underline-offset-4">
+            <button type="submit" className="text-sm text-on-surface-variant underline underline-offset-4">
               غيّر البريد
             </button>
           </form>
@@ -94,7 +94,7 @@ export default async function LoginPage({
         <form action={requestSignInAction} className="mt-6 space-y-4">
           <input type="hidden" name="next" value={target} />
           <div>
-            <label htmlFor="email" className="block font-medium text-ink">
+            <label htmlFor="email" className="block font-medium text-on-surface">
               البريد الإلكتروني
             </label>
             <input
@@ -108,7 +108,7 @@ export default async function LoginPage({
               aria-describedby={error ? 'email-error' : undefined}
             />
             {error ? (
-              <p id="email-error" role="alert" className="mt-2 text-sm text-red-700">
+              <p id="email-error" role="alert" className="mt-2 text-sm text-error">
                 {errors[error] ?? errors.failed}
               </p>
             ) : null}
@@ -119,7 +119,7 @@ export default async function LoginPage({
           >
             أرسل رمز الدخول
           </button>
-          <p className="text-sm text-muted">
+          <p className="text-sm text-on-surface-variant">
             {auth.mode === 'dev'
               ? 'وضع التطوير: يتم الدخول مباشرة دون بريد.'
               : 'لا كلمة مرور: نرسل لك رمزًا من 6 أرقام لتدخل به.'}

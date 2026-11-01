@@ -37,9 +37,9 @@ export default async function QuizResultPage({
 
   if (result.total === 0) {
     return (
-      <div className="mx-auto max-w-2xl px-5 py-16">
-        <p className="text-muted">لا يوجد اختبار لهذا الدرس.</p>
-        <Link href={back} className="mt-4 inline-block text-sea underline">
+      <div className="mx-auto max-w-2xl px-5 md:px-8 py-16">
+        <p className="text-on-surface-variant">لا يوجد اختبار لهذا الدرس.</p>
+        <Link href={back} className="mt-4 inline-block text-primary underline">
           العودة إلى الدرس
         </Link>
       </div>
@@ -47,12 +47,12 @@ export default async function QuizResultPage({
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-5 py-12">
-      <h1 className="font-display text-3xl font-extrabold text-ink">نتيجة الاختبار</h1>
-      <p role="status" className="mt-3 text-xl text-ink">
+    <div className="mx-auto max-w-2xl px-5 md:px-8 py-12">
+      <h1 className="font-display text-display text-on-surface">نتيجة الاختبار</h1>
+      <p role="status" className="mt-3 text-xl text-on-surface">
         أجبتَ صحيحًا على {result.correct} من {result.total} ({result.percent}%)
       </p>
-      <p className="mt-1 text-muted">
+      <p className="mt-1 text-on-surface-variant">
         {result.percent === 100
           ? 'ممتاز! أتقنتَ هذا الدرس.'
           : result.percent >= 60
@@ -63,9 +63,9 @@ export default async function QuizResultPage({
       <ol className="mt-8 space-y-5">
         {result.results.map((r, index) => (
           <li key={r.questionId} className="card-outlined p-4">
-            <p className="font-medium text-ink">
+            <p className="font-medium text-on-surface">
               {index + 1}. {r.prompt}{' '}
-              <span className={r.isCorrect ? 'text-sea-dark' : 'text-red-700'}>{r.isCorrect ? '✓ صحيح' : '✗ خطأ'}</span>
+              <span className={r.isCorrect ? 'text-secondary-strong' : 'text-error'}>{r.isCorrect ? '✓ صحيح' : '✗ خطأ'}</span>
             </p>
             <ul className="mt-2 space-y-1 text-sm">
               {r.choices.map((choice, i) => (
@@ -73,10 +73,10 @@ export default async function QuizResultPage({
                   key={i}
                   className={
                     i === r.correctIndex
-                      ? 'font-medium text-sea-dark'
+                      ? 'font-medium text-secondary-strong'
                       : i === r.chosenIndex
-                        ? 'text-red-700 line-through'
-                        : 'text-muted'
+                        ? 'text-error line-through'
+                        : 'text-on-surface-variant'
                   }
                 >
                   {i === r.correctIndex ? '✓ ' : i === r.chosenIndex ? '✗ ' : '• '}
@@ -85,7 +85,7 @@ export default async function QuizResultPage({
                 </li>
               ))}
             </ul>
-            {r.explanation ? <p className="mt-3 text-sm text-muted">{r.explanation}</p> : null}
+            {r.explanation ? <p className="mt-3 text-sm text-on-surface-variant">{r.explanation}</p> : null}
           </li>
         ))}
       </ol>
