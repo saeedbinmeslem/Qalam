@@ -8,6 +8,7 @@ import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { AdminNav } from '../../components/admin-nav';
 import { BackgroundJobs } from '../../components/background-jobs';
+import { BackgroundUploads } from '../../components/background-uploads';
 import { getAdminContainer } from '../../composition/admin';
 import { isSupabaseConfigured } from '../../composition/auth';
 
@@ -43,6 +44,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
             وضع التطوير: التعديلات تُحفظ في ذاكرة الخادم وتُفقد عند إعادة تشغيله. اربط Supabase لحفظها دائمًا.
           </p>
         )}
+        <BackgroundUploads />
         <BackgroundJobs />
         {children}
       </div>

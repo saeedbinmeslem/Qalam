@@ -61,6 +61,17 @@ export class UpdatePathUseCase {
   }
 }
 
+/** يغيّر غلاف المسار وحده (يستدعيه الرفع الخلفي عند انتهائه دون المرور بنموذج الحفظ). فارغ = إزالة */
+export class SetPathCoverUseCase {
+  constructor(private readonly deps: AdminDeps) {}
+
+  async execute(request: AdminRequest & { pathId: string; coverUrl: string }): Promise<void> {
+    requireAdmin(this.deps.policy, request.actor);
+    const path = await loadPath(this.deps.paths, request.pathId);
+    await this.deps.paths.save(path.updateDetails({ ...path, coverUrl: request.coverUrl }));
+  }
+}
+
 export class DeletePathUseCase {
   constructor(private readonly deps: AdminDeps) {}
 
@@ -192,6 +203,20 @@ export class UpdateCourseUseCase {
         ...(request.coverUrl !== undefined ? { coverUrl: request.coverUrl } : {}),
       }),
     );
+    await this.deps.paths.save(path);
+  }
+}
+
+/** يغيّر غلاف الكورس وحده (الرفع الخلفي). فارغ = إزالة */
+export class SetCourseCoverUseCase {
+  constructor(private readonly deps: AdminDeps) {}
+
+  async execute(request: AdminRequest & { pathId: string; courseId: string; coverUrl: string }): Promise<void> {
+    requireAdmin(this.deps.policy, request.actor);
+    const path = await loadPath(this.deps.paths, request.pathId);
+    const course = path.findCourse(createCourseId(request.courseId));
+    if (!course) throw new NotFoundError('الكورس');
+    path.replaceCourse(course.updateDetails({ title: course.title, description: course.description, coverUrl: request.coverUrl }));
     await this.deps.paths.save(path);
   }
 }

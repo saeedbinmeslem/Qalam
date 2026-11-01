@@ -2,6 +2,7 @@
  * @file page.tsx
  * @description إدارة مفاهيم **مسار واحد** ومتطلباتها السابقة. المفهوم يتبع مسارًا (لا مفاهيم عامة) ويضم كورسًا أو أكثر.
  */
+import { SaveButton } from '../../../components/save-button';
 import Link from 'next/link';
 import { AdminPageHeader, Card, ErrorBanner, Field, dangerButton, ghostButton, inputClass, primaryButton } from '../../../components/admin-ui';
 import { createPathId } from '@qalam/domain';
@@ -125,9 +126,9 @@ export default async function AdminConcepts({
                 selected={concept.prerequisiteIds}
               />
               <div>
-                <button type="submit" className={primaryButton}>
+                <SaveButton className={primaryButton}>
                   حفظ المفهوم
-                </button>
+                </SaveButton>
               </div>
             </form>
             <form action={deleteConceptAction} className="mt-4 border-t border-outline-variant pt-4">

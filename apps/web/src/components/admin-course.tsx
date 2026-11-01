@@ -3,6 +3,7 @@
  * @description مكوّنات إدارة الكورس في لوحة التحكم: الوحدة بدروسها، والكورس بوحداته.
  * تُعرض داخل صفحة الكورس؛ و`back` هو مسار العودة بعد كل إجراء (حتى يبقى المالك في صفحة الكورس).
  */
+import { SaveButton } from './save-button';
 import { formatTimecode, type Course, type LearningPath, type Module } from '@qalam/domain';
 import Link from 'next/link';
 import {
@@ -154,9 +155,9 @@ function ModuleCard({ path, module, back }: { path: LearningPath; module: Module
           <Field label="عنوان الوحدة" name="title" defaultValue={module.title} required />
           <Field label="وصف الوحدة" name="description" defaultValue={module.description} />
           <div>
-            <button type="submit" className={primaryButton}>
+            <SaveButton className={primaryButton}>
               حفظ الوحدة
-            </button>
+            </SaveButton>
           </div>
         </form>
         <form action={deleteModuleAction} className="mt-4 border-t border-outline-variant pt-4">
@@ -256,12 +257,12 @@ export function CourseSection({
             <Field label="وصف الكورس" name="description" defaultValue={course.description} />
           </div>
           <div className="md:col-span-2">
-            <CoverField seed={path.id} title={course.title} defaultValue={course.coverUrl} fallbackUrl={courseCoverUrl({ modules: course.modules })} />
+            <CoverField seed={path.id} target={{ pathId: path.id, courseId: course.id }} title={course.title} defaultValue={course.coverUrl} fallbackUrl={courseCoverUrl({ modules: course.modules })} />
           </div>
           <div>
-            <button type="submit" className={primaryButton}>
+            <SaveButton className={primaryButton}>
               حفظ الكورس
-            </button>
+            </SaveButton>
           </div>
         </form>
         <form action={deleteCourseAction} className="mt-4 border-t border-outline-variant pt-4">

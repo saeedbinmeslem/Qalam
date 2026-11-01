@@ -3,6 +3,7 @@
  * @description تعديل درس ومراجعته: معاينة المقطع كما سيراه المتعلم، ثم اعتماد الدرس أو تعديله.
  * اعتماد الدرس قرار المالك وحده بعد المشاهدة؛ وأي تعديل على المحتوى يسحب الاعتماد تلقائيًا.
  */
+import { SaveButton } from '../../../../../../components/save-button';
 import { createLessonId, createPathId, formatTimecode } from '@qalam/domain';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -115,9 +116,9 @@ export default async function AdminLessonPage({
                 notes: lesson.notes,
               }}
             />
-            <button type="submit" className={primaryButton}>
+            <SaveButton className={primaryButton}>
               حفظ التعديلات
-            </button>
+            </SaveButton>
             <p className="text-xs text-on-surface-variant">أي تعديل على المحتوى يسحب اعتماد المراجعة ليُراجَع من جديد.</p>
           </form>
         </Card>
@@ -133,9 +134,9 @@ export default async function AdminLessonPage({
             <input type="hidden" name="pathId" value={pathId} />
             <input type="hidden" name="lessonId" value={lessonId} />
             <Field label="نص الملخص" name="guide" defaultValue={lesson.studyGuide} rows={10} hint="اتركه فارغًا لإخفاء الملخص عن المتعلم. أي تعديل يسحب اعتماد مراجعة الدرس." />
-            <button type="submit" className={primaryButton}>
+            <SaveButton className={primaryButton}>
               حفظ الملخص
-            </button>
+            </SaveButton>
           </form>
         </Card>
       </div>
@@ -228,9 +229,9 @@ export default async function AdminLessonPage({
                       </div>
                     </fieldset>
                     <Field label="الشرح" name="explanation" defaultValue={q.explanation} rows={2} />
-                    <button type="submit" className={ghostButton}>
+                    <SaveButton className={ghostButton}>
                       حفظ التعديل (يعيده مسودة)
-                    </button>
+                    </SaveButton>
                   </form>
 
                   <div className="mt-3 flex flex-wrap gap-2 border-t border-outline-variant pt-3">

@@ -5,9 +5,11 @@
  * @description حقل صورة الغلاف في لوحة التحكم: معاينة، رفع صورة إلى Cloudinary، إزالة. الحقل المخفي `coverUrl`
  * هو ما يصل للإجراء (فارغ = إزالة الغلاف فيظهر غلاف الحرف). عند غياب الصورة تُعرض المعاينة بغلاف الحرف نفسه.
  */
-import { useId, useState } from 'react';
-import { uploadImage } from './cloudinary-upload';
+import { useEffect, useId, useRef, useState } from 'react';
+import { coverKey, startCoverUpload, useCoverUpload, type CoverTarget } from './background-uploads';
+import { MAX_IMAGE_BYTES } from './cloudinary-upload';
 import { CoverArt } from './cover-art';
+import { REBASE_EVENT } from './save-button';
 
 interface Props {
   /** معرّف يحدد لون غلاف الحرف (معرّف المسار) */
@@ -17,30 +19,38 @@ interface Props {
   defaultValue?: string | undefined;
   /** صورة تُعرض تلقائيًا عند غياب المرفوعة (صورة أول درس للكورس)؛ لا تُحفظ في الحقل */
   fallbackUrl?: string | undefined;
+  /** أين يُحفظ الغلاف تلقائيًا عند انتهاء الرفع الخلفي (المسار، أو كورس فيه) */
+  target: CoverTarget;
 }
 
-type UploadState = { phase: 'idle' } | { phase: 'uploading'; percent: number } | { phase: 'error'; message: string };
-
-export function CoverField({ seed, title, defaultValue, fallbackUrl }: Props) {
+export function CoverField({ seed, title, defaultValue, fallbackUrl, target }: Props) {
   const inputId = useId();
   const [url, setUrl] = useState(defaultValue ?? '');
-  const [upload, setUpload] = useState<UploadState>({ phase: 'idle' });
+  const [pickError, setPickError] = useState('');
+  const upload = useCoverUpload(coverKey(target));
+  const hiddenRef = useRef<HTMLInputElement>(null);
 
-  async function onPick(file: File | undefined) {
+  // انتهى الرفع الخلفي وحُفظ الغلاف: تظهر الصورة الجديدة في المعاينة والحقل المخفي
+  const finishedUrl = upload?.phase === 'done' ? upload.url : '';
+  useEffect(() => {
+    if (!finishedUrl) return;
+    setUrl(finishedUrl);
+    // الغلاف حُفظ على الخادم أصلًا: لا يُعدّ تعديلًا غير محفوظ في النموذج
+    hiddenRef.current?.form?.dispatchEvent(new CustomEvent(REBASE_EVENT, { detail: { name: 'coverUrl', value: finishedUrl } }));
+  }, [finishedUrl]);
+
+  function onPick(file: File | undefined) {
     if (!file) return;
-    setUpload({ phase: 'uploading', percent: 0 });
-    try {
-      setUrl(await uploadImage(file, (percent) => setUpload({ phase: 'uploading', percent })));
-      setUpload({ phase: 'idle' });
-    } catch (error) {
-      setUpload({ phase: 'error', message: error instanceof Error ? error.message : 'فشل الرفع' });
-    }
+    if (!file.type.startsWith('image/')) return setPickError('اختر ملف صورة (JPG أو PNG أو WebP).');
+    if (file.size > MAX_IMAGE_BYTES) return setPickError('حجم الصورة أكبر من 10 ميجابايت. صغّرها ثم أعد المحاولة.');
+    setPickError('');
+    startCoverUpload(target, title, file);
   }
 
-  const uploading = upload.phase === 'uploading';
+  const uploading = upload?.phase === 'uploading' || upload?.phase === 'saving';
   return (
     <div className="grid gap-4 sm:grid-cols-[14rem_1fr] sm:items-start">
-      <input type="hidden" name="coverUrl" value={url} />
+      <input ref={hiddenRef} type="hidden" name="coverUrl" value={url} />
       <CoverArt seed={seed} title={title} imageUrl={url || fallbackUrl || undefined} className="aspect-video w-full rounded-md border border-outline-variant" />
       <div className="space-y-3">
         <p className="text-label text-on-surface">صورة الغلاف</p>
@@ -62,7 +72,7 @@ export function CoverField({ seed, title, defaultValue, fallbackUrl }: Props) {
             className="sr-only"
             disabled={uploading}
             onChange={(event) => {
-              void onPick(event.target.files?.[0]);
+              onPick(event.target.files?.[0]);
               event.target.value = '';
             }}
           />
@@ -73,17 +83,22 @@ export function CoverField({ seed, title, defaultValue, fallbackUrl }: Props) {
           ) : null}
         </div>
         {uploading ? (
-          <p role="status" className="text-sm text-on-surface-variant">
-            جارٍ الرفع… {upload.percent}%
-          </p>
+          <div role="status" className="space-y-1 text-sm text-on-surface-variant">
+            <p>
+              {upload.phase === 'saving' ? 'جارٍ حفظ الغلاف…' : `جارٍ الرفع… ${upload.percent}%`} يعمل في الخلفية، يمكنك متابعة التعديل أو التنقل.
+            </p>
+            <div className="h-1.5 overflow-hidden rounded-full bg-outline-variant">
+              <div className="h-full bg-primary transition-[width]" style={{ width: `${upload.percent}%` }} />
+            </div>
+          </div>
         ) : null}
-        {upload.phase === 'error' ? (
+        {pickError || upload?.phase === 'failed' ? (
           <p role="alert" className="text-sm text-error">
-            {upload.message}
+            {pickError || upload?.message}
           </p>
         ) : null}
         <p className="field-hint">
-          تُحفظ الصورة عند الضغط على «حفظ». يُنصح بأفقية 16:9، ويقصّها الموقع ويصغّرها تلقائيًا.
+          تُحفظ الصورة تلقائيًا فور انتهاء الرفع (وإزالتها تُحفظ بزر «حفظ» الذي يظهر عند التعديل). يُنصح بأفقية 16:9، ويقصّها الموقع ويصغّرها تلقائيًا.
         </p>
       </div>
     </div>

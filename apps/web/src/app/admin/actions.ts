@@ -99,6 +99,22 @@ export async function updatePathAction(data: FormData): Promise<void> {
   );
 }
 
+/**
+ * يحفظ الغلاف المرفوع في الخلفية فور انتهاء الرفع (يُستدعى من المتصفح مباشرة، فلا redirect):
+ * يعيد رسالة الخطأ إن فشل. المعرّف الثاني للكورس فقط؛ بدونه الغلاف للمسار.
+ */
+export async function saveUploadedCoverAction(pathId: string, courseId: string | null, coverUrl: string): Promise<{ error?: string }> {
+  try {
+    const admin = await getAdminContainer();
+    if (courseId) await admin.setCourseCover.execute({ actor: admin.actor, pathId, courseId, coverUrl });
+    else await admin.setPathCover.execute({ actor: admin.actor, pathId, coverUrl });
+    revalidatePath('/', 'layout');
+    return {};
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'تعذّر حفظ الغلاف' };
+  }
+}
+
 export async function deletePathAction(data: FormData): Promise<void> {
   const pathId = text(data, 'pathId');
   await run(pathPage(pathId), async (admin) => {

@@ -32,6 +32,8 @@ import {
   DeletePathUseCase,
   MoveCourseUseCase,
   MoveModuleUseCase,
+  SetCourseCoverUseCase,
+  SetPathCoverUseCase,
   UpdateCourseUseCase,
   UpdatePathUseCase,
 } from './admin-paths.usecases.js';
@@ -301,6 +303,22 @@ describe('الكورسات والوحدات', () => {
     await new AddCourseUseCase(deps).execute({ actor: admin, pathId, conceptId, title: 'ثانٍ', description: '' });
     const courses = () => (deps.paths as FakePaths).store.get(pathId)!.courses.map((c) => [c.title, c.orderIndex]);
     expect(courses()).toEqual([['كورس', 1], ['ثانٍ', 2]]);
+  });
+
+  it('يحفظ غلاف المسار والكورس وحده (الرفع الخلفي) دون المساس ببقية البيانات', async () => {
+    const { deps, pathId, courseId } = await seeded();
+    const cover = 'https://res.cloudinary.com/demo/image/upload/v1/qalam/covers/b.jpg';
+    const path = () => (deps.paths as FakePaths).store.get(pathId)!;
+    const before = { title: path().title, courseTitle: path().findCourse(courseId as never)?.title };
+
+    await new SetPathCoverUseCase(deps).execute({ actor: admin, pathId, coverUrl: cover });
+    await new SetCourseCoverUseCase(deps).execute({ actor: admin, pathId, courseId, coverUrl: cover });
+    expect(path().coverUrl).toBe(cover);
+    expect(path().findCourse(courseId as never)?.coverUrl).toBe(cover);
+    expect(path().title).toBe(before.title);
+    expect(path().findCourse(courseId as never)?.title).toBe(before.courseTitle);
+
+    await expect(new SetPathCoverUseCase(deps).execute({ actor: null, pathId, coverUrl: cover })).rejects.toThrow();
   });
 
   it('يضبط غلاف المسار والكورس ويبقيه عند غياب الحقل ويزيله بالفارغ ويرفض الرابط الغريب', async () => {

@@ -45,7 +45,9 @@ import {
   MoveCourseUseCase,
   MoveLessonUseCase,
   MoveModuleUseCase,
+  SetCourseCoverUseCase,
   SetLessonReviewUseCase,
+  SetPathCoverUseCase,
   UpdateConceptUseCase,
   UpdateCourseUseCase,
   UpdateLessonUseCase,
@@ -134,6 +136,8 @@ export interface AdminContainer {
   listConcepts: ListConceptsUseCase;
   createPath: CreatePathUseCase;
   updatePath: UpdatePathUseCase;
+  setPathCover: SetPathCoverUseCase;
+  setCourseCover: SetCourseCoverUseCase;
   deletePath: DeletePathUseCase;
   addCourse: AddCourseUseCase;
   updateCourse: UpdateCourseUseCase;
@@ -184,6 +188,8 @@ export async function getAdminContainer(): Promise<AdminContainer> {
     listConcepts: new ListConceptsUseCase(deps),
     createPath: new CreatePathUseCase(deps),
     updatePath: new UpdatePathUseCase(deps),
+    setPathCover: new SetPathCoverUseCase(deps),
+    setCourseCover: new SetCourseCoverUseCase(deps),
     deletePath: new DeletePathUseCase(deps),
     addCourse: new AddCourseUseCase(deps),
     updateCourse: new UpdateCourseUseCase(deps),

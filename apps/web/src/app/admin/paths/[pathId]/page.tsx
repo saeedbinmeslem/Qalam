@@ -3,6 +3,7 @@
  * @description محرر المسار: بياناته ومفاهيمه، وتحت كل مفهوم كورساته، وفي كل كورس وحداته ودروسه.
  * الهيكل: مسار ← مفهوم ← كورس ← وحدة ← درس (الدرس لا يُنسب لمفهوم بمفرده، بل يتبع كورسًا يتبع مفهومًا).
  */
+import { SaveButton } from '../../../../components/save-button';
 import { createPathId } from '@qalam/domain';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -76,12 +77,12 @@ export default async function AdminPathPage({
             <Field label="وصف المسار" name="description" defaultValue={path.description} rows={3} />
           </div>
           <div className="md:col-span-2">
-            <CoverField seed={path.id} title={path.title} defaultValue={path.coverUrl} />
+            <CoverField seed={path.id} target={{ pathId: path.id }} title={path.title} defaultValue={path.coverUrl} />
           </div>
           <div>
-            <button type="submit" className={primaryButton}>
+            <SaveButton className={primaryButton}>
               حفظ بيانات المسار
-            </button>
+            </SaveButton>
           </div>
         </form>
       </Card>

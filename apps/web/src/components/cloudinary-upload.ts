@@ -59,10 +59,36 @@ export async function uploadVideo(file: File, onProgress: (percent: number) => v
   return { url: result.secure_url, durationSeconds: result.duration ?? 0 };
 }
 
-/** يرفع صورة غلاف ويعيد رابطها */
+/** أطول ضلع بعد الضغط: يكفي لأكبر غلاف يُعرض (الترويسة) */
+const MAX_IMAGE_SIDE = 1600;
+const WEBP_QUALITY = 0.82;
+
+/**
+ * يصغّر الصورة ويحوّلها إلى WebP في المتصفح قبل الرفع فيقل حجمها وتُرفع أسرع.
+ * يُبقي الملف الأصلي إن تعذّر الضغط، أو كان GIF/SVG (متحرك أو متجه)، أو لم يصغر الناتج.
+ */
+export async function compressImage(file: File): Promise<File> {
+  if (file.type === 'image/gif' || file.type === 'image/svg+xml') return file;
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, MAX_IMAGE_SIDE / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    canvas.getContext('2d')?.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/webp', WEBP_QUALITY));
+    if (!blob || blob.type !== 'image/webp' || blob.size >= file.size) return file;
+    return new File([blob], file.name.replace(/\.[^.]+$/, '') + '.webp', { type: 'image/webp' });
+  } catch {
+    return file;
+  }
+}
+
+/** يضغط صورة الغلاف ثم يرفعها ويعيد رابطها */
 export async function uploadImage(file: File, onProgress: (percent: number) => void): Promise<string> {
   if (!file.type.startsWith('image/')) throw new Error('اختر ملف صورة (JPG أو PNG أو WebP).');
   if (file.size > MAX_IMAGE_BYTES) throw new Error('حجم الصورة أكبر من 10 ميجابايت. صغّرها ثم أعد المحاولة.');
-  const result = await uploadToCloudinary('image', file, onProgress);
+  const result = await uploadToCloudinary('image', await compressImage(file), onProgress);
   return result.secure_url;
 }
