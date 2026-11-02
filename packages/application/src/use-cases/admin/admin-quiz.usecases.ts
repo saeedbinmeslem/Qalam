@@ -4,7 +4,15 @@
  * المالك عن الدرس فقط (لا نفترض نصًا مفرّغًا)، ولا يصل أي سؤال للمتعلم إلا بعد اعتماد المالك.
  */
 
-import { QuizQuestion, createLessonId, createQuestionId } from '@qalam/domain';
+import {
+  QuizQuestion,
+  createCourseId,
+  createLessonId,
+  createModuleId,
+  createQuestionId,
+  type LearningPath,
+  type LessonId,
+} from '@qalam/domain';
 import { NotFoundError } from '../../errors.js';
 import type { LlmClient } from '../../ports/llm-client.port.js';
 import type { QuestionRepositoryPort } from '../../ports/question-repository.port.js';
@@ -204,6 +212,63 @@ export class ApproveLessonQuestionsUseCase {
     );
     for (const question of drafts) await this.deps.questions.save(question.approve());
     return { approved: drafts.length };
+  }
+}
+
+/** نطاق الاعتماد الجماعي: كل كورس (`courseId`) أو كل وحدة (`moduleId`) */
+type BatchScope = { courseId: string } | { moduleId: string };
+
+function lessonIdsInScope(path: LearningPath, scope: BatchScope): LessonId[] {
+  let modules;
+  if ('courseId' in scope) {
+    const course = path.findCourse(createCourseId(scope.courseId));
+    if (!course) throw new NotFoundError('الكورس');
+    modules = course.modules;
+  } else {
+    const module = path.findModule(createModuleId(scope.moduleId));
+    if (!module) throw new NotFoundError('الوحدة');
+    modules = [module];
+  }
+  return modules.flatMap((m) => m.lessons.map((l) => l.id));
+}
+
+/** عدد الأسئلة المسودّة (غير المعتمدة) لكل درس في الكورس أو الوحدة؛ تُبنى عليه أزرار «اعتماد الاختبارات» */
+export class CountDraftQuestionsUseCase {
+  constructor(private readonly deps: QuizAdminDeps) {}
+
+  async execute(
+    request: AdminRequest & { pathId: string } & BatchScope,
+  ): Promise<Record<string, number>> {
+    requireAdmin(this.deps.policy, request.actor);
+    const path = await loadPath(this.deps.paths, request.pathId);
+    const counts: Record<string, number> = {};
+    for (const lessonId of lessonIdsInScope(path, request)) {
+      const drafts = (await this.deps.questions.findByLesson(lessonId)).filter((q) => !q.isApproved).length;
+      if (drafts > 0) counts[lessonId] = drafts;
+    }
+    return counts;
+  }
+}
+
+/**
+ * اعتماد مسودات أسئلة كل دروس كورس أو وحدة دفعة واحدة. قرار المالك كاعتماد الدرس نفسه؛
+ * يعيد عدد الأسئلة التي اعتُمدت فعلًا.
+ */
+export class ApproveQuizzesUseCase {
+  constructor(private readonly deps: QuizAdminDeps) {}
+
+  async execute(request: AdminRequest & { pathId: string } & BatchScope): Promise<{ approved: number }> {
+    requireAdmin(this.deps.policy, request.actor);
+    const path = await loadPath(this.deps.paths, request.pathId);
+    let approved = 0;
+    for (const lessonId of lessonIdsInScope(path, request)) {
+      for (const question of await this.deps.questions.findByLesson(lessonId)) {
+        if (question.isApproved) continue;
+        await this.deps.questions.save(question.approve());
+        approved += 1;
+      }
+    }
+    return { approved };
   }
 }
 

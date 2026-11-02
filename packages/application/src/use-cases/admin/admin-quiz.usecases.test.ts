@@ -20,6 +20,8 @@ import {
   AddQuestionUseCase,
   ApproveLessonQuestionsUseCase,
   ApproveQuestionUseCase,
+  ApproveQuizzesUseCase,
+  CountDraftQuestionsUseCase,
   DeleteQuestionUseCase,
   DraftLessonNotesUseCase,
   GenerateQuestionsUseCase,
@@ -251,6 +253,22 @@ describe('اعتماد الدروس دفعة (كورس أو وحدة)', () => {
     await new UpdateLessonUseCase(deps).execute({ actor: admin, pathId, lessonId, ...fields, title: 'عُدّل' });
     expect(await new ApproveLessonsUseCase(deps).execute({ actor: admin, pathId, courseId: course.id })).toEqual({ approved: 1 });
     await expect(new ApproveLessonsUseCase(deps).execute({ actor: admin, pathId, courseId: 'nope' })).rejects.toThrow('الكورس');
+  });
+});
+
+describe('اعتماد الاختبارات دفعة (كورس أو وحدة)', () => {
+  it('يعدّ المسودات ويعتمدها دون المساس بالدروس، ويمنع غير المدير', async () => {
+    const { deps, pathId, lessonId } = await setup();
+    await new GenerateQuestionsUseCase(deps).execute({ actor: admin, pathId, lessonId, count: 2 });
+    const course = (await deps.paths.findById(pathId as never))!.courses[0]!;
+    const moduleId = course.modules[0]!.id;
+
+    expect(await new CountDraftQuestionsUseCase(deps).execute({ actor: admin, pathId, courseId: course.id })).toEqual({ [lessonId]: 2 });
+    await expect(new ApproveQuizzesUseCase(deps).execute({ actor: stranger, pathId, moduleId })).rejects.toBeInstanceOf(ForbiddenError);
+    expect(await new ApproveQuizzesUseCase(deps).execute({ actor: admin, pathId, moduleId })).toEqual({ approved: 2 });
+    expect(await new CountDraftQuestionsUseCase(deps).execute({ actor: admin, pathId, moduleId })).toEqual({});
+    expect(await new ApproveQuizzesUseCase(deps).execute({ actor: admin, pathId, courseId: course.id })).toEqual({ approved: 0 });
+    await expect(new ApproveQuizzesUseCase(deps).execute({ actor: admin, pathId, courseId: 'nope' })).rejects.toThrow('الكورس');
   });
 });
 

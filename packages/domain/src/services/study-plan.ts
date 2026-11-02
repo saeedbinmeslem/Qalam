@@ -46,3 +46,29 @@ export function buildPlanWeeks(lessons: readonly PlanLessonInput[], hoursPerWeek
   }
   return weeks;
 }
+
+/**
+ * يطبّق ترتيبًا مقترحًا للأسابيع (من النموذج أو من المتعلم يدويًا) على الدروس المتبقية فقط، فيبقى المخرج سليمًا
+ * مهما كان المُدخل: يُسقط المعرّفات المجهولة والمكرّرة، ويحذف الأسابيع الفارغة، وكل درس متبقٍ لم يُذكر يُلحَق
+ * بآخر أسبوع (أو بأسبوع جديد إن لم يبقَ أسبوع) بترتيبه الأصلي، فلا يضيع درس بخطأ في الصياغة.
+ */
+export function normalizePlanArrangement<T extends { lessonIds: readonly string[] }>(
+  remainingIds: readonly string[],
+  proposed: readonly T[],
+  makeWeek: (lessonIds: string[]) => T,
+): T[] {
+  const allowed = new Set(remainingIds);
+  const seen = new Set<string>();
+  const weeks: T[] = [];
+  for (const week of proposed) {
+    const lessonIds = week.lessonIds.filter((id) => allowed.has(id) && !seen.has(id) && (seen.add(id), true));
+    if (lessonIds.length > 0) weeks.push({ ...week, lessonIds });
+  }
+  const missing = remainingIds.filter((id) => !seen.has(id));
+  if (missing.length > 0) {
+    const last = weeks[weeks.length - 1];
+    if (last) weeks[weeks.length - 1] = { ...last, lessonIds: [...last.lessonIds, ...missing] };
+    else weeks.push(makeWeek(missing));
+  }
+  return weeks;
+}

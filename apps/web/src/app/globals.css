@@ -190,6 +190,34 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/*
+ * شريط التمرير بهوية قلم: مسار شبه شفاف وإبهام مستدير بلون الحدود، يتحول إلى تيل عند المرور.
+ * المتغيرات تُعاد تعريفها داخل الدرج الداكن (.drawer) ليظهر إبهام فاتح فوق الحبر.
+ */
+:root {
+  --sb-track: color-mix(in srgb, var(--color-on-surface) 4%, transparent);
+  --sb-thumb: var(--color-outline-variant);
+  --sb-thumb-hover: var(--color-secondary);
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--sb-thumb) transparent;
+}
+@supports selector(::-webkit-scrollbar) {
+  * { scrollbar-width: auto; scrollbar-color: auto; }
+  *::-webkit-scrollbar { width: 12px; height: 12px; }
+  *::-webkit-scrollbar-track { background: var(--sb-track); }
+  *::-webkit-scrollbar-thumb {
+    background: var(--sb-thumb);
+    border: 3px solid transparent;
+    background-clip: padding-box;
+    border-radius: 9999px;
+    transition: background-color 150ms;
+  }
+  *::-webkit-scrollbar-thumb:hover { background: var(--sb-thumb-hover); background-clip: padding-box; }
+  *::-webkit-scrollbar-corner { background: transparent; }
+}
+
 ::selection {
   background: var(--color-primary-container);
   color: var(--color-on-primary-container);
@@ -322,6 +350,181 @@ body {
   .nav-item:hover { background: color-mix(in srgb, var(--color-on-surface) 8%, transparent); }
   .nav-item[aria-current='page'] { background: var(--color-secondary-container); color: var(--color-on-secondary-container); }
 
+  /* ===== قائمة الجوال: درج جانبي بحبر كحلي ثابت (لا يتبدّل بالوضع الداكن) ===== */
+  .menu-btn {
+    position: relative;
+    display: inline-grid;
+    place-content: center;
+    gap: 5px;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 9999px;
+    border: 1px solid var(--color-outline-variant);
+    color: var(--color-on-surface);
+    transition: background-color 150ms var(--ease-standard);
+  }
+  .menu-btn:hover { background: color-mix(in srgb, var(--color-on-surface) 8%, transparent); }
+  .menu-btn-bar {
+    display: block;
+    width: 18px;
+    height: 2px;
+    border-radius: 2px;
+    background: currentColor;
+    transition: transform 280ms var(--ease-standard), opacity 180ms var(--ease-standard);
+  }
+  .menu-btn[data-open='true'] .menu-btn-bar:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+  .menu-btn[data-open='true'] .menu-btn-bar:nth-child(2) { opacity: 0; transform: scaleX(0.2); }
+  .menu-btn[data-open='true'] .menu-btn-bar:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+  .drawer-root { position: fixed; inset: 0; z-index: 50; pointer-events: none; }
+  .drawer-root[data-open='true'] { pointer-events: auto; }
+  .drawer-backdrop {
+    position: absolute;
+    inset: 0;
+    background: color-mix(in srgb, var(--color-scrim) 55%, transparent);
+    backdrop-filter: blur(3px);
+    opacity: 0;
+    transition: opacity 300ms var(--ease-standard);
+  }
+  .drawer-root[data-open='true'] .drawer-backdrop { opacity: 1; }
+
+  .drawer {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    display: flex;
+    flex-direction: column;
+    width: min(86vw, 21rem);
+    overflow-y: auto;
+    background-color: var(--color-scrim);
+    color: var(--color-on-scrim);
+    border-start-end-radius: var(--radius-xl);
+    border-end-end-radius: var(--radius-xl);
+    box-shadow: var(--shadow-elevation-2);
+    translate: 105% 0;
+    visibility: hidden;
+    transition: translate 380ms var(--ease-emphasized-decel), visibility 0s linear 380ms;
+  }
+  .drawer {
+    --sb-track: transparent;
+    --sb-thumb: rgb(255 255 255 / 0.22);
+    --sb-thumb-hover: var(--color-secondary);
+  }
+  :dir(ltr) .drawer { translate: -105% 0; }
+  .drawer-root[data-open='true'] .drawer {
+    translate: 0 0;
+    visibility: visible;
+    transition: translate 380ms var(--ease-emphasized-decel), visibility 0s;
+  }
+  /* نقاط «الورقة» بلون فاتح خافت فوق الحبر */
+  .paper-dark {
+    background-image: radial-gradient(circle, rgb(255 255 255 / 0.09) 1px, transparent 1.6px);
+    background-size: 22px 22px;
+  }
+
+  .drawer-head { display: flex; align-items: center; justify-content: space-between; padding: 1.1rem 1.25rem 0.75rem; }
+  .drawer-brand { display: inline-flex; padding: 0.35rem; border-radius: var(--radius-md); background: #ffffff; }
+  .drawer-close {
+    display: grid; place-items: center; width: 2.5rem; height: 2.5rem; border-radius: 9999px;
+    background: rgb(255 255 255 / 0.1); color: inherit;
+    transition: background-color 150ms var(--ease-standard), rotate 300ms var(--ease-standard);
+  }
+  .drawer-close:hover { background: rgb(255 255 255 / 0.2); rotate: 90deg; }
+
+  .drawer-links { display: flex; flex-direction: column; gap: 0.25rem; padding: 0.75rem 0.75rem 1rem; }
+  .drawer-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    min-height: 3.1rem;
+    padding-inline: 1.1rem;
+    border-radius: var(--radius-lg);
+    font-size: 1rem;
+    font-weight: 600;
+    color: rgb(255 255 255 / 0.82);
+    transition: background-color 150ms var(--ease-standard), color 150ms var(--ease-standard);
+  }
+  .drawer-item:hover { background: rgb(255 255 255 / 0.08); color: #fff; }
+  .drawer-item[aria-current='page'] { background: rgb(32 182 165 / 0.2); color: #fff; }
+  /* شريط تيل صغير على جهة البداية للصفحة الحالية */
+  .drawer-item[aria-current='page']::before {
+    content: '';
+    position: absolute;
+    inset-inline-start: 0.35rem;
+    inset-block: 0.8rem;
+    width: 4px;
+    border-radius: 4px;
+    background: var(--color-secondary);
+  }
+  .drawer-badge { padding: 0.05rem 0.55rem; border-radius: 9999px; font-size: 0.65rem; background: rgb(200 169 106 / 0.25); color: #ecd9a8; }
+
+  .drawer-foot {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1rem 1.25rem 1.5rem;
+    border-top: 1px solid rgb(255 255 255 / 0.12);
+  }
+  .drawer-user { display: flex; align-items: center; gap: 0.75rem; padding-bottom: 0.5rem; min-width: 0; }
+  .drawer-avatar {
+    display: grid; place-items: center; flex: none; width: 2.5rem; height: 2.5rem; border-radius: 9999px;
+    background: var(--color-secondary); color: var(--color-scrim); font-weight: 700;
+  }
+  .drawer-email { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.8rem; color: rgb(255 255 255 / 0.7); text-align: start; }
+  .drawer-action {
+    display: flex; align-items: center; justify-content: center; min-height: 2.9rem; padding-inline: 1rem;
+    border-radius: 9999px; font-size: 0.95rem; font-weight: 600; color: #fff;
+    border: 1px solid rgb(255 255 255 / 0.25);
+    transition: background-color 150ms var(--ease-standard);
+  }
+  .drawer-action:hover { background: rgb(255 255 255 / 0.1); }
+  .drawer-action-accent { background: var(--color-secondary); border-color: transparent; color: var(--color-scrim); }
+  .drawer-action-accent:hover { background: color-mix(in srgb, var(--color-secondary) 85%, white); }
+
+  /* الشعار ينبثق، وخط تيل يمتد تحته عند الفتح */
+  .drawer-brand { scale: 0.6; opacity: 0; rotate: -12deg; }
+  .drawer-head { position: relative; }
+  .drawer-head::after {
+    content: '';
+    position: absolute;
+    inset-inline: 1.25rem;
+    bottom: 0;
+    height: 2px;
+    border-radius: 2px;
+    background: linear-gradient(to left, var(--color-secondary), transparent);
+    transform: scaleX(0);
+    transform-origin: right;
+  }
+  .drawer-root[data-open='true'] .drawer-brand {
+    scale: 1; opacity: 1; rotate: 0deg;
+    transition: scale 550ms cubic-bezier(0.34, 1.56, 0.64, 1) 200ms, opacity 300ms 200ms, rotate 550ms var(--ease-emphasized-decel) 200ms;
+  }
+  .drawer-root[data-open='true'] .drawer-head::after {
+    transform: scaleX(1);
+    transition: transform 700ms var(--ease-emphasized-decel) 300ms;
+  }
+  /* العنصر الحالي ينبض بخفة مرة واحدة عند الفتح */
+  .drawer-root[data-open='true'] .drawer-item[aria-current='page']::before { animation: drawer-bar 600ms var(--ease-emphasized-decel) 500ms both; }
+  @keyframes drawer-bar { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+
+  /* دخول متدرّج للعناصر عند فتح القائمة */
+  .drawer-item, .drawer-foot { opacity: 0; translate: 18px 0; }
+  :dir(ltr) .drawer-item, :dir(ltr) .drawer-foot { translate: -18px 0; }
+  .drawer-root[data-open='true'] .drawer-item,
+  .drawer-root[data-open='true'] .drawer-foot {
+    opacity: 1;
+    translate: 0 0;
+    transition: opacity 350ms var(--ease-standard), translate 450ms var(--ease-emphasized-decel),
+      background-color 150ms var(--ease-standard), color 150ms var(--ease-standard);
+    transition-delay: calc(120ms + var(--i, 0) * 45ms), calc(120ms + var(--i, 0) * 45ms), 0s, 0s;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .drawer, .drawer-backdrop, .drawer-item, .drawer-foot, .menu-btn-bar { transition-duration: 1ms !important; transition-delay: 0s !important; }
+  }
+
   /*
    * «الورقة والحبر» (docs/design-system.md القسم 10).
    * الورقة: نقاط بلون واحد وشفافية منخفضة، للهيرو وترويسات الأقسام فقط. ليست تدرجًا لونيًا.
@@ -370,4 +573,62 @@ body {
     font-weight: 700;
     font-size: 1rem;
   }
+}
+
+/* ===== زر الرجوع: حبة واضحة بسهم يشير إلى الخلف (يمين في RTL) ===== */
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.25rem;
+  padding: 0.25rem 0.9rem 0.25rem 0.75rem;
+  border: 1px solid var(--color-outline-variant);
+  border-radius: 9999px;
+  background: var(--color-surface-container-lowest);
+  color: var(--color-primary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.25rem;
+  transition: background-color 120ms var(--ease-standard), border-color 120ms var(--ease-standard), box-shadow 200ms var(--ease-standard);
+}
+.back-link:hover {
+  background: var(--color-secondary-container);
+  border-color: var(--color-secondary-strong);
+  color: var(--color-on-secondary-container);
+  box-shadow: var(--shadow-elevation-1);
+}
+.back-link:focus-visible { outline: 2px solid var(--color-secondary-strong); outline-offset: 2px; }
+.back-link-arrow { width: 1.125rem; height: 1.125rem; flex: none; transition: transform 160ms var(--ease-standard); }
+.back-link:hover .back-link-arrow { transform: translateX(3px); }
+[dir='ltr'] .back-link-arrow { transform: scaleX(-1); }
+[dir='ltr'] .back-link:hover .back-link-arrow { transform: scaleX(-1) translateX(3px); }
+
+/* ===== مؤشر الانتقال بين الصفحات ===== */
+.nav-progress {
+  position: fixed;
+  inset-block-start: 0;
+  inset-inline: 0;
+  z-index: 110;
+  height: 3px;
+  background: linear-gradient(90deg, var(--color-secondary), var(--color-secondary-strong));
+  transform-origin: right;
+  animation: nav-progress-grow 10s cubic-bezier(0.1, 0.6, 0.2, 1) forwards;
+}
+@keyframes nav-progress-grow { from { transform: scaleX(0.02); } to { transform: scaleX(0.92); } }
+.nav-progress-pill {
+  position: fixed;
+  inset-block-start: 1.25rem;
+  inset-inline: 0;
+  margin-inline: auto;
+  width: max-content;
+  z-index: 110;
+  padding: 1rem 1.75rem;
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-container-lowest);
+  box-shadow: var(--shadow-elevation-1);
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-progress { animation: none; transform: scaleX(0.6); }
 }

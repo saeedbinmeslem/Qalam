@@ -4,6 +4,8 @@
  * الأسئلة معتمدة فقط، والتصحيح في الخادم، والصفحة لا تسجّل شيئًا (التسجيل عند التسليم).
  */
 import Link from 'next/link';
+import { BackLink } from '../../../../components/back-link';
+import { MIN_DIAGNOSTIC_QUESTIONS } from '@qalam/domain';
 import { notFound, redirect } from 'next/navigation';
 import { getAuth } from '../../../../composition/auth';
 import { getContainer } from '../../../../composition/container';
@@ -43,9 +45,7 @@ export default async function DiagnosticPage({
     return (
       <div className="mx-auto max-w-2xl px-5 md:px-8 py-16">
         <p className="text-on-surface-variant">لا يوجد اختبار تشخيصي لهذا المسار بعد. ابدأ من الدرس الأول.</p>
-        <Link href={back} className="mt-4 inline-block text-primary underline">
-          العودة إلى المسار
-        </Link>
+        <div className="mt-4"><BackLink href={back}>العودة إلى المسار</BackLink></div>
       </div>
     );
   }
@@ -95,14 +95,19 @@ export default async function DiagnosticPage({
 
   return (
     <div className="mx-auto max-w-2xl px-5 md:px-8 py-12">
-      <Link href={back} className="text-sm text-on-surface-variant hover:text-on-surface">
-        ← المسار
-      </Link>
+      <BackLink href={back}>المسار</BackLink>
       <h1 className="mt-2 font-display text-display text-on-surface">الاختبار التشخيصي</h1>
       <p className="mt-2 text-on-surface-variant">
         عدد الأسئلة: {questions.length}. نقيس ما تعرفه الآن لنتخطى لك ما أتقنته. لا تخمّن: اتركه فارغًا إن لم تعرف، فالخطأ
         لا يضرّك، بل يعني فقط أن الدرس سيبقى في خطتك.
       </p>
+      {questions.length < MIN_DIAGNOSTIC_QUESTIONS ? (
+        <p className="mt-2 text-sm text-on-surface-variant">
+          هذا الاختبار {questions.length} سؤالًا فقط لأن المنصة لم تعتمد بعد ما يكفي من أسئلة هذا المسار ({MIN_DIAGNOSTIC_QUESTIONS} هو المستهدف)، فنتيجته دليل أقل.
+        </p>
+      ) : (
+        <p className="mt-2 text-sm text-on-surface-variant">الأسئلة موزعة على كورسات المسار كلها لنقيس فهمك الفعلي قبل كتابة خطتك.</p>
+      )}
       <form action={submitDiagnosticAction} className="mt-6 space-y-6">
         <input type="hidden" name="pathId" value={pathId} />
         {questions.map((question, index) => (

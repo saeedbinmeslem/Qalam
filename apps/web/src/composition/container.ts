@@ -18,6 +18,9 @@ import {
   AskLessonUseCase,
   BuildPersonalPlanUseCase,
   GetPersonalPlanUseCase,
+  RevisePersonalPlanUseCase,
+  EditPersonalPlanUseCase,
+  ChangePlanPathUseCase,
   GetLessonUseCase,
   GetPathProgressUseCase,
   GetQuizResultUseCase,
@@ -59,6 +62,10 @@ export interface Container {
   startOnboarding: StartOnboardingUseCase;
   buildPersonalPlan: BuildPersonalPlanUseCase;
   getPersonalPlan: GetPersonalPlanUseCase;
+  /** تعديل الخطة بعد إنشائها: بالمحادثة (ذكاء اصطناعي) أو يدويًا */
+  revisePersonalPlan: RevisePersonalPlanUseCase;
+  editPersonalPlan: EditPersonalPlanUseCase;
+  changePlanPath: ChangePlanPathUseCase;
   getDiagnostic: GetDiagnosticUseCase;
   getDiagnosticResult: GetDiagnosticResultUseCase;
   submitDiagnostic: SubmitDiagnosticUseCase;
@@ -86,7 +93,7 @@ function assemble(
 ): Container {
   const diagnosticDeps = { paths, questions, concepts };
   const learningAgent = new LearningAgent({ paths, events, recorder: events, clock: systemClock, llm: getAgentLlmClient() });
-  const planDeps = { paths, events, clock: systemClock, llm: getPlanLlmClient() };
+  const planDeps = { paths, events, clock: systemClock, llm: getPlanLlmClient(), concepts };
   return {
     // السؤال: نماذج خفيفة أولًا، وإجمالي 120ث (تحت maxDuration لصفحة الدرس) ليبقى الردّ مفتوحًا لدقيقتين عند البطء
     askLesson: new AskLessonUseCase({ paths, llm: getPlanLlmClient(120000, { fast: true }) }),
@@ -94,6 +101,10 @@ function assemble(
     // صياغة العناوين تجري في الخلفية، فمهلتها أطول من مهلة اختيار المسار
     buildPersonalPlan: new BuildPersonalPlanUseCase({ ...planDeps, llm: getPlanLlmClient(100000) }),
     getPersonalPlan: new GetPersonalPlanUseCase(planDeps),
+    // تحت maxDuration لصفحة الخطة (60ث)
+    revisePersonalPlan: new RevisePersonalPlanUseCase({ ...planDeps, llm: getPlanLlmClient(50000) }),
+    editPersonalPlan: new EditPersonalPlanUseCase(planDeps),
+    changePlanPath: new ChangePlanPathUseCase(planDeps),
     getDiagnostic: new GetDiagnosticUseCase(diagnosticDeps),
     getDiagnosticResult: new GetDiagnosticResultUseCase(diagnosticDeps),
     submitDiagnostic: new SubmitDiagnosticUseCase(diagnosticDeps, events, systemClock),

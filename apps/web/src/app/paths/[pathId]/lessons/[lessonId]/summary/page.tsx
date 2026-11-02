@@ -3,7 +3,7 @@
  * @description ملخص الدرس للقراءة، مهيّأ للطباعة وحفظه PDF. عرض بحت؛ التحليل في Domain.
  */
 import { createLessonId, createPathId, parseStudyGuide } from '@qalam/domain';
-import Link from 'next/link';
+import { BackLink } from '../../../../../../components/back-link';
 import { notFound, redirect } from 'next/navigation';
 import { QalamLogo } from '../../../../../../components/brand';
 import { PrintButton } from '../../../../../../components/print-button';
@@ -28,9 +28,7 @@ export default async function LessonSummaryPage({ params }: { params: Promise<{ 
   return (
     <article className="mx-auto max-w-3xl px-5 py-10 print:max-w-none print:px-0 print:py-0">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3 print:hidden">
-        <Link href={`/paths/${pathId}/lessons/${lessonId}`} className="text-sm text-on-surface-variant hover:underline">
-          ← العودة إلى الدرس
-        </Link>
+        <BackLink href={`/paths/${pathId}/lessons/${lessonId}`}>العودة إلى الدرس</BackLink>
         <PrintButton className="btn-filled" targetId="summary-sheet" fileName={`ملخص-${lesson.title}`} />
       </div>
 

@@ -100,7 +100,9 @@ export async function getAuth(): Promise<AuthUseCases> {
   const store = await cookies();
   const auth = new DevCookieAuth({
     get: (name) => store.get(name)?.value,
-    set: (name, value) => store.set(name, value, { httpOnly: true, sameSite: 'lax', path: '/' }),
+    // maxAge يجعل الجلسة دائمة (30 يومًا) بدل أن تزول بإغلاق المتصفح
+    set: (name, value) =>
+      store.set(name, value, { httpOnly: true, sameSite: 'lax', path: '/', maxAge: 60 * 60 * 24 * 30 }),
     delete: (name) => store.delete(name),
   });
   return buildAuth(auth, 'dev');

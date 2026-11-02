@@ -11,18 +11,51 @@ import type { QuizQuestion } from '../entities/quiz-question.js';
 import type { ConceptId } from '../value-objects/identifiers.js';
 import type { QuizResult } from './quiz-grading.js';
 
-export const QUESTIONS_PER_CONCEPT = 2;
+/** أقل عدد أسئلة نسعى إليه في التشخيصي ليكون دليلًا كافيًا على فهم المتعلم (يقلّ فقط إن لم يعتمد المالك ما يكفي) */
+export const MIN_DIAGNOSTIC_QUESTIONS = 15;
 /** الحد الأدنى من الأسئلة المعتمدة عن المفهوم ليُتخطى بناءً على الاختبار */
 export const MIN_EVIDENCE_QUESTIONS = 2;
 
-/** أسئلة المسار المعتمدة فقط، حتى سؤالين لكل مفهوم، بترتيب ظهور المفاهيم في المسار */
-export function selectDiagnosticQuestions(path: LearningPath, approved: readonly QuizQuestion[]): QuizQuestion[] {
-  const lessonIds = new Set(path.modules.flatMap((m) => m.lessons.map((l) => l.id as string)));
-  const eligible = approved.filter((q) => q.isApproved && lessonIds.has(q.lessonId));
+/**
+ * أسئلة التشخيصي: معتمدة فقط، موزعة على كورسات المسار كلها لا على أولها، ولا تقل عن `MIN_DIAGNOSTIC_QUESTIONS` إن توفرت.
+ * لكل كورس حصة متساوية (بحد أدنى سؤالان ليتوفر دليل للمفهوم)، تُؤخذ بالتناوب بين دروسه، وما نقص يُكمَل بالتناوب
+ * من الكورسات التي بقي فيها أسئلة. الترتيب النهائي بترتيب كورسات المسار ودروسه، والاختيار حتمي (تُعاد الأسئلة نفسها عند التصحيح).
+ */
+export function selectDiagnosticQuestions(
+  path: LearningPath,
+  approved: readonly QuizQuestion[],
+  target: number = MIN_DIAGNOSTIC_QUESTIONS,
+): QuizQuestion[] {
+  const eligible = approved.filter((q) => q.isApproved);
+  const lessonOrder = new Map(path.modules.flatMap((m) => m.lessons).map((l, i) => [l.id as string, i]));
 
-  // مفاهيم المسار بترتيب كورساته
-  return path.conceptIds.flatMap((conceptId) =>
-    eligible.filter((q) => q.conceptId === conceptId).slice(0, QUESTIONS_PER_CONCEPT),
+  // أسئلة كل كورس مرتبة بالتناوب بين دروسه (سؤال من كل درس ثم الجولة التالية)
+  const perCourse = path.courses
+    .map((course) => {
+      const byLesson = course.modules
+        .flatMap((m) => m.lessons)
+        .map((l) => eligible.filter((q) => q.lessonId === l.id));
+      const interleaved: QuizQuestion[] = [];
+      for (let round = 0; byLesson.some((qs) => qs[round]); round++) {
+        for (const qs of byLesson) if (qs[round]) interleaved.push(qs[round] as QuizQuestion);
+      }
+      return interleaved;
+    })
+    .filter((qs) => qs.length > 0);
+  if (perCourse.length === 0) return [];
+
+  const quota = Math.max(MIN_EVIDENCE_QUESTIONS, Math.ceil(target / perCourse.length));
+  const chosen = new Set<QuizQuestion>();
+  for (const qs of perCourse) qs.slice(0, quota).forEach((q) => chosen.add(q));
+
+  // لم نبلغ الهدف (كورسات قليلة الأسئلة): نكمل بالتناوب مما بقي
+  for (let round = quota; chosen.size < target && perCourse.some((qs) => qs[round]); round++) {
+    for (const qs of perCourse) if (chosen.size < target && qs[round]) chosen.add(qs[round] as QuizQuestion);
+  }
+
+  const courseIndex = new Map(perCourse.flatMap((qs, i) => qs.map((q) => [q, i] as const)));
+  return [...chosen].sort(
+    (a, b) => (courseIndex.get(a) ?? 0) - (courseIndex.get(b) ?? 0) || (lessonOrder.get(a.lessonId) ?? 0) - (lessonOrder.get(b.lessonId) ?? 0),
   );
 }
 

@@ -7,6 +7,7 @@ import { IBM_Plex_Sans_Arabic, Inter, Tajawal } from 'next/font/google';
 import localFont from 'next/font/local';
 import type { ReactNode } from 'react';
 import { GlobalLoader } from '../components/global-loader';
+import { NavigationProgress } from '../components/navigation-progress';
 import { SiteFooter } from '../components/site-footer';
 import { SiteHeader } from '../components/site-header';
 import { THEME_INIT_SCRIPT } from '../components/theme-toggle';
@@ -73,6 +74,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <main id="content">{children}</main>
         <SiteFooter />
         <GlobalLoader />
+        <NavigationProgress />
       </body>
     </html>
   );

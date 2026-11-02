@@ -4,8 +4,8 @@
  * اعتماد الدرس قرار المالك وحده بعد المشاهدة؛ وأي تعديل على المحتوى يسحب الاعتماد تلقائيًا.
  */
 import { SaveButton } from '../../../../../../components/save-button';
+import { BackLink } from '../../../../../../components/back-link';
 import { createLessonId, createPathId, formatTimecode } from '@qalam/domain';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import {
   Card,
@@ -56,9 +56,9 @@ export default async function AdminLessonPage({
   return (
     <>
       <ErrorBanner message={error} />
-      <Link href={courseHref} className="text-sm text-on-surface-variant hover:text-on-surface">
-        ← {result.path.title} / {course.title}
-      </Link>
+      <BackLink href={courseHref}>
+        {result.path.title} / {course.title}
+      </BackLink>
       <h1 className="mb-6 mt-1 font-display text-headline text-on-surface">{lesson.title}</h1>
 
       <div className="grid gap-6 lg:grid-cols-2">

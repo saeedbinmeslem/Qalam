@@ -4,6 +4,7 @@
  * الإجابات تأتي في الرابط (a=id:index,...) والصفحة لا تسجّل شيئًا (التسجيل عند التسليم).
  */
 import Link from 'next/link';
+import { BackLink } from '../../../../../../components/back-link';
 import { redirect } from 'next/navigation';
 import { getAuth } from '../../../../../../composition/auth';
 import { getContainer } from '../../../../../../composition/container';
@@ -39,9 +40,7 @@ export default async function QuizResultPage({
     return (
       <div className="mx-auto max-w-2xl px-5 md:px-8 py-16">
         <p className="text-on-surface-variant">لا يوجد اختبار لهذا الدرس.</p>
-        <Link href={back} className="mt-4 inline-block text-primary underline">
-          العودة إلى الدرس
-        </Link>
+        <div className="mt-4"><BackLink href={back}>العودة إلى الدرس</BackLink></div>
       </div>
     );
   }

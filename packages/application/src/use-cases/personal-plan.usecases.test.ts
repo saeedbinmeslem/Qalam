@@ -13,6 +13,9 @@ import {
 import type { LlmClient } from '../ports/llm-client.port.js';
 import {
   BuildPersonalPlanUseCase,
+  ChangePlanPathUseCase,
+  EditPersonalPlanUseCase,
+  RevisePersonalPlanUseCase,
   GetPersonalPlanUseCase,
   StartOnboardingUseCase,
   pickPathByKeywords,
@@ -172,5 +175,109 @@ describe('BuildPersonalPlanUseCase + GetPersonalPlanUseCase', () => {
     const { deps } = setup();
     expect(await new GetPersonalPlanUseCase(deps).execute({ userId: 'nobody' })).toBeNull();
     await expect(new BuildPersonalPlanUseCase(deps).execute({ userId: 'nobody' })).rejects.toThrow('يشغفك');
+  });
+});
+
+describe('تعديل الخطة بعد إنشائها', () => {
+  async function planned(llm?: LlmClient) {
+    const s = setup(llm);
+    await new StartOnboardingUseCase(s.deps).execute(request);
+    await new BuildPersonalPlanUseCase({ ...s.deps, llm: undefined }).execute({ userId: 'u1' });
+    return s;
+  }
+  const lessonsOf = async (deps: ReturnType<typeof setup>['deps']) =>
+    (await new GetPersonalPlanUseCase(deps).execute({ userId: 'u1' }))?.plan?.weeks.map((w) => w.lessons.map((l) => l.id));
+
+  it('المحادثة: يعيد ترتيب الدروس، يصحّح ما أخطأ فيه النموذج، ويسجّل الردّ والساعات', async () => {
+    const llm: LlmClient = {
+      generateJson: async () => ({
+        reply: 'نقلت الدوال إلى البداية.',
+        changed: true,
+        hoursPerWeek: 2,
+        pathId: '',
+        // معرّف مختلق ومكرر، ودرس «الحلقات» غير مذكور: يخرج من الخطة
+        weeks: [
+          { title: 'بداية', focus: 'نبدأ بالدوال', lessonIds: ['py-l4', 'fake', 'py-l1'] },
+          { title: 'ثم', focus: 'الباقي', lessonIds: ['py-l1', 'py-l2'] },
+        ],
+      }),
+    };
+    const { deps, events } = await planned(llm);
+    const out = await new RevisePersonalPlanUseCase(deps).execute({ userId: 'u1', message: 'ابدأ بالدوال' });
+    expect(out.changed).toBe(true);
+    expect(out.reply).toContain('نقلت الدوال إلى البداية.');
+    // «الحلقات» لم يذكرها النموذج فخرجت من الخطة (الحذف فعلي)، والمعرّف المختلق والمكرر أُسقطا
+    expect(await lessonsOf(deps)).toEqual([['py-l4', 'py-l1'], ['py-l2']]);
+    const view = await new GetPersonalPlanUseCase(deps).execute({ userId: 'u1' });
+    expect(view?.goal.hoursPerWeek).toBe(2);
+    expect(view?.revisions).toMatchObject([{ kind: 'chat', request: 'ابدأ بالدوال', changed: true }]);
+    expect(view?.catalog.courses.flatMap((c) => c.lessons).find((l) => l.id === 'py-l3')?.state).toBe('out');
+    expect(events.filter((e) => e.type === 'goal_set')).toHaveLength(2);
+  });
+
+  it('ادّعاء النموذج بالتغيير دون تغيير فعلي لا يُحسب تغييرًا', async () => {
+    const { deps } = await planned();
+    const same = (await new GetPersonalPlanUseCase(deps).execute({ userId: 'u1' }))!.plan!.weeks.map((w) => ({ title: w.title, focus: w.focus, lessonIds: w.lessons.map((l) => l.id) }));
+    const out = await new RevisePersonalPlanUseCase({ ...deps, llm: { generateJson: async () => ({ reply: 'تم', changed: true, hoursPerWeek: 0, pathId: '', weeks: same }) } }).execute({ userId: 'u1', message: 'عدّل' });
+    expect(out.changed).toBe(false);
+    expect(out.reply).toContain('لم يتغير شيء فعليًا');
+  });
+
+  it('المحادثة تغيّر المسار كله فتُبنى الخطة من دروسه', async () => {
+    const llm: LlmClient = { generateJson: async () => ({ reply: 'انتقلنا للمواقع.', changed: true, hoursPerWeek: 0, pathId: 'web', weeks: [] }) };
+    const { deps } = await planned(llm);
+    expect((await new RevisePersonalPlanUseCase(deps).execute({ userId: 'u1', message: 'أريد تطوير المواقع بدل بايثون' })).changed).toBe(true);
+    const view = await new GetPersonalPlanUseCase(deps).execute({ userId: 'u1' });
+    expect(view?.goal.pathId).toBe('web');
+    expect(await lessonsOf(deps)).toEqual([['web-l1', 'web-l2']]);
+  });
+
+  it('طلب غير تعديلي (changed=false): تبقى الخطة كما هي ويُسجَّل الردّ فقط', async () => {
+    const llm: LlmClient = { generateJson: async () => ({ reply: 'الدوال تأتي بعد الحلقات.', changed: false, hoursPerWeek: 0, pathId: '', weeks: [] }) };
+    const { deps } = await planned(llm);
+    const before = await lessonsOf(deps);
+    expect(await new RevisePersonalPlanUseCase(deps).execute({ userId: 'u1', message: 'لماذا الدوال أخيرًا؟' })).toMatchObject({ changed: false });
+    expect(await lessonsOf(deps)).toEqual(before);
+  });
+
+  it('يرفض الرسالة الفارغة، وغياب النموذج، وفشله برسالة واضحة', async () => {
+    const { deps } = await planned({ generateJson: async () => { throw new Error('x'); } });
+    await expect(new RevisePersonalPlanUseCase(deps).execute({ userId: 'u1', message: '  ' })).rejects.toThrow('اكتب');
+    await expect(new RevisePersonalPlanUseCase(deps).execute({ userId: 'u1', message: 'غيّر' })).rejects.toThrow('تعذّر الوصول');
+    await expect(new RevisePersonalPlanUseCase({ ...deps, llm: undefined }).execute({ userId: 'u1', message: 'غيّر' })).rejects.toThrow('غير متاح');
+  });
+
+  it('التعديل اليدوي: يعيد توزيع الدروس ويحفظ العناوين، ويلحق المنسي بآخر أسبوع', async () => {
+    const { deps } = await planned();
+    await new EditPersonalPlanUseCase(deps).execute({
+      userId: 'u1',
+      weeks: [
+        { title: 'أولًا', focus: 'وصفي', lessonIds: ['py-l2'] },
+        { title: 'ثانيًا', focus: '', lessonIds: ['py-l1'] },
+      ],
+    });
+    expect(await lessonsOf(deps)).toEqual([['py-l2'], ['py-l1', 'py-l3', 'py-l4']]);
+    const view = await new GetPersonalPlanUseCase(deps).execute({ userId: 'u1' });
+    expect(view?.plan?.weeks[0]).toMatchObject({ title: 'أولًا', focus: 'وصفي' });
+    expect(view?.revisions[0]?.kind).toBe('manual');
+    await expect(new EditPersonalPlanUseCase(deps).execute({ userId: 'u1', weeks: [{ title: 'ع'.repeat(81), focus: '', lessonIds: [] }] })).rejects.toThrow('طويل');
+  });
+
+  it('التعديل اليدوي: اختيار الدروس والساعات والتوزيع التلقائي، وتغيير المسار', async () => {
+    const { deps } = await planned();
+    const edit = new EditPersonalPlanUseCase(deps);
+    // درسان فقط وساعتان وتوزيع تلقائي
+    expect(await edit.execute({ userId: 'u1', includeLessonIds: ['py-l2', 'py-l4'], hoursPerWeek: 1, redistribute: true, weeks: [] })).toEqual({ weeks: 1, lessons: 2 });
+    expect(await lessonsOf(deps)).toEqual([['py-l2', 'py-l4']]);
+    // إضافة درس كان خارج الخطة
+    await edit.execute({ userId: 'u1', includeLessonIds: ['py-l1', 'py-l2', 'py-l4'], weeks: [{ title: 'الكل', focus: '', lessonIds: ['py-l1', 'py-l2', 'py-l4'] }] });
+    expect(await lessonsOf(deps)).toEqual([['py-l1', 'py-l2', 'py-l4']]);
+    await expect(edit.execute({ userId: 'u1', includeLessonIds: [], weeks: [] })).rejects.toThrow('درسًا واحدًا');
+    await expect(edit.execute({ userId: 'u1', hoursPerWeek: 99, weeks: [] })).rejects.toThrow('الساعات');
+
+    await expect(new ChangePlanPathUseCase(deps).execute({ userId: 'u1', pathId: 'py' })).rejects.toThrow('الحالي');
+    await expect(new ChangePlanPathUseCase(deps).execute({ userId: 'u1', pathId: 'nope' })).rejects.toThrow('غير متاح');
+    expect(await new ChangePlanPathUseCase(deps).execute({ userId: 'u1', pathId: 'web' })).toEqual({ pathTitle: 'تطوير المواقع' });
+    expect(await lessonsOf(deps)).toEqual([['web-l1', 'web-l2']]);
   });
 });

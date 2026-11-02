@@ -52,12 +52,30 @@ const q = (id: string, lessonId: string, concept: string, status: 'approved' | '
   });
 
 describe('selectDiagnosticQuestions', () => {
-  it('يختار المعتمد فقط، حتى سؤالين لكل مفهوم، بترتيب المفاهيم في المسار', () => {
+  it('يختار المعتمد من دروس المسار فقط، موزعًا على كل الكورسات، بترتيب الكورسات', () => {
     const all = [
       q('c1', 'l4', 'c'), q('a1', 'l1', 'a'), q('a2', 'l2', 'a'), q('a3', 'l1', 'a'),
       q('b1', 'l3', 'b', 'draft'), q('x1', 'خارج-المسار', 'a'),
     ];
-    expect(selectDiagnosticQuestions(buildPath(), all).map((x) => x.id)).toEqual(['a1', 'a2', 'c1']);
+    // هدف صغير: حصة كل كورس سؤالان على الأقل
+    expect(selectDiagnosticQuestions(buildPath(), all, 3).map((x) => x.id)).toEqual(['a1', 'a2', 'c1']);
+  });
+
+  it('يبلغ 15 سؤالًا موزعة على كل الكورسات حين تتوفر', () => {
+    const lessonOf: Record<string, string> = { a: 'l1', b: 'l3', c: 'l4' };
+    const all = ['a', 'b', 'c'].flatMap((c) => Array.from({ length: 8 }, (_, i) => q(`${c}${i}`, lessonOf[c] as string, c)));
+    const picked = selectDiagnosticQuestions(buildPath(), all);
+    expect(picked).toHaveLength(15);
+    for (const c of ['a', 'b', 'c']) expect(picked.filter((x) => x.conceptId === c)).toHaveLength(5);
+  });
+
+  it('كورس قليل الأسئلة لا يمنع بلوغ الهدف من غيره، ولا يتجاوز المتاح', () => {
+    const all = [q('a1', 'l1', 'a'), ...Array.from({ length: 20 }, (_, i) => q(`c${i}`, 'l4', 'c'))];
+    const picked = selectDiagnosticQuestions(buildPath(), all);
+    expect(picked).toHaveLength(15);
+    expect(picked.filter((x) => x.conceptId === 'a')).toHaveLength(1);
+    expect(selectDiagnosticQuestions(buildPath(), [q('a1', 'l1', 'a')])).toHaveLength(1);
+    expect(selectDiagnosticQuestions(buildPath(), [])).toEqual([]);
   });
 });
 

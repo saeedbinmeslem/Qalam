@@ -428,16 +428,32 @@ export async function setLessonReviewAction(data: FormData): Promise<void> {
   );
 }
 
-/** اعتماد كل دروس كورس (courseId) أو كل دروس وحدة (moduleId) بضغطة واحدة */
+/**
+ * اعتماد كل دروس كورس (courseId) أو كل دروس وحدة (moduleId) بضغطة واحدة.
+ * مع `withQuizzes` تُعتمد مسودات اختبارات الدروس نفسها في الخطوة ذاتها.
+ */
 export async function approveLessonsAction(data: FormData): Promise<void> {
   const pathId = text(data, 'pathId');
   const courseId = text(data, 'courseId');
+  const scope = courseId ? { courseId } : { moduleId: text(data, 'moduleId') };
   await run(backTo(data, pathId), async (admin) => {
-    await admin.approveLessons.execute(
-      courseId
-        ? { actor: admin.actor, pathId, courseId }
-        : { actor: admin.actor, pathId, moduleId: text(data, 'moduleId') },
-    );
+    await admin.approveLessons.execute({ actor: admin.actor, pathId, ...scope });
+    if (text(data, 'withQuizzes') === 'on') {
+      await admin.approveQuizzes.execute({ actor: admin.actor, pathId, ...scope });
+    }
+  });
+}
+
+/** اعتماد اختبارات كل دروس كورس أو وحدة (للدروس المعتمدة سابقًا بدون اختباراتها) */
+export async function approveQuizzesAction(data: FormData): Promise<void> {
+  const pathId = text(data, 'pathId');
+  const courseId = text(data, 'courseId');
+  await run(backTo(data, pathId), async (admin) => {
+    await admin.approveQuizzes.execute({
+      actor: admin.actor,
+      pathId,
+      ...(courseId ? { courseId } : { moduleId: text(data, 'moduleId') }),
+    });
   });
 }
 

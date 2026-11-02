@@ -4,6 +4,7 @@
  * الهيكل: مسار ← مفهوم ← كورس ← وحدة ← درس (الدرس لا يُنسب لمفهوم بمفرده، بل يتبع كورسًا يتبع مفهومًا).
  */
 import { SaveButton } from '../../../../components/save-button';
+import { BackLink } from '../../../../components/back-link';
 import { createPathId } from '@qalam/domain';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -50,9 +51,7 @@ export default async function AdminPathPage({
 
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <Link href="/admin" className="text-sm text-on-surface-variant hover:text-on-surface">
-            ← كل المسارات
-          </Link>
+          <BackLink href="/admin">كل المسارات</BackLink>
           <h1 className="font-display text-headline text-on-surface">{path.title}</h1>
         </div>
         <div className="flex flex-wrap gap-2">

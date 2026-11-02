@@ -13,6 +13,8 @@ import {
   ApproveLessonQuestionsUseCase,
   ApproveLessonsUseCase,
   ApproveQuestionUseCase,
+  ApproveQuizzesUseCase,
+  CountDraftQuestionsUseCase,
   CheckAdminUseCase,
   CreateUploadTicketUseCase,
   DeleteQuestionUseCase,
@@ -154,6 +156,8 @@ export interface AdminContainer {
   setLessonReview: SetLessonReviewUseCase;
   approveLessons: ApproveLessonsUseCase;
   approveLessonQuestions: ApproveLessonQuestionsUseCase;
+  approveQuizzes: ApproveQuizzesUseCase;
+  countDraftQuestions: CountDraftQuestionsUseCase;
   createConcept: CreateConceptUseCase;
   updateConcept: UpdateConceptUseCase;
   deleteConcept: DeleteConceptUseCase;
@@ -206,6 +210,8 @@ export async function getAdminContainer(): Promise<AdminContainer> {
     setLessonReview: new SetLessonReviewUseCase(deps),
     approveLessons: new ApproveLessonsUseCase(deps),
     approveLessonQuestions: new ApproveLessonQuestionsUseCase(deps),
+    approveQuizzes: new ApproveQuizzesUseCase(deps),
+    countDraftQuestions: new CountDraftQuestionsUseCase(deps),
     createConcept: new CreateConceptUseCase(deps),
     updateConcept: new UpdateConceptUseCase(deps),
     deleteConcept: new DeleteConceptUseCase(deps),

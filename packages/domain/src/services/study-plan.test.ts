@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildPlanWeeks, estimateLessonMinutes } from './study-plan.js';
+import { buildPlanWeeks, estimateLessonMinutes, normalizePlanArrangement } from './study-plan.js';
 
 const lesson = (id: string, minutes: number) => ({ lessonId: id, durationSeconds: minutes * 60 });
 
@@ -26,5 +26,17 @@ describe('buildPlanWeeks', () => {
     expect(buildPlanWeeks([], 3)).toEqual([]);
     expect(() => buildPlanWeeks([lesson('a', 5)], 0)).toThrow('الساعات');
     expect(() => buildPlanWeeks([lesson('a', 5)], 99)).toThrow('الساعات');
+  });
+});
+
+describe('normalizePlanArrangement', () => {
+  const make = (lessonIds: string[]) => ({ lessonIds });
+  it('يسقط المجهول والمكرر والأسابيع الفارغة ويلحق المفقود بآخر أسبوع', () => {
+    const out = normalizePlanArrangement(['a', 'b', 'c', 'd'], [{ lessonIds: ['b', 'zzz'] }, { lessonIds: ['b', 'a'] }, { lessonIds: ['zzz'] }], make);
+    expect(out).toEqual([{ lessonIds: ['b'] }, { lessonIds: ['a', 'c', 'd'] }]);
+  });
+  it('بلا اقتراح: كل المتبقي في أسبوع واحد؛ وبلا متبقٍ: لا أسابيع', () => {
+    expect(normalizePlanArrangement(['a', 'b'], [], make)).toEqual([{ lessonIds: ['a', 'b'] }]);
+    expect(normalizePlanArrangement([], [{ lessonIds: ['a'] }], make)).toEqual([]);
   });
 });

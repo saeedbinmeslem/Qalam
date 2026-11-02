@@ -3,6 +3,7 @@
  * @description صفحة المسار: وحدات مرتبة تسلسليًا ودروسها مع المصدر. بلا منطق عمل.
  */
 import { createPathId } from '@qalam/domain';
+import { BackLink } from '../../../components/back-link';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { CoverArt, CoverBanner, courseCoverUrl } from '../../../components/cover-art';
@@ -48,9 +49,7 @@ export default async function PathPage({ params }: { params: Promise<{ pathId: s
   return (
     <>
       <CoverBanner seed={path.id} title={path.title} imageUrl={path.coverUrl}>
-        <Link href="/paths" className="text-sm opacity-90 hover:underline">
-          كل المسارات
-        </Link>
+        <BackLink href="/paths">كل المسارات</BackLink>
         <h1 className="mt-4 font-display text-display">{path.title}</h1>
         <p className="mt-3 max-w-[40rem] text-lg opacity-90">{path.description}</p>
         <dl className="mt-8 flex flex-wrap gap-x-10 gap-y-3">

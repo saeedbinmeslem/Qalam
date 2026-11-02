@@ -3,6 +3,7 @@
  * @description إدارة مفاهيم **مسار واحد** ومتطلباتها السابقة. المفهوم يتبع مسارًا (لا مفاهيم عامة) ويضم كورسًا أو أكثر.
  */
 import { SaveButton } from '../../../components/save-button';
+import { BackLink } from '../../../components/back-link';
 import Link from 'next/link';
 import { AdminPageHeader, Card, ErrorBanner, Field, dangerButton, ghostButton, inputClass, primaryButton } from '../../../components/admin-ui';
 import { createPathId } from '@qalam/domain';
@@ -93,9 +94,7 @@ export default async function AdminConcepts({
   return (
     <>
       <ErrorBanner message={error} />
-      <Link href={`/admin/paths/${pathId}`} className="text-sm text-on-surface-variant hover:text-on-surface">
-        ← {found.path.title}
-      </Link>
+      <BackLink href={`/admin/paths/${pathId}`}>{found.path.title}</BackLink>
       <div className="mt-3">
         <AdminPageHeader
           title="مفاهيم المسار"

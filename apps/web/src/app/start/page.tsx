@@ -23,7 +23,7 @@ export default async function StartPage({ searchParams }: { searchParams: Promis
       <PageHeader
         eyebrow="ابدأ هنا"
         title="أخبرنا بما يشغفك، ونبني لك خطتك"
-        description="كلما كنت أدقّ في وصف مجالك كان المسار أنسب. بعد ذلك تختبر مستواك لنتخطى ما تعرفه، ثم نرتّب الباقي في أسابيع تناسب وقتك."
+        description="كلما كنت أدقّ في وصف مجالك كان المسار أنسب. بعد ذلك تجيب عن اختبار قصير (نحو 15 سؤالًا من مختلف كورسات المسار) لنتأكد من فهمك ونتخطى ما تعرفه، ثم نكتب خطتك في أسابيع تناسب وقتك."
       />
       <div className={`${pageWidth} max-w-2xl py-10`}>
         {error ? (

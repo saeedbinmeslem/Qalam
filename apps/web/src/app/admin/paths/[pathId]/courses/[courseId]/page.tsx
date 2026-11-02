@@ -3,6 +3,7 @@
  * @description صفحة كورس واحد في لوحة التحكم: وحداته ودروسه، وزر إكمال الملاحظات والملخصات والأسئلة لهذا الكورس وحده.
  */
 import { createPathId } from '@qalam/domain';
+import { BackLink } from '../../../../../../components/back-link';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ErrorBanner, Field, ghostButton } from '../../../../../../components/admin-ui';
@@ -39,7 +40,8 @@ export default async function AdminCoursePage({
   const englishTitles = course.modules.flatMap((m) => m.lessons).filter((l) => needsArabicTitle(l.title)).length;
   const concepts = await admin.listConcepts.execute({ actor: admin.actor, pathId: path.id });
   const conceptOptions = concepts.map((c) => ({ id: c.id as string, name: c.name }));
-  const conceptName = concepts.find((c) => c.id === course.conceptId)?.name;
+  const draftQuizzes = await admin.countDraftQuestions.execute({ actor: admin.actor, pathId: path.id, courseId: course.id });
+  const conceptName =concepts.find((c) => c.id === course.conceptId)?.name;
 
   return (
     <>
@@ -47,9 +49,7 @@ export default async function AdminCoursePage({
 
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <Link href={`/admin/paths/${path.id}`} className="text-sm text-on-surface-variant hover:text-on-surface">
-            ← {path.title}
-          </Link>
+          <BackLink href={`/admin/paths/${path.id}`}>{path.title}</BackLink>
           <h1 className="font-display text-headline text-on-surface">{course.title}</h1>
           {conceptName ? <p className="text-sm text-on-surface-variant">المفهوم: {conceptName}</p> : null}
         </div>
@@ -103,7 +103,7 @@ export default async function AdminCoursePage({
         </form>
       </details>
 
-      <CourseSection path={path} course={course} concepts={conceptOptions} />
+      <CourseSection path={path} course={course} concepts={conceptOptions} draftQuizzes={draftQuizzes} />
     </>
   );
 }

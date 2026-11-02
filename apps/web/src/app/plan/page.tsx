@@ -4,6 +4,8 @@
  */
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { ConfirmSubmit } from '../../components/confirm-submit';
+import { PlanChat, PlanManualEditor } from '../../components/plan-editor';
 import { EmptyState, PageHeader, ProgressBar, pageWidth } from '../../components/ui';
 import { getAuth } from '../../composition/auth';
 import { getContainer } from '../../composition/container';
@@ -41,7 +43,7 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
     );
   }
 
-  const { goal, plan, progress, next, history } = view;
+  const { goal, plan, progress, next, history, revisions, catalog } = view;
   return (
     <>
       <PageHeader
@@ -83,9 +85,12 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
               الخطة الأسبوعية
             </h2>
             <form action={rebuildPlanAction}>
-              <button type="submit" className="btn-outlined btn-sm">
+              <ConfirmSubmit
+                className="btn-outlined btn-sm"
+                message={revisions.length > 0 ? 'سيُعاد بناء الخطة تلقائيًا من دروسك المتبقية، وتُمحى تعديلاتك السابقة (بالمحادثة أو يدويًا). متابعة؟' : 'تحديث الخطة بحسب تقدمك؟'}
+              >
                 حدّث خطتي بحسب تقدمي
-              </button>
+              </ConfirmSubmit>
             </form>
           </div>
           {!plan ? (
@@ -118,6 +123,13 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
             </>
           )}
         </section>
+
+        {plan && plan.weeks.length > 0 ? (
+          <>
+            <PlanChat revisions={revisions} />
+            <PlanManualEditor plan={plan} catalog={catalog} currentPathId={goal.pathId} hoursPerWeek={goal.hoursPerWeek} />
+          </>
+        ) : null}
 
         <section aria-labelledby="history-h">
           <h2 id="history-h" className="font-display text-title text-on-surface">

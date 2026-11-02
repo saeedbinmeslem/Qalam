@@ -3,6 +3,7 @@
  * @description صفحة الكورس: وحداته ودروسه مع المصدر وتقدّم المتعلم. بلا منطق عمل.
  */
 import { createPathId } from '@qalam/domain';
+import { BackLink } from '../../../../../components/back-link';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { CoverBanner, LessonThumb, courseCoverUrl } from '../../../../../components/cover-art';
@@ -37,9 +38,7 @@ export default async function CoursePage({ params }: { params: Promise<{ pathId:
   return (
     <>
       <CoverBanner seed={path.id} title={course.title} imageUrl={courseCoverUrl(course, 'large')}>
-        <Link href={`/paths/${path.id}`} className="text-sm opacity-90 hover:underline">
-          {path.title}
-        </Link>
+        <BackLink href={`/paths/${path.id}`}>{path.title}</BackLink>
         <h1 className="mt-4 font-display text-display">{course.title}</h1>
         {conceptName ? <p className="mt-2 opacity-90">المفهوم: {conceptName}</p> : null}
         {course.description ? <p className="mt-3 max-w-[40rem] text-lg opacity-90">{course.description}</p> : null}

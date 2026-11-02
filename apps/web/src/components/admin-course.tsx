@@ -10,6 +10,7 @@ import {
   addLessonAction,
   addModuleAction,
   approveLessonsAction,
+  approveQuizzesAction,
   deleteCourseAction,
   deleteLessonAction,
   deleteModuleAction,
@@ -21,6 +22,7 @@ import {
   updateModuleAction,
 } from '../app/admin/actions';
 import { Card, Field, ReviewBadge, dangerButton, ghostButton, inputClass, primaryButton } from './admin-ui';
+import { ApproveDialog } from './approve-dialog';
 import { ConfirmSubmit } from './confirm-submit';
 import { LessonThumb, courseCoverUrl } from './cover-art';
 import { CoverField } from './cover-field';
@@ -56,20 +58,33 @@ function MiniForm({
 }
 
 /** وحدة بدروسها: ترتيب، مراجعة، حذف، إضافة درس، تعديل الوحدة */
-function ModuleCard({ path, module, back }: { path: LearningPath; module: Module; back: string }) {
+function ModuleCard({
+  path,
+  module,
+  back,
+  draftQuizzes,
+}: {
+  path: LearningPath;
+  module: Module;
+  back: string;
+  draftQuizzes: Record<string, number>;
+}) {
   const pending = module.lessons.filter((l) => !l.reviewedByHuman).length;
+  const pendingQuizzes = module.lessons.reduce((sum, l) => sum + (draftQuizzes[l.id] ?? 0), 0);
   return (
     <Card
       title={`${module.orderIndex}. ${module.title}`}
       actions={
         <div className="flex flex-wrap gap-2">
-          {pending > 0 ? (
-            <MiniForm
-              action={approveLessonsAction}
-              fields={{ pathId: path.id, moduleId: module.id }}
-              label={`اعتماد دروس الوحدة (${pending})`}
+          {pending > 0 || pendingQuizzes > 0 ? (
+            <ApproveDialog
+              action={pending > 0 ? approveLessonsAction : approveQuizzesAction}
+              fields={{ pathId: path.id, moduleId: module.id, returnTo: back }}
+              mode={pending > 0 ? 'lessons' : 'quizzes'}
+              scope="الوحدة"
+              pendingLessons={pending}
+              pendingQuizzes={pendingQuizzes}
               className={primaryButton}
-              back={back}
             />
           ) : null}
           <MiniForm action={moveModuleAction} fields={{ pathId: path.id, moduleId: module.id, direction: 'up' }} label="▲" title="تقديم الوحدة" back={back} />
@@ -178,13 +193,17 @@ export function CourseSection({
   path,
   course,
   concepts,
+  draftQuizzes,
 }: {
   path: LearningPath;
   course: Course;
   concepts: Array<{ id: string; name: string }>;
+  /** عدد الأسئلة المسودّة لكل درس (الدروس بلا مسودات غائبة) */
+  draftQuizzes: Record<string, number>;
 }) {
   const back = `/admin/paths/${path.id}/courses/${course.id}`;
   const pending = course.modules.flatMap((m) => m.lessons).filter((l) => !l.reviewedByHuman).length;
+  const pendingQuizzes = Object.values(draftQuizzes).reduce((sum, n) => sum + n, 0);
   return (
     <section className="card-outlined p-5">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-outline-variant pb-4">
@@ -198,16 +217,18 @@ export function CourseSection({
           {course.description ? <p className="mt-1 text-sm text-on-surface-variant">{course.description}</p> : null}
         </div>
         <div className="flex flex-wrap gap-2">
-          {pending > 0 ? (
-            <MiniForm
-              action={approveLessonsAction}
-              fields={{ pathId: path.id, courseId: course.id }}
-              label={`اعتماد كل دروس الكورس (${pending})`}
+          {pending > 0 || pendingQuizzes > 0 ? (
+            <ApproveDialog
+              action={pending > 0 ? approveLessonsAction : approveQuizzesAction}
+              fields={{ pathId: path.id, courseId: course.id, returnTo: back }}
+              mode={pending > 0 ? 'lessons' : 'quizzes'}
+              scope="الكورس"
+              pendingLessons={pending}
+              pendingQuizzes={pendingQuizzes}
               className={primaryButton}
-              back={back}
             />
           ) : course.lessonsCount > 0 ? (
-            <span className="chip chip-primary">كل الدروس معتمدة</span>
+            <span className="chip chip-primary">كل الدروس والاختبارات معتمدة</span>
           ) : null}
           <MiniForm action={moveCourseAction} fields={{ pathId: path.id, courseId: course.id, direction: 'up' }} label="▲" title="تقديم الكورس" back={back} />
           <MiniForm action={moveCourseAction} fields={{ pathId: path.id, courseId: course.id, direction: 'down' }} label="▼" title="تأخير الكورس" back={back} />
@@ -216,7 +237,7 @@ export function CourseSection({
 
       <div className="space-y-4">
         {course.modules.map((module) => (
-          <ModuleCard key={module.id} path={path} module={module} back={back} />
+          <ModuleCard key={module.id} path={path} module={module} back={back} draftQuizzes={draftQuizzes} />
         ))}
       </div>
 
