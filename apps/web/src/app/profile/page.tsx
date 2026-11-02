@@ -3,10 +3,10 @@
  * @description حسابي: بيانات الحساب وإحصاءات موجزة وتسجيل الخروج، وروابط الإدارة للمديرين. بلا منطق عمل.
  */
 import Link from 'next/link';
-import { signOutAction } from '../auth/actions';
 import { isAdminUser } from '../../composition/admin';
 import { getAuth } from '../../composition/auth';
 import { getContainer } from '../../composition/container';
+import { SignOutDialog } from '../../components/sign-out-dialog';
 import { EmptyState, PageHeader, StatTile, pageWidth } from '../../components/ui';
 
 export const dynamic = 'force-dynamic';
@@ -62,11 +62,7 @@ export default async function ProfilePage() {
                 لوحة التحكم
               </Link>
             ) : null}
-            <form action={signOutAction}>
-              <button type="submit" className="btn-outlined">
-                تسجيل الخروج
-              </button>
-            </form>
+            <SignOutDialog className="btn-outlined">تسجيل الخروج</SignOutDialog>
           </div>
         </section>
 

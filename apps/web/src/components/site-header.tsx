@@ -1,9 +1,9 @@
 import Link from 'next/link';
-import { signOutAction } from '../app/auth/actions';
 import { isAdminUser } from '../composition/admin';
 import { getAuth } from '../composition/auth';
 import { QalamLogo } from './brand';
 import { NavLinks, type NavItem } from './nav-links';
+import { SignOutDialog } from './sign-out-dialog';
 import { ThemeToggle } from './theme-toggle';
 
 /** أقسام المنصة بالترتيب الذي يتعلم به المتعلم: اكتشف، ادرس، افهم، طبّق، تابع */
@@ -52,11 +52,7 @@ export async function SiteHeader() {
                 <Link href="/profile" className="drawer-action">
                   حسابي
                 </Link>
-                <form action={signOutAction}>
-                  <button type="submit" className="drawer-action w-full">
-                    تسجيل الخروج
-                  </button>
-                </form>
+                <SignOutDialog className="drawer-action w-full">تسجيل الخروج</SignOutDialog>
               </>
             ) : (
               <>
@@ -91,11 +87,7 @@ export async function SiteHeader() {
                 </span>
                 <span className="hidden sm:inline">حسابي</span>
               </Link>
-              <form action={signOutAction}>
-                <button type="submit" className="btn-text btn-sm hidden md:inline-flex">
-                  خروج
-                </button>
-              </form>
+              <SignOutDialog className="btn-text btn-sm hidden md:inline-flex">خروج</SignOutDialog>
             </>
           ) : (
             <>

@@ -43,7 +43,14 @@ export function ApproveDialog({ action, fields, mode, scope, pendingLessons, pen
         }}
         className="m-auto w-[min(92vw,28rem)] rounded-lg border border-outline-variant bg-surface-container-lowest p-0 text-on-surface shadow-xl backdrop:bg-scrim/50 backdrop:backdrop-blur-sm"
       >
-        <form action={action} className="p-6">
+        <form
+          action={async (data) => {
+            // تُغلق النافذة أولًا ثم يبدأ الإجراء في الخادم
+            dialog.current?.close();
+            await action(data);
+          }}
+          className="p-6"
+        >
           {Object.entries(fields).map(([name, value]) => (
             <input key={name} type="hidden" name={name} value={value} />
           ))}
