@@ -11,6 +11,7 @@ import {
   LearningEvent,
   MAX_HOURS_PER_WEEK,
   MIN_HOURS_PER_WEEK,
+  buildPlanDays,
   buildPlanWeeks,
   calculatePathProgress,
   createPathId,
@@ -196,6 +197,8 @@ export interface PlanWeekView {
   focus: string;
   minutes: number;
   lessons: Array<{ id: string; title: string; status: 'done' | 'skipped' | 'next' | 'upcoming' }>;
+  /** تقسيم الأسبوع على أيام الدراسة (مشتق من دروسه وساعات المتعلم) */
+  days: Array<{ day: number; minutes: number; lessons: PlanWeekView['lessons'] }>;
 }
 
 function latest(events: readonly LearningEvent[], type: LearningEvent['type']): LearningEvent | undefined {
@@ -434,7 +437,7 @@ export class RevisePersonalPlanUseCase {
   constructor(private readonly deps: PersonalPlanDeps) {}
 
   /** المتعلم يطلب تعديل خطته بالمحادثة؛ الذكاء الاصطناعي يقترح، والدومين يصحّح، ويُحكم على «تغيّرت فعلًا» بمقارنة النتيجة */
-  async execute(request: { userId: string; message: string }): Promise<{ reply: string; changed: boolean }> {
+  async execute(request: { userId: string; message: string }): Promise<{ reply: string; changed: boolean; newPathId: string | null }> {
     const message = request.message.trim();
     if (!message) throw new Error('اكتب ما تريد تعديله في خطتك');
     if (message.length > MAX_MESSAGE_LENGTH) throw new Error(`الرسالة طويلة؛ اختصرها إلى ${MAX_MESSAGE_LENGTH} حرف أو أقل`);
@@ -542,7 +545,7 @@ export class RevisePersonalPlanUseCase {
       reply += `\nالخطة الآن: ${weeks.length} أسبوع و${count} درسًا${newPath ? ` في «${newPath.title}»` : ''}.`;
     }
     await recordRevisedPlan(this.deps, request.userId, target, weeks, summary, { source: 'chat', request: message, reply, changed: actuallyChanged });
-    return { reply, changed: actuallyChanged };
+    return { reply, changed: actuallyChanged, newPathId: newPath ? newPath.id : null };
   }
 }
 
@@ -603,7 +606,7 @@ export class ChangePlanPathUseCase {
   constructor(private readonly deps: PersonalPlanDeps) {}
 
   /** يغيّر المسار المراد تعلّمه ويبني خطته من دروسه المتبقية فورًا بالقواعد (الصياغة بالذكاء الاصطناعي لاحقًا) */
-  async execute(request: { userId: string; pathId: string }): Promise<{ pathTitle: string }> {
+  async execute(request: { userId: string; pathId: string }): Promise<{ pathId: string; pathTitle: string }> {
     const events = await this.deps.events.listByUser(request.userId);
     const goalEvent = latest(events, 'goal_set');
     if (!goalEvent) throw new Error('ابدأ بإخبارنا بما يشغفك وبالمجال الذي تريده');
@@ -620,7 +623,7 @@ export class ChangePlanPathUseCase {
       }),
     );
     await new BuildPersonalPlanUseCase(this.deps).execute({ userId: request.userId, withAi: false });
-    return { pathTitle: path.title };
+    return { pathId: path.id, pathTitle: path.title };
   }
 }
 
@@ -636,7 +639,14 @@ export interface PersonalPlanView {
     pathTitle: string;
     rationale: string;
   };
-  plan: null | { summary: string; createdAt: Date; usedAi: boolean; weeks: PlanWeekView[] };
+  plan: null | {
+    summary: string;
+    createdAt: Date;
+    usedAi: boolean;
+    weeks: PlanWeekView[];
+    /** خطة اليوم: أول يوم فيه درس لم يُنجز بعد (null إذا أُنجزت الخطة كلها) */
+    today: null | { week: number; day: number; minutes: number; lessons: PlanWeekView['lessons'] };
+  };
   progress: { percent: number; completedCount: number; skippedCount: number; totalCount: number };
   next: { id: string; title: string } | null;
   /** سجل ما درسه المتعلم بترتيب الإكمال */
@@ -690,6 +700,32 @@ export class GetPersonalPlanUseCase {
     const conceptNames = await conceptNameMap(this.deps.concepts, path);
     const allPaths = (await this.deps.paths.findAll()).filter((p) => p.modules.some((m) => m.lessons.length > 0));
 
+    const hoursPerWeek = num(goalEvent.payload['hoursPerWeek'], 3);
+    const weekViews: PlanWeekView[] = (planned ?? []).map((w) => {
+      const weekLessons = (Array.isArray(w['lessonIds']) ? (w['lessonIds'] as unknown[]) : [])
+        .map((v) => str(v))
+        .filter((id) => lessons.has(id))
+        .map((id) => ({ id, title: lessons.get(id)?.title ?? '', status: statusOf(id) }));
+      const days = buildPlanDays(
+        weekLessons.map((l) => ({ lessonId: l.id, durationSeconds: lessons.get(l.id)?.segment.durationSeconds ?? 0 })),
+        hoursPerWeek,
+      ).map((d) => ({
+        day: d.day,
+        minutes: d.minutes,
+        lessons: d.lessonIds.map((id) => weekLessons.find((l) => l.id === id) as PlanWeekView['lessons'][number]),
+      }));
+      return { week: num(w['week']), title: str(w['title']), focus: str(w['focus']), minutes: num(w['minutes']), lessons: weekLessons, days };
+    });
+    const isOpen = (s: PlanWeekView['lessons'][number]['status']) => s === 'next' || s === 'upcoming';
+    let today: NonNullable<PersonalPlanView['plan']>['today'] = null;
+    for (const week of weekViews) {
+      const day = week.days.find((d) => d.lessons.some((l) => isOpen(l.status)));
+      if (day) {
+        today = { week: week.week, day: day.day, minutes: day.minutes, lessons: day.lessons };
+        break;
+      }
+    }
+
     return {
       catalog: {
         paths: allPaths.map((p) => ({ id: p.id as string, title: p.title })),
@@ -727,16 +763,8 @@ export class GetPersonalPlanUseCase {
             summary: str(planEvent?.payload['summary']),
             createdAt: (planEvent as LearningEvent).occurredAt,
             usedAi: planEvent?.payload['usedAi'] === true,
-            weeks: planned.map((w) => ({
-              week: num(w['week']),
-              title: str(w['title']),
-              focus: str(w['focus']),
-              minutes: num(w['minutes']),
-              lessons: (Array.isArray(w['lessonIds']) ? (w['lessonIds'] as unknown[]) : [])
-                .map((v) => str(v))
-                .filter((id) => lessons.has(id))
-                .map((id) => ({ id, title: lessons.get(id)?.title ?? '', status: statusOf(id) })),
-            })),
+            weeks: weekViews,
+            today,
           }
         : null,
       progress: {

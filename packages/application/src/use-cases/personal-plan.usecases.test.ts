@@ -136,6 +136,9 @@ describe('BuildPersonalPlanUseCase + GetPersonalPlanUseCase', () => {
       { id: 'py-l4', title: 'الدوال', status: 'upcoming' },
     ]);
     expect(view?.plan?.weeks[0]?.title).toBe('الأسبوع 1');
+    // الخطة اليومية مشتقة من الأسبوع: كل درس (20 د) أكبر من سعة اليوم (12 د) فيأخذ يومًا، وخطة اليوم أول يوم لم يُنجز
+    expect(view?.plan?.weeks[0]?.days.map((d) => d.lessons.map((l) => l.id))).toEqual([['py-l3'], ['py-l4']]);
+    expect(view?.plan?.today).toMatchObject({ week: 1, day: 1, lessons: [{ id: 'py-l3' }] });
     expect(view?.progress).toMatchObject({ completedCount: 1, skippedCount: 1, totalCount: 4, percent: 50 });
     expect(view?.next?.id).toBe('py-l3');
     expect(view?.history.map((h) => h.title)).toEqual(['الشروط']);
@@ -277,7 +280,7 @@ describe('تعديل الخطة بعد إنشائها', () => {
 
     await expect(new ChangePlanPathUseCase(deps).execute({ userId: 'u1', pathId: 'py' })).rejects.toThrow('الحالي');
     await expect(new ChangePlanPathUseCase(deps).execute({ userId: 'u1', pathId: 'nope' })).rejects.toThrow('غير متاح');
-    expect(await new ChangePlanPathUseCase(deps).execute({ userId: 'u1', pathId: 'web' })).toEqual({ pathTitle: 'تطوير المواقع' });
+    expect(await new ChangePlanPathUseCase(deps).execute({ userId: 'u1', pathId: 'web' })).toEqual({ pathId: 'web', pathTitle: 'تطوير المواقع' });
     expect(await lessonsOf(deps)).toEqual([['web-l1', 'web-l2']]);
   });
 });

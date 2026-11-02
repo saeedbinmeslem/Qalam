@@ -1,5 +1,25 @@
 import { describe, expect, it } from 'vitest';
-import { buildPlanWeeks, estimateLessonMinutes, normalizePlanArrangement } from './study-plan.js';
+import { buildPlanDays, buildPlanWeeks, estimateLessonMinutes, normalizePlanArrangement } from './study-plan.js';
+
+describe('buildPlanDays', () => {
+  // درس مدته 10 دقائق = 20 دقيقة تقديرية
+  const lesson = (id: string, seconds = 600) => ({ lessonId: id, durationSeconds: seconds });
+
+  it('يوزّع دروس الأسبوع على أيام بحسب سعة اليوم (5 ساعات ÷ 5 أيام = 60 دقيقة)', () => {
+    const days = buildPlanDays([lesson('a'), lesson('b'), lesson('c'), lesson('d')], 5);
+    expect(days.map((d) => d.lessonIds)).toEqual([['a', 'b', 'c'], ['d']]);
+    expect(days.map((d) => d.day)).toEqual([1, 2]);
+  });
+
+  it('الدرس الأكبر من سعة اليوم يأخذ يومًا وحده ولا يضيع', () => {
+    const days = buildPlanDays([lesson('long', 7200), lesson('s')], 1);
+    expect(days.map((d) => d.lessonIds)).toEqual([['long'], ['s']]);
+  });
+
+  it('لا دروس فلا أيام', () => {
+    expect(buildPlanDays([], 3)).toEqual([]);
+  });
+});
 
 const lesson = (id: string, minutes: number) => ({ lessonId: id, durationSeconds: minutes * 60 });
 

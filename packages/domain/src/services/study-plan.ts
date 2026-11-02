@@ -47,6 +47,40 @@ export function buildPlanWeeks(lessons: readonly PlanLessonInput[], hoursPerWeek
   return weeks;
 }
 
+/** أيام الدراسة في الأسبوع التي تُبنى عليها الخطة اليومية (يومان للراحة) */
+export const STUDY_DAYS_PER_WEEK = 5;
+
+export interface PlanDay {
+  /** رقم اليوم داخل الأسبوع بدءًا من 1 */
+  day: number;
+  lessonIds: string[];
+  minutes: number;
+}
+
+/**
+ * يوزّع دروس أسبوع على أيامه: سعة اليوم = سعة الأسبوع ÷ أيام الدراسة، والدرس لا يُجزَّأ فالأكبر من سعة اليوم
+ * يأخذ يومًا وحده. التوزيع حتمي ومشتق من الأسبوع، فلا يُخزَّن ولا يخالف الخطة الأسبوعية.
+ */
+export function buildPlanDays(
+  lessons: readonly PlanLessonInput[],
+  hoursPerWeek: number,
+  studyDays: number = STUDY_DAYS_PER_WEEK,
+): PlanDay[] {
+  const dailyCapacity = Math.max(1, Math.round((hoursPerWeek * 60) / studyDays));
+  const days: PlanDay[] = [];
+  let current: PlanDay | null = null;
+  for (const lesson of lessons) {
+    const minutes = estimateLessonMinutes(lesson.durationSeconds);
+    if (!current || (current.minutes > 0 && current.minutes + minutes > dailyCapacity)) {
+      current = { day: days.length + 1, lessonIds: [], minutes: 0 };
+      days.push(current);
+    }
+    current.lessonIds.push(lesson.lessonId);
+    current.minutes += minutes;
+  }
+  return days;
+}
+
 /**
  * يطبّق ترتيبًا مقترحًا للأسابيع (من النموذج أو من المتعلم يدويًا) على الدروس المتبقية فقط، فيبقى المخرج سليمًا
  * مهما كان المُدخل: يُسقط المعرّفات المجهولة والمكرّرة، ويحذف الأسابيع الفارغة، وكل درس متبقٍ لم يُذكر يُلحَق

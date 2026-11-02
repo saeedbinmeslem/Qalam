@@ -83,7 +83,7 @@ export default async function DiagnosticPage({
 
         <div className="mt-8 flex flex-wrap gap-3">
           <Link href="/plan" className="btn-filled">
-            شاهد خطتي الأسبوعية
+            شاهد خطتي اليومية والأسبوعية
           </Link>
           <Link href={back} className="btn-outlined">
             متابعة المسار

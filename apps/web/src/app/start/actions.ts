@@ -58,10 +58,15 @@ export async function revisePlanAction(data: FormData): Promise<void> {
   const user = await (await getAuth()).getCurrentUser.execute();
   if (!user) redirect('/login?next=/plan');
 
-  const { revisePersonalPlan } = await getContainer();
+  const { revisePersonalPlan, getDiagnostic } = await getContainer();
   let destination = '/plan';
   try {
-    await revisePersonalPlan.execute({ userId: user.id, message: field(data, 'message') });
+    const revised = await revisePersonalPlan.execute({ userId: user.id, message: field(data, 'message') });
+    // انتقال لمسار آخر بالمحادثة = هدف جديد، فيُختبر المتعلم من جديد كما في التعارف
+    if (revised.newPathId) {
+      const questions = await getDiagnostic.execute({ pathId: revised.newPathId }).catch(() => []);
+      if (questions.length > 0) destination = `/paths/${revised.newPathId}/diagnostic`;
+    }
   } catch (error) {
     destination = `/plan?error=${encodeURIComponent(error instanceof Error ? error.message : 'تعذّر تعديل الخطة')}`;
   }
@@ -109,16 +114,21 @@ export async function editPlanAction(data: FormData): Promise<void> {
   redirect(destination);
 }
 
-/** تغيير المسار المراد تعلمه: تُبنى الخطة من دروسه فورًا، وتُصاغ عناوينها بالذكاء الاصطناعي في الخلفية */
+/**
+ * تغيير المسار المراد تعلمه: تُبنى الخطة من دروسه فورًا (وتُصاغ عناوينها بالذكاء الاصطناعي في الخلفية)،
+ * ثم يُوجَّه المتعلم إلى اختبار تشخيصي جديد للمسار الجديد إن وُجدت أسئلته، فتُعدَّل الخطة بنتيجته.
+ */
 export async function changePlanPathAction(data: FormData): Promise<void> {
   const user = await (await getAuth()).getCurrentUser.execute();
   if (!user) redirect('/login?next=/plan');
 
-  const { changePlanPath, buildPersonalPlan } = await getContainer();
+  const { changePlanPath, buildPersonalPlan, getDiagnostic } = await getContainer();
   let destination = '/plan';
   try {
-    await changePlanPath.execute({ userId: user.id, pathId: field(data, 'pathId') });
+    const changed = await changePlanPath.execute({ userId: user.id, pathId: field(data, 'pathId') });
     after(() => buildPersonalPlan.execute({ userId: user.id }).catch(() => null));
+    const questions = await getDiagnostic.execute({ pathId: changed.pathId }).catch(() => []);
+    if (questions.length > 0) destination = `/paths/${changed.pathId}/diagnostic`;
   } catch (error) {
     destination = `/plan?error=${encodeURIComponent(error instanceof Error ? error.message : 'تعذّر تغيير المسار')}`;
   }
