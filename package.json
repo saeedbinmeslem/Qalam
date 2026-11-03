@@ -14,7 +14,8 @@
     "type-check": "tsc --build",
     "clean": "tsc --build --clean && rimraf packages/*/dist apps/*/dist",
     "draft-content": "node scripts/draft-content.mjs",
-    "seed-supabase": "node scripts/seed-supabase.mjs"
+    "seed-supabase": "node scripts/seed-supabase.mjs",
+    "fetch-transcripts": "node scripts/fetch-transcripts.mjs"
   },
   "engines": {
     "node": ">=22"

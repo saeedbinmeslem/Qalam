@@ -50,8 +50,8 @@ export default async function StartPage({ searchParams }: { searchParams: Promis
               </select>
             </label>
             <label className="block">
-              <span className="block text-label text-on-surface">كم ساعة تتفرغ أسبوعيًا؟</span>
-              <input name="hoursPerWeek" type="number" min={1} max={40} defaultValue={3} className="field" />
+              <span className="block text-label text-on-surface">كم ساعة تتفرغ يوميًا؟</span>
+              <input name="hoursPerDay" type="number" min={0.5} max={12} step={0.5} defaultValue={1} className="field" />
             </label>
           </div>
           <button type="submit" className="btn-filled">

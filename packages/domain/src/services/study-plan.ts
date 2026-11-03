@@ -1,6 +1,6 @@
 /**
  * @file study-plan.ts
- * @description خطة الدراسة الأسبوعية: توزيع الدروس المتبقية على أسابيع حسب الساعات المتاحة للمتعلم.
+ * @description خطة الدراسة الأسبوعية: توزيع الدروس المتبقية على أسابيع حسب الساعات اليومية المتاحة للمتعلم.
  * نقية وحتمية (لا نموذج لغوي هنا)؛ النموذج يختار المسار ويكتب عناوين الأسابيع وأسبابها فقط، فتبقى الخطة
  * صحيحة حتى لو تعطّل أو أخطأ.
  */
@@ -23,15 +23,21 @@ export function estimateLessonMinutes(durationSeconds: number): number {
   return Math.ceil((durationSeconds / 60) * 1.5) + 5;
 }
 
-export const MIN_HOURS_PER_WEEK = 1;
-export const MAX_HOURS_PER_WEEK = 40;
+/** أيام الدراسة في الأسبوع (يومان للراحة): سعة الأسبوع = ساعات اليوم × هذا العدد */
+export const STUDY_DAYS_PER_WEEK = 5;
+export const MIN_HOURS_PER_DAY = 0.5;
+export const MAX_HOURS_PER_DAY = 12;
 
-/** يملأ كل أسبوع بدروس بالترتيب حتى سعته؛ الدرس الأكبر من السعة يأخذ أسبوعًا وحده */
-export function buildPlanWeeks(lessons: readonly PlanLessonInput[], hoursPerWeek: number): PlanWeek[] {
-  if (!Number.isFinite(hoursPerWeek) || hoursPerWeek < MIN_HOURS_PER_WEEK || hoursPerWeek > MAX_HOURS_PER_WEEK) {
-    throw new Error(`عدد الساعات الأسبوعية يجب أن يكون بين ${MIN_HOURS_PER_WEEK} و${MAX_HOURS_PER_WEEK}`);
+function assertHoursPerDay(hoursPerDay: number): void {
+  if (!Number.isFinite(hoursPerDay) || hoursPerDay < MIN_HOURS_PER_DAY || hoursPerDay > MAX_HOURS_PER_DAY) {
+    throw new Error(`عدد الساعات اليومية يجب أن يكون بين ${MIN_HOURS_PER_DAY} و${MAX_HOURS_PER_DAY}`);
   }
-  const capacity = Math.round(hoursPerWeek * 60);
+}
+
+/** يملأ كل أسبوع بدروس بالترتيب حتى سعته (ساعات اليوم × أيام الدراسة)؛ الدرس الأكبر من السعة يأخذ أسبوعًا وحده */
+export function buildPlanWeeks(lessons: readonly PlanLessonInput[], hoursPerDay: number): PlanWeek[] {
+  assertHoursPerDay(hoursPerDay);
+  const capacity = Math.round(hoursPerDay * 60 * STUDY_DAYS_PER_WEEK);
   const weeks: PlanWeek[] = [];
   let current: PlanWeek | null = null;
 
@@ -47,9 +53,6 @@ export function buildPlanWeeks(lessons: readonly PlanLessonInput[], hoursPerWeek
   return weeks;
 }
 
-/** أيام الدراسة في الأسبوع التي تُبنى عليها الخطة اليومية (يومان للراحة) */
-export const STUDY_DAYS_PER_WEEK = 5;
-
 export interface PlanDay {
   /** رقم اليوم داخل الأسبوع بدءًا من 1 */
   day: number;
@@ -58,15 +61,11 @@ export interface PlanDay {
 }
 
 /**
- * يوزّع دروس أسبوع على أيامه: سعة اليوم = سعة الأسبوع ÷ أيام الدراسة، والدرس لا يُجزَّأ فالأكبر من سعة اليوم
+ * يوزّع دروس أسبوع على أيامه: سعة اليوم = ساعات المتعلم اليومية، والدرس لا يُجزَّأ فالأكبر من سعة اليوم
  * يأخذ يومًا وحده. التوزيع حتمي ومشتق من الأسبوع، فلا يُخزَّن ولا يخالف الخطة الأسبوعية.
  */
-export function buildPlanDays(
-  lessons: readonly PlanLessonInput[],
-  hoursPerWeek: number,
-  studyDays: number = STUDY_DAYS_PER_WEEK,
-): PlanDay[] {
-  const dailyCapacity = Math.max(1, Math.round((hoursPerWeek * 60) / studyDays));
+export function buildPlanDays(lessons: readonly PlanLessonInput[], hoursPerDay: number): PlanDay[] {
+  const dailyCapacity = Math.max(1, Math.round(hoursPerDay * 60));
   const days: PlanDay[] = [];
   let current: PlanDay | null = null;
   for (const lesson of lessons) {
@@ -79,6 +78,49 @@ export function buildPlanDays(
     current.minutes += minutes;
   }
   return days;
+}
+
+export interface PlanHourItem {
+  lessonId: string;
+  /** الدقائق التي يشغلها الدرس داخل هذه الساعة */
+  minutes: number;
+  /** هل يبدأ الدرس في هذه الساعة (وإلا فهو تكملة لما بدأ في ساعة سابقة) */
+  starts: boolean;
+}
+
+export interface PlanHour {
+  /** رقم الساعة داخل اليوم بدءًا من 1 */
+  hour: number;
+  items: PlanHourItem[];
+  minutes: number;
+}
+
+/**
+ * يقسّم دروس يوم على ساعاته بتسلسل زمني: الدرس يشغل مدته التقديرية متصلة، فقد يمتد على ساعتين
+ * ويشاركه درس آخر الساعة نفسها. حتمي ومشتق من اليوم فلا يُخزَّن.
+ */
+export function buildPlanHours(lessons: readonly PlanLessonInput[]): PlanHour[] {
+  const hours: PlanHour[] = [];
+  let cursor = 0; // الدقيقة الحالية من بداية اليوم
+  for (const lesson of lessons) {
+    let left = estimateLessonMinutes(lesson.durationSeconds);
+    let starts = true;
+    while (left > 0) {
+      const index = Math.floor(cursor / 60);
+      const slice = Math.min(left, (index + 1) * 60 - cursor);
+      let hour = hours[index];
+      if (!hour) {
+        hour = { hour: index + 1, items: [], minutes: 0 };
+        hours[index] = hour;
+      }
+      hour.items.push({ lessonId: lesson.lessonId, minutes: slice, starts });
+      hour.minutes += slice;
+      cursor += slice;
+      left -= slice;
+      starts = false;
+    }
+  }
+  return hours;
 }
 
 /**

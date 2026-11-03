@@ -15,6 +15,7 @@ import type { ConceptRepositoryPort } from '../ports/concept-repository.port.js'
 import type { EventReaderPort } from '../ports/event-reader.port.js';
 import type { PathRepositoryPort } from '../ports/path-repository.port.js';
 import {
+  GetConceptDetailUseCase,
   GetConceptMapUseCase,
   GetLearnerDashboardUseCase,
   SearchLessonLibraryUseCase,
@@ -105,12 +106,34 @@ describe('GetConceptMapUseCase (خريطة المفاهيم)', () => {
     expect(map.levels.map((l) => l.level)).toEqual([1, 2]);
     const ram = map.levels[1]!.concepts[0]!;
     expect(ram.prerequisites).toEqual([{ id: 'cpu', name: 'المعالج' }]);
-    expect(ram.lessons).toEqual([{ id: 'b', title: 'الذاكرة العشوائية', pathId: 'p1' }]);
+    expect(ram).toMatchObject({ courseCount: expect.any(Number), lessonCount: expect.any(Number) });
   });
 
   it('يعرض معرّف متطلب محذوف بدل أن ينهار', async () => {
     const map = await new GetConceptMapUseCase(repo([concept('ram', 'الذاكرة', 2, ['gone'])]), paths).execute();
     expect(map.levels[0]!.concepts[0]!.prerequisites[0]!.name).toBe('gone');
+  });
+});
+
+describe('GetConceptDetailUseCase (صفحة المفهوم)', () => {
+  const ram = new Concept({ id: createConceptId('ram'), pathId: createPathId('p1'), name: 'الذاكرة', description: '', level: 2 });
+  const repo = (found: Concept | null): ConceptRepositoryPort => ({
+    save: async () => {},
+    findById: async () => found,
+    findAll: async () => (found ? [found] : []),
+    findByPath: async () => (found ? [found] : []),
+    delete: async () => {},
+  });
+
+  it('يعيد المفهوم وكورساته فقط', async () => {
+    const detail = await new GetConceptDetailUseCase(repo(ram), paths).execute({ conceptId: ram.id });
+    expect(detail?.concept.name).toBe('الذاكرة');
+    expect(detail?.courses.every((c) => c.conceptId === ram.id)).toBe(true);
+    expect(detail?.concept.courseCount).toBe(detail?.courses.length);
+  });
+
+  it('null لمفهوم غير موجود', async () => {
+    expect(await new GetConceptDetailUseCase(repo(null), paths).execute({ conceptId: ram.id })).toBeNull();
   });
 });
 

@@ -67,7 +67,7 @@ tests/                       # end-to-end
 ## حالة التنفيذ (حدّثها عند كل إنجاز؛ التفاصيل في @docs/IMPLEMENTATION_LOG.md)
 
 ### المنجز (المرحلة 0، تقريبًا 90%)
-- Monorepo (npm workspaces) + TypeScript + ESLint يفرض قواعد Clean Architecture + Vitest + CI. الاختبارات: 301 ناجحة.
+- Monorepo (npm workspaces) + TypeScript + ESLint يفرض قواعد Clean Architecture + Vitest + CI. الاختبارات: 327 ناجحة.
 - Domain: Concept, Lesson, Module, LearningPath (مع مدة المسار), Learner, VideoSegment, MasteryState, Email, LearningEvent، وقواعد التكيّف الأولية.
 - Application: ports (PathRepository, LearnerRepository, Auth, EventRecorder, Clock) + use cases (GetLearningPath, ListLearningPaths, GetLesson, RequestSignIn/GetCurrentUser/SignOut, RecordLearningEvent).
 - Infrastructure: مستودعات الذاكرة، SupabasePathRepository، محوّلات المصادقة (SupabaseAuth برمز دخول من 6 أرقام + DevCookieAuth للتطوير)، مسجّلات الأحداث، هجرتا SQL (001 و002)، بذرة مسار.
@@ -82,6 +82,9 @@ tests/                       # end-to-end
 
 ### أُنجز بقرار المالك (2026-10-29): الأساسيات قبل المرحلة 2
 - رفع فيديو إلى Cloudinary من لوحة التحكم (رابط نصي فقط)، وزر «لخّص لي الدرس» للمتعلم مع صفحة PDF بشعار قلم، والتعارف `/start` وخطة أسبوعية شخصية `/plan` بالذكاء الاصطناعي (يختار من مسارات المنصة فقط). الاختبارات: 184 ناجحة. غير مجرَّب: Cloudinary وGemini الحقيقيان وهجرة 004. «اسأل قلم» أُنجز (غير مجرَّب في المتصفح). المتبقي: لوحة الأثر، التذكيرات.
+
+### أُنجز (2026-11-03): تسريع إعداد الدروس بالنص المفرّغ
+- الملاحظات تُبنى من النص المفرّغ أولًا ثم Gemini بالفيديو احتياطًا، والملخص والأسئلة بالتوازي؛ `npm run fetch-transcripts` يجلب النصوص من جهاز المالك. غير مجرَّب مع يوتيوب الحقيقي ولا هجرة 008 (التفاصيل: الخطوة 25 في IMPLEMENTATION_LOG).
 
 ### القادم
 - المرحلة 1: **أُنجز تتبع الإكمال في الواجهة** (شريط تقدم، علامات إكمال، زر المتابعة). **أُنجزت الاختبارات القصيرة بالذكاء الاصطناعي** (قرار المالك): Claude يولّد مسودات من «ملاحظات المالك» عن الدرس فقط (لا نص مفرّغ)، والمالك يعتمد كل سؤال قبل أن يراه المتعلم؛ يلزم مفتاح ذكاء اصطناعي: `GEMINI_API_KEY` المجاني من AI Studio (اشتراك Google AI Pro لا يشمل الـ API) أو `ANTHROPIC_API_KEY` المدفوع، ولم يُجرَّب أي استدعاء حقيقي بعد. **أُنجز الاختبار التشخيصي (تخطي الدروس بسببها).** المتبقي: الملخصات المولّدة، عرض نتائج الاختبارات في التقدم، ومراجعة المالك واعتماده للمسودات.

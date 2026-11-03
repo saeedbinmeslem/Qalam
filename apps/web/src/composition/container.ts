@@ -5,6 +5,7 @@
  * مع مفاتيح Supabase: قاعدة البيانات الفعلية. بدونها: ذاكرة + بذرة (للتطوير والاختبار).
  */
 import {
+  GetConceptDetailUseCase,
   GetConceptMapUseCase,
   GetLearnerDashboardUseCase,
   SearchLessonLibraryUseCase,
@@ -18,6 +19,9 @@ import {
   AskLessonUseCase,
   BuildPersonalPlanUseCase,
   GetPersonalPlanUseCase,
+  ListPlanHistoryUseCase,
+  RestorePlanVersionUseCase,
+  DeletePlanVersionUseCase,
   RevisePersonalPlanUseCase,
   EditPersonalPlanUseCase,
   ChangePlanPathUseCase,
@@ -62,6 +66,9 @@ export interface Container {
   startOnboarding: StartOnboardingUseCase;
   buildPersonalPlan: BuildPersonalPlanUseCase;
   getPersonalPlan: GetPersonalPlanUseCase;
+  listPlanHistory: ListPlanHistoryUseCase;
+  restorePlanVersion: RestorePlanVersionUseCase;
+  deletePlanVersion: DeletePlanVersionUseCase;
   /** تعديل الخطة بعد إنشائها: بالمحادثة (ذكاء اصطناعي) أو يدويًا */
   revisePersonalPlan: RevisePersonalPlanUseCase;
   editPersonalPlan: EditPersonalPlanUseCase;
@@ -82,6 +89,7 @@ export interface Container {
   /** أقسام المنصة: المكتبة، خريطة المفاهيم، لوحة المتعلم */
   searchLessonLibrary: SearchLessonLibraryUseCase;
   getConceptMap: GetConceptMapUseCase;
+  getConceptDetail: GetConceptDetailUseCase;
   getLearnerDashboard: GetLearnerDashboardUseCase;
 }
 
@@ -101,6 +109,9 @@ function assemble(
     // صياغة العناوين تجري في الخلفية، فمهلتها أطول من مهلة اختيار المسار
     buildPersonalPlan: new BuildPersonalPlanUseCase({ ...planDeps, llm: getPlanLlmClient(100000) }),
     getPersonalPlan: new GetPersonalPlanUseCase(planDeps),
+    listPlanHistory: new ListPlanHistoryUseCase(planDeps),
+    restorePlanVersion: new RestorePlanVersionUseCase(planDeps),
+    deletePlanVersion: new DeletePlanVersionUseCase(planDeps),
     // تحت maxDuration لصفحة الخطة (60ث)
     revisePersonalPlan: new RevisePersonalPlanUseCase({ ...planDeps, llm: getPlanLlmClient(50000) }),
     editPersonalPlan: new EditPersonalPlanUseCase(planDeps),
@@ -119,6 +130,7 @@ function assemble(
     learningAgent,
     searchLessonLibrary: new SearchLessonLibraryUseCase(paths),
     getConceptMap: new GetConceptMapUseCase(concepts, paths),
+    getConceptDetail: new GetConceptDetailUseCase(concepts, paths),
     getLearnerDashboard: new GetLearnerDashboardUseCase(paths, events, learningAgent),
   };
 }

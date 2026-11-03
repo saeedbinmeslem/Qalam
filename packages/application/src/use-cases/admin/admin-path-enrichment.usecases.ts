@@ -77,9 +77,19 @@ export class EnrichPathUseCase {
           const current = async () => (await loadPath(this.deps.paths, request.pathId)).findLesson(lessonId)?.lesson;
 
           if (!(await current())?.notes) await this.notes.execute({ ...base, lessonId });
-          if (!(await current())?.studyGuide) await this.guide.execute({ ...base, lessonId });
-          const existing = await this.listQuestions.execute({ actor: request.actor, lessonId });
-          if (existing.length === 0) await this.questions.execute({ ...base, lessonId, count: QUESTIONS_PER_LESSON });
+          // الملخص والأسئلة يعتمدان على الملاحظات فقط ويحفظان في مخزنين مختلفين، فيجريان معًا ويختصران زمن الدرس.
+          // allSettled: إن فشل أحدهما يُنهي الآخر عمله (فلا يبقى طلب معلّق) ثم نرمي أول خطأ.
+          const settled = await Promise.allSettled([
+            (async () => {
+              if (!(await current())?.studyGuide) await this.guide.execute({ ...base, lessonId });
+            })(),
+            (async () => {
+              const existing = await this.listQuestions.execute({ actor: request.actor, lessonId });
+              if (existing.length === 0) await this.questions.execute({ ...base, lessonId, count: QUESTIONS_PER_LESSON });
+            })(),
+          ]);
+          const rejected = settled.find((s): s is PromiseRejectedResult => s.status === 'rejected');
+          if (rejected) throw rejected.reason;
           result.completed += 1;
           consecutive = 0;
         } catch (error) {

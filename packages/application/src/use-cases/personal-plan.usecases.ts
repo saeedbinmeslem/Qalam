@@ -9,9 +9,11 @@
 
 import {
   LearningEvent,
-  MAX_HOURS_PER_WEEK,
-  MIN_HOURS_PER_WEEK,
+  MAX_HOURS_PER_DAY,
+  MIN_HOURS_PER_DAY,
+  STUDY_DAYS_PER_WEEK,
   buildPlanDays,
+  buildPlanHours,
   buildPlanWeeks,
   calculatePathProgress,
   createPathId,
@@ -40,6 +42,15 @@ export interface PersonalPlanDeps {
 
 const str = (value: unknown, fallback = ''): string => (typeof value === 'string' ? value : fallback);
 const num = (value: unknown, fallback = 0): number => (typeof value === 'number' ? value : fallback);
+
+/** الساعات اليومية من هدف المتعلم؛ الأهداف القديمة خزّنت ساعات أسبوعية فتُقسم على أيام الدراسة */
+function hoursPerDayOf(payload: Record<string, unknown>): number {
+  if (typeof payload['hoursPerDay'] === 'number') return payload['hoursPerDay'];
+  if (typeof payload['hoursPerWeek'] === 'number') {
+    return Math.min(MAX_HOURS_PER_DAY, Math.max(MIN_HOURS_PER_DAY, Math.round((payload['hoursPerWeek'] / STUDY_DAYS_PER_WEEK) * 2) / 2));
+  }
+  return 1;
+}
 
 // ───── اختيار المسار من وصف المتعلم ─────
 
@@ -80,7 +91,7 @@ export interface StartOnboardingRequest {
   /** المجال الذي يريده بالضبط */
   field: string;
   level: LearnerLevel;
-  hoursPerWeek: number;
+  hoursPerDay: number;
 }
 
 export interface StartOnboardingResult {
@@ -99,7 +110,7 @@ export class StartOnboardingUseCase {
     const field = request.field.trim();
     if (!interest || !field) throw new Error('اكتب ما يشغفك والمجال الذي تريده بالضبط');
     if (!LEARNER_LEVELS.includes(request.level)) throw new Error('اختر مستواك الحالي');
-    buildPlanWeeks([], request.hoursPerWeek); // يتحقق من نطاق الساعات برسالة عربية
+    buildPlanWeeks([], request.hoursPerDay); // يتحقق من نطاق الساعات برسالة عربية
 
     const paths = (await this.deps.paths.findAll()).filter((p) => p.modules.some((m) => m.lessons.length > 0));
     if (paths.length === 0) throw new Error('لا توجد مسارات بدروس بعد. حاول لاحقًا');
@@ -113,7 +124,7 @@ export class StartOnboardingUseCase {
           interest,
           field,
           level: request.level,
-          hoursPerWeek: request.hoursPerWeek,
+          hoursPerDay: request.hoursPerDay,
           pathId: chosen.path.id,
           rationale: chosen.rationale,
           usedAi: chosen.usedAi,
@@ -198,7 +209,13 @@ export interface PlanWeekView {
   minutes: number;
   lessons: Array<{ id: string; title: string; status: 'done' | 'skipped' | 'next' | 'upcoming' }>;
   /** تقسيم الأسبوع على أيام الدراسة (مشتق من دروسه وساعات المتعلم) */
-  days: Array<{ day: number; minutes: number; lessons: PlanWeekView['lessons'] }>;
+  days: Array<{
+    day: number;
+    minutes: number;
+    lessons: PlanWeekView['lessons'];
+    /** تقسيم اليوم على ساعاته: ماذا تدرس في الساعة الأولى والثانية... */
+    hours: Array<{ hour: number; minutes: number; items: Array<{ lessonId: string; title: string; minutes: number; starts: boolean }> }>;
+  }>;
 }
 
 function latest(events: readonly LearningEvent[], type: LearningEvent['type']): LearningEvent | undefined {
@@ -225,10 +242,10 @@ export class BuildPersonalPlanUseCase {
     const remaining = path.modules
       .flatMap((m) => m.lessons)
       .filter((l) => !progress.completedLessonIds.has(l.id) && !progress.skippedLessonIds.has(l.id));
-    const hoursPerWeek = num(goalEvent.payload['hoursPerWeek'], 3);
+    const hoursPerDay = hoursPerDayOf(goalEvent.payload);
     const weeks = buildPlanWeeks(
       remaining.map((l) => ({ lessonId: l.id, durationSeconds: l.segment.durationSeconds })),
-      hoursPerWeek,
+      hoursPerDay,
     );
     const titles = new Map(remaining.map((l) => [l.id as string, l.title]));
     const labels = await this.label(goalEvent, path, weeks, titles, request.withAi ?? true);
@@ -239,7 +256,7 @@ export class BuildPersonalPlanUseCase {
         type: 'plan_created',
         payload: {
           pathId: path.id,
-          hoursPerWeek,
+          hoursPerDay,
           summary: labels.summary,
           usedAi: labels.usedAi,
           skippedByDiagnostic: progress.skippedCount,
@@ -325,7 +342,7 @@ async function loadWorkingPlan(deps: Pick<PersonalPlanDeps, 'paths' | 'events'>,
     .flatMap((m) => m.lessons)
     .filter((l) => !progress.completedLessonIds.has(l.id) && !progress.skippedLessonIds.has(l.id));
   const remainingIds = remaining.map((l) => l.id as string);
-  const hoursPerWeek = num(goalEvent.payload['hoursPerWeek'], 3);
+  const hoursPerDay = hoursPerDayOf(goalEvent.payload);
 
   const planEvent = latest(events, 'plan_created');
   const stored: DraftWeek[] | null =
@@ -343,10 +360,10 @@ async function loadWorkingPlan(deps: Pick<PersonalPlanDeps, 'paths' | 'events'>,
   const fresh = (): DraftWeek[] =>
     buildPlanWeeks(
       remaining.filter((l) => selectedIds.includes(l.id)).map((l) => ({ lessonId: l.id, durationSeconds: l.segment.durationSeconds })),
-      hoursPerWeek,
+      hoursPerDay,
     ).map((w) => ({ title: `الأسبوع ${w.week}`, focus: '', lessonIds: w.lessonIds }));
   const current = normalizePlanArrangement(selectedIds, inPlan.length > 0 && stored ? stored : fresh(), makeWeek);
-  return { events, goalEvent, path, remaining, remainingIds, selectedIds, hoursPerWeek, current, skippedCount: progress.skippedCount, summary: str(planEvent?.payload['summary']) };
+  return { events, goalEvent, path, remaining, remainingIds, selectedIds, hoursPerDay, current, skippedCount: progress.skippedCount, summary: str(planEvent?.payload['summary']) };
 }
 
 type WorkingPlan = Awaited<ReturnType<typeof loadWorkingPlan>>;
@@ -367,7 +384,7 @@ async function recordRevisedPlan(
       type: 'plan_created',
       payload: {
         pathId: state.path.id,
-        hoursPerWeek: state.hoursPerWeek,
+        hoursPerDay: state.hoursPerDay,
         summary,
         usedAi: revision.source === 'chat' && revision.changed,
         skippedByDiagnostic: state.skippedCount,
@@ -386,11 +403,11 @@ async function recordRevisedPlan(
 }
 
 /** أسابيع بالقواعد وحدها من دروس مختارة (للتوزيع التلقائي وعند تغيير المسار) */
-function rulesWeeks(state: WorkingPlan, ids: readonly string[], hoursPerWeek: number): DraftWeek[] {
+function rulesWeeks(state: WorkingPlan, ids: readonly string[], hoursPerDay: number): DraftWeek[] {
   const wanted = new Set(ids);
   return buildPlanWeeks(
     state.remaining.filter((l) => wanted.has(l.id)).map((l) => ({ lessonId: l.id, durationSeconds: l.segment.durationSeconds })),
-    hoursPerWeek,
+    hoursPerDay,
   ).map((w) => makeWeek(w.lessonIds));
 }
 
@@ -399,11 +416,11 @@ const signature = (weeks: readonly DraftWeek[]) => JSON.stringify(weeks.map((w) 
 const REVISE_SCHEMA: Record<string, unknown> = {
   type: 'object',
   additionalProperties: false,
-  required: ['reply', 'changed', 'hoursPerWeek', 'pathId', 'weeks'],
+  required: ['reply', 'changed', 'hoursPerDay', 'pathId', 'weeks'],
   properties: {
     reply: { type: 'string' },
     changed: { type: 'boolean' },
-    hoursPerWeek: { type: 'integer' },
+    hoursPerDay: { type: 'number' },
     pathId: { type: 'string' },
     weeks: {
       type: 'array',
@@ -418,11 +435,11 @@ const REVISE_SCHEMA: Record<string, unknown> = {
 };
 
 const REVISE_SYSTEM = `أنت مخطط دراسة عربي يعدّل خطة متعلم قائمة بناءً على طلبه، وتغييراتك تُطبَّق فعليًا.
-تُعطى: المسار الحالي بكورساته ومفاهيمه ودروسه (معرّف | عنوان | دقائق | في الخطة أو خارجها)، والأسابيع الحالية، وساعاته الأسبوعية، ومسارات أخرى متاحة، وطلبه.
+تُعطى: المسار الحالي بكورساته ومفاهيمه ودروسه (معرّف | عنوان | دقائق | في الخطة أو خارجها)، والأسابيع الحالية، وساعاته اليومية، ومسارات أخرى متاحة، وطلبه.
 ما يمكنك فعله:
 - نقل الدروس بين الأسابيع وإعادة ترتيبها ودمج الأسابيع أو تقسيمها وتغيير عناوينها وأسبابها.
 - إضافة دروس «خارج الخطة» إليها أو حذف دروس منها، بما يطلبه (درس بعينه، أو كورس كامل، أو مفهوم كامل).
-- تغيير الساعات الأسبوعية: ضع الرقم (1 إلى 40) في hoursPerWeek ووزّع الدروس على أسابيع تناسبه (سعة الأسبوع = الساعات × 60 دقيقة)، وإلا ضع 0.
+- تغيير الساعات اليومية: ضع الرقم (من 0.5 إلى 12، بخطوة نصف ساعة) في hoursPerDay ووزّع الدروس على أسابيع تناسبه (سعة الأسبوع = الساعات اليومية × 5 أيام × 60 دقيقة)، وإلا ضع 0.
 - تغيير المسار كله إلى واحد من «المسارات الأخرى»: ضع معرّفه حرفيًا في pathId (وإلا اتركه فارغًا). عندها تُبنى الخطة من دروس المسار الجديد تلقائيًا ويُهمل weeks.
 القواعد:
 - weeks هي الخطة الجديدة كاملة: كل درس لا تذكره فيها يخرج من الخطة، فلا تحذف إلا ما طلبه المتعلم حذفه. لا تذكر درسًا مرتين.
@@ -459,7 +476,7 @@ export class RevisePersonalPlanUseCase {
         return [`المتعلم: ${str(r['request'])}`, `أنت: ${str(r['reply'])}`];
       });
 
-    let raw: { reply?: unknown; changed?: unknown; hoursPerWeek?: unknown; pathId?: unknown; weeks?: unknown } | null;
+    let raw: { reply?: unknown; changed?: unknown; hoursPerDay?: unknown; pathId?: unknown; weeks?: unknown } | null;
     try {
       raw = (await this.deps.llm.generateJson({
         system: REVISE_SYSTEM,
@@ -467,7 +484,7 @@ export class RevisePersonalPlanUseCase {
         user: [
           `هدفه: ${str(state.goalEvent.payload['field'])} (${str(state.goalEvent.payload['interest'])})`,
           `المسار الحالي: ${state.path.title}`,
-          `ساعاته الأسبوعية: ${state.hoursPerWeek} (= ${state.hoursPerWeek * 60} دقيقة)`,
+          `ساعاته اليومية: ${state.hoursPerDay} (= ${state.hoursPerDay * 60} دقيقة يوميًا، وسعة الأسبوع ${state.hoursPerDay * 60 * STUDY_DAYS_PER_WEEK} دقيقة)`,
           '',
           'دروس المسار المتبقية (غير المنجزة) بحسب الكورس والمفهوم:',
           ...state.path.courses.flatMap((c) => {
@@ -502,8 +519,8 @@ export class RevisePersonalPlanUseCase {
         }))
       : [];
 
-    const hours = num(raw?.hoursPerWeek, 0);
-    const newHours = claimed && Number.isInteger(hours) && hours >= MIN_HOURS_PER_WEEK && hours <= MAX_HOURS_PER_WEEK && hours !== state.hoursPerWeek ? hours : null;
+    const hours = num(raw?.hoursPerDay, 0);
+    const newHours = claimed && Number.isFinite(hours) && hours >= MIN_HOURS_PER_DAY && hours <= MAX_HOURS_PER_DAY && hours !== state.hoursPerDay ? hours : null;
     const newPath = claimed ? otherPaths.find((p) => p.id === raw?.pathId) : undefined;
 
     // 1) هدف جديد (مسار و/أو ساعات) يُسجَّل قبل الخطة، وآخر هدف هو الحالي
@@ -514,7 +531,7 @@ export class RevisePersonalPlanUseCase {
           type: 'goal_set',
           payload: {
             ...state.goalEvent.payload,
-            ...(newHours !== null ? { hoursPerWeek: newHours } : {}),
+            ...(newHours !== null ? { hoursPerDay: newHours } : {}),
             ...(newPath ? { pathId: newPath.id, rationale: `انتقلتَ إلى «${newPath.title}» بطلبك.` } : {}),
           },
           occurredAt: this.deps.clock.now(),
@@ -528,13 +545,13 @@ export class RevisePersonalPlanUseCase {
     let summary = state.summary;
     if (newPath) {
       target = await loadWorkingPlan(this.deps, request.userId);
-      weeks = rulesWeeks(target, target.remainingIds, target.hoursPerWeek);
+      weeks = rulesWeeks(target, target.remainingIds, target.hoursPerDay);
       summary = `خطة من ${weeks.length} أسبوع في «${newPath.title}» مبنية على ساعاتك المتاحة.`;
     } else {
       const mentioned = new Set(proposed.flatMap((w) => w.lessonIds));
       const selection = state.remainingIds.filter((id) => mentioned.has(id));
       weeks = claimed && selection.length > 0 ? normalizePlanArrangement(selection, proposed, makeWeek) : state.current;
-      if (newHours !== null) target = { ...state, hoursPerWeek: newHours };
+      if (newHours !== null) target = { ...state, hoursPerDay: newHours };
     }
 
     // 3) هل تغيّرت الخطة فعلًا؟ لا نصدّق «changed» وحدها
@@ -563,8 +580,8 @@ export interface EditPlanRequest {
   userId: string;
   /** الدروس المختارة في الخطة (الأخرى تخرج منها)؛ بدونها تبقى الخطة على اختيارها الحالي */
   includeLessonIds?: string[];
-  /** الساعات الأسبوعية الجديدة؛ بدونها تبقى كما هي */
-  hoursPerWeek?: number;
+  /** الساعات اليومية الجديدة؛ بدونها تبقى كما هي */
+  hoursPerDay?: number;
   /** وزّع المختار على الأسابيع تلقائيًا بحسب الساعات بدل التوزيع اليدوي */
   redistribute?: boolean;
   weeks: DraftWeek[];
@@ -586,18 +603,18 @@ export class EditPersonalPlanUseCase {
     const selectedIds = include ? state.remainingIds.filter((id) => include.has(id)) : state.selectedIds;
     if (selectedIds.length === 0) throw new Error('اختر درسًا واحدًا على الأقل في خطتك');
 
-    const hours = request.hoursPerWeek ?? state.hoursPerWeek;
+    const hours = request.hoursPerDay ?? state.hoursPerDay;
     buildPlanWeeks([], hours); // يتحقق من نطاق الساعات برسالة عربية
-    if (hours !== state.hoursPerWeek) {
+    if (hours !== state.hoursPerDay) {
       await this.deps.events.record(
-        new LearningEvent({ userId: request.userId, type: 'goal_set', payload: { ...state.goalEvent.payload, hoursPerWeek: hours }, occurredAt: this.deps.clock.now() }),
+        new LearningEvent({ userId: request.userId, type: 'goal_set', payload: { ...state.goalEvent.payload, hoursPerDay: hours }, occurredAt: this.deps.clock.now() }),
       );
     }
 
     const weeks = request.redistribute
       ? rulesWeeks(state, selectedIds, hours)
       : normalizePlanArrangement(selectedIds, request.weeks, makeWeek);
-    await recordRevisedPlan(this.deps, request.userId, { ...state, hoursPerWeek: hours }, weeks, state.summary, { source: 'manual', request: '', reply: '', changed: true });
+    await recordRevisedPlan(this.deps, request.userId, { ...state, hoursPerDay: hours }, weeks, state.summary, { source: 'manual', request: '', reply: '', changed: true });
     return { weeks: weeks.length, lessons: selectedIds.length };
   }
 }
@@ -634,7 +651,7 @@ export interface PersonalPlanView {
     interest: string;
     field: string;
     level: string;
-    hoursPerWeek: number;
+    hoursPerDay: number;
     pathId: string;
     pathTitle: string;
     rationale: string;
@@ -645,7 +662,7 @@ export interface PersonalPlanView {
     usedAi: boolean;
     weeks: PlanWeekView[];
     /** خطة اليوم: أول يوم فيه درس لم يُنجز بعد (null إذا أُنجزت الخطة كلها) */
-    today: null | { week: number; day: number; minutes: number; lessons: PlanWeekView['lessons'] };
+    today: null | { week: number; day: number; minutes: number; lessons: PlanWeekView['lessons']; hours: PlanWeekView['days'][number]['hours'] };
   };
   progress: { percent: number; completedCount: number; skippedCount: number; totalCount: number };
   next: { id: string; title: string } | null;
@@ -700,7 +717,7 @@ export class GetPersonalPlanUseCase {
     const conceptNames = await conceptNameMap(this.deps.concepts, path);
     const allPaths = (await this.deps.paths.findAll()).filter((p) => p.modules.some((m) => m.lessons.length > 0));
 
-    const hoursPerWeek = num(goalEvent.payload['hoursPerWeek'], 3);
+    const hoursPerDay = hoursPerDayOf(goalEvent.payload);
     const weekViews: PlanWeekView[] = (planned ?? []).map((w) => {
       const weekLessons = (Array.isArray(w['lessonIds']) ? (w['lessonIds'] as unknown[]) : [])
         .map((v) => str(v))
@@ -708,11 +725,16 @@ export class GetPersonalPlanUseCase {
         .map((id) => ({ id, title: lessons.get(id)?.title ?? '', status: statusOf(id) }));
       const days = buildPlanDays(
         weekLessons.map((l) => ({ lessonId: l.id, durationSeconds: lessons.get(l.id)?.segment.durationSeconds ?? 0 })),
-        hoursPerWeek,
+        hoursPerDay,
       ).map((d) => ({
         day: d.day,
         minutes: d.minutes,
         lessons: d.lessonIds.map((id) => weekLessons.find((l) => l.id === id) as PlanWeekView['lessons'][number]),
+        hours: buildPlanHours(d.lessonIds.map((id) => ({ lessonId: id, durationSeconds: lessons.get(id)?.segment.durationSeconds ?? 0 }))).map((h) => ({
+          hour: h.hour,
+          minutes: h.minutes,
+          items: h.items.map((item) => ({ ...item, title: lessons.get(item.lessonId)?.title ?? '' })),
+        })),
       }));
       return { week: num(w['week']), title: str(w['title']), focus: str(w['focus']), minutes: num(w['minutes']), lessons: weekLessons, days };
     });
@@ -721,7 +743,7 @@ export class GetPersonalPlanUseCase {
     for (const week of weekViews) {
       const day = week.days.find((d) => d.lessons.some((l) => isOpen(l.status)));
       if (day) {
-        today = { week: week.week, day: day.day, minutes: day.minutes, lessons: day.lessons };
+        today = { week: week.week, day: day.day, minutes: day.minutes, lessons: day.lessons, hours: day.hours };
         break;
       }
     }
@@ -753,7 +775,7 @@ export class GetPersonalPlanUseCase {
         interest: str(goalEvent.payload['interest']),
         field: str(goalEvent.payload['field']),
         level: str(goalEvent.payload['level']),
-        hoursPerWeek: num(goalEvent.payload['hoursPerWeek'], 3),
+        hoursPerDay: hoursPerDayOf(goalEvent.payload),
         pathId: path.id,
         pathTitle: path.title,
         rationale: str(goalEvent.payload['rationale']),
@@ -784,5 +806,146 @@ export class GetPersonalPlanUseCase {
           return { kind: r['source'] === 'chat' ? ('chat' as const) : ('manual' as const), request: str(r['request']), reply: str(r['reply']), changed: r['changed'] === true, at: e.occurredAt };
         }),
     };
+  }
+}
+
+// ───── سجل الخطط ─────
+
+export interface PlanHistoryEntry {
+  /** معرّف ثابت للنسخة (وقت إنشائها) */
+  id: string;
+  createdAt: Date;
+  pathId: string;
+  pathTitle: string;
+  hoursPerDay: number;
+  /** كيف نشأت هذه النسخة: تلقائيًا، أو بمحادثة التعديل، أو يدويًا، أو باسترجاع نسخة سابقة */
+  source: 'auto' | 'chat' | 'manual' | 'restore';
+  summary: string;
+  /** طلب المتعلم في المحادثة (للنسخ المعدّلة بها) */
+  request: string;
+  lessonCount: number;
+  totalMinutes: number;
+  /** هل هذه هي الخطة الحالية */
+  isCurrent: boolean;
+  weeks: Array<{ week: number; title: string; focus: string; minutes: number; lessons: Array<{ id: string; title: string }> }>;
+}
+
+/**
+ * نسخ الخطط المميَّزة من أحداث المتعلم (الأقدم أولًا): البناء التلقائي يسجّل نسختين متتاليتين بالدروس نفسها
+ * (بالقواعد ثم بصياغة النموذج) فتُدمجان في واحدة. `visible` بعد استبعاد المحذوفة، و`kept` قبل الاستبعاد
+ * (آخرها هو الخطة الحالية دائمًا، ولا يُسمح بحذفها).
+ */
+function planVersions(all: readonly LearningEvent[]) {
+  const events = all.filter((e) => e.type === 'plan_created').sort((a, b) => a.occurredAt.getTime() - b.occurredAt.getTime());
+  const deleted = new Set(all.filter((e) => e.type === 'plan_deleted').map((e) => str(e.payload['planId'])));
+  const idsOf = (e: LearningEvent) => (Array.isArray(e.payload['weeks']) ? (e.payload['weeks'] as Array<Record<string, unknown>>) : []).flatMap((w) => (Array.isArray(w['lessonIds']) ? (w['lessonIds'] as unknown[]).map((v) => str(v)) : []));
+  const isAuto = (e: LearningEvent) => !isRecord(e.payload['revision']);
+  const kept = events.filter((e, i) => {
+    const next = events[i + 1];
+    return !(next && isAuto(e) && isAuto(next) && e.payload['pathId'] === next.payload['pathId'] && idsOf(e).join() === idsOf(next).join());
+  });
+  const current = kept[kept.length - 1];
+  return { kept, current, visible: kept.filter((e) => !deleted.has(e.occurredAt.toISOString())) };
+}
+
+export class ListPlanHistoryUseCase {
+  constructor(private readonly deps: Pick<PersonalPlanDeps, 'paths' | 'events'>) {}
+
+  /** كل خطة أُنشئت للمتعلم ولم يحذفها (الأحدث أولًا)، مشتقة من أحداث `plan_created` المحفوظة فلا تخزين إضافي */
+  async execute(request: { userId: string }): Promise<PlanHistoryEntry[]> {
+    const { visible: kept, current } = planVersions(await this.deps.events.listByUser(request.userId));
+    if (kept.length === 0) return [];
+    const paths = new Map((await this.deps.paths.findAll()).map((p) => [p.id as string, p]));
+
+    return kept
+      .map((e): PlanHistoryEntry => {
+        const path = paths.get(str(e.payload['pathId']));
+        const lessonTitle = new Map(path?.modules.flatMap((m) => m.lessons).map((l) => [l.id as string, l.title]) ?? []);
+        const revision = isRecord(e.payload['revision']) ? e.payload['revision'] : null;
+        const weeks = (Array.isArray(e.payload['weeks']) ? (e.payload['weeks'] as Array<Record<string, unknown>>) : []).map((w) => ({
+          week: num(w['week']),
+          title: str(w['title']),
+          focus: str(w['focus']),
+          minutes: num(w['minutes']),
+          lessons: (Array.isArray(w['lessonIds']) ? (w['lessonIds'] as unknown[]).map((v) => str(v)) : []).map((id) => ({ id, title: lessonTitle.get(id) ?? 'درس محذوف' })),
+        }));
+        return {
+          id: e.occurredAt.toISOString(),
+          createdAt: e.occurredAt,
+          pathId: str(e.payload['pathId']),
+          pathTitle: path?.title ?? 'مسار محذوف',
+          hoursPerDay: hoursPerDayOf(e.payload),
+          source: revision ? (revision['source'] === 'chat' ? 'chat' : revision['source'] === 'restore' ? 'restore' : 'manual') : 'auto',
+          summary: str(e.payload['summary']),
+          request: revision ? str(revision['request']) : '',
+          lessonCount: weeks.reduce((n, w) => n + w.lessons.length, 0),
+          totalMinutes: weeks.reduce((n, w) => n + w.minutes, 0),
+          isCurrent: e === current,
+          weeks,
+        };
+      })
+      .reverse();
+  }
+}
+
+export class RestorePlanVersionUseCase {
+  constructor(private readonly deps: Pick<PersonalPlanDeps, 'paths' | 'events' | 'clock'>) {}
+
+  /**
+   * يعيد نسخة سابقة من السجل خطةً حالية: يسجّل هدفًا بمسارها وساعاتها (إن اختلفا) ثم نسخة جديدة بأسابيعها،
+   * فيبقى التاريخ كاملًا ولا تُمحى النسخة الأصلية. الدروس التي أُنجزت منذ ذلك الحين تظهر منجزة في العرض.
+   */
+  async execute(request: { userId: string; planId: string }): Promise<{ pathTitle: string }> {
+    const events = await this.deps.events.listByUser(request.userId);
+    const { visible, current } = planVersions(events);
+    const version = visible.find((e) => e.occurredAt.toISOString() === request.planId);
+    if (!version) throw new Error('هذه النسخة غير موجودة في سجلك');
+    if (version === current) throw new Error('هذه هي خطتك الحالية بالفعل');
+
+    const path = await this.deps.paths.findById(createPathId(str(version.payload['pathId'])));
+    if (!path) throw new Error('مسار هذه الخطة لم يعد موجودًا، فلا يمكن استرجاعها');
+    const goalEvent = latest(events, 'goal_set');
+    if (!goalEvent) throw new Error('ابدأ بإخبارنا بما يشغفك وبالمجال الذي تريده');
+
+    const hoursPerDay = hoursPerDayOf(version.payload);
+    if (goalEvent.payload['pathId'] !== path.id || hoursPerDayOf(goalEvent.payload) !== hoursPerDay) {
+      await this.deps.events.record(
+        new LearningEvent({
+          userId: request.userId,
+          type: 'goal_set',
+          payload: { ...goalEvent.payload, pathId: path.id, hoursPerDay, rationale: `استرجعتَ خطة «${path.title}» من سجلّك.` },
+          occurredAt: this.deps.clock.now(),
+        }),
+      );
+    }
+    await this.deps.events.record(
+      new LearningEvent({
+        userId: request.userId,
+        type: 'plan_created',
+        payload: {
+          ...version.payload,
+          hoursPerDay,
+          usedAi: false,
+          revision: { source: 'restore', request: '', reply: '', changed: true, restoredFrom: request.planId },
+        },
+        occurredAt: this.deps.clock.now(),
+      }),
+    );
+    return { pathTitle: path.title };
+  }
+}
+
+export class DeletePlanVersionUseCase {
+  constructor(private readonly deps: Pick<PersonalPlanDeps, 'events' | 'clock'>) {}
+
+  /** يحذف نسخة من السجل (بتسجيل حدث حذف لأن الأحداث لا تُعدَّل)؛ الخطة الحالية لا تُحذف */
+  async execute(request: { userId: string; planId: string }): Promise<void> {
+    const { visible, current } = planVersions(await this.deps.events.listByUser(request.userId));
+    const version = visible.find((e) => e.occurredAt.toISOString() === request.planId);
+    if (!version) throw new Error('هذه النسخة غير موجودة في سجلك');
+    if (version === current) throw new Error('لا يمكن حذف خطتك الحالية. استرجع نسخة أخرى أولًا');
+    await this.deps.events.record(
+      new LearningEvent({ userId: request.userId, type: 'plan_deleted', payload: { planId: request.planId }, occurredAt: this.deps.clock.now() }),
+    );
   }
 }

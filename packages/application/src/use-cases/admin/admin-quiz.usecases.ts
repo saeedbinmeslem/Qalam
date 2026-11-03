@@ -1,7 +1,8 @@
 /**
  * @file admin-quiz.usecases.ts
  * @description أسئلة الاختبارات في لوحة التحكم. الذكاء الاصطناعي يولّد «مسودات» مبنية على ملاحظات
- * المالك عن الدرس فقط (لا نفترض نصًا مفرّغًا)، ولا يصل أي سؤال للمتعلم إلا بعد اعتماد المالك.
+ * الدرس فقط، ولا يصل أي سؤال للمتعلم إلا بعد اعتماد المالك. الملاحظات تُبنى من النص المفرّغ إن توفر
+ * (اختياريًا، ولا نفترض توفره) وإلا من قراءة الفيديو.
  */
 
 import {
@@ -10,18 +11,24 @@ import {
   createLessonId,
   createModuleId,
   createQuestionId,
+  transcriptTextForRange,
   type LearningPath,
+  type Lesson,
   type LessonId,
 } from '@qalam/domain';
 import { NotFoundError } from '../../errors.js';
 import type { LlmClient } from '../../ports/llm-client.port.js';
 import type { QuestionRepositoryPort } from '../../ports/question-repository.port.js';
+import type { TranscriptSourcePort, TranscriptStorePort } from '../../ports/transcript.port.js';
 import { loadPath, persistLesson, requireAdmin, type AdminDeps, type AdminRequest } from './admin-deps.js';
 import { GENERATED_QUESTIONS_SCHEMA, parseGeneratedQuestions } from './generated-questions.js';
 
 export interface QuizAdminDeps extends AdminDeps {
   questions: QuestionRepositoryPort;
   llm: LlmClient;
+  /** اختياريان: بدونهما تُكتب الملاحظات من الفيديو كما كان */
+  transcriptSource?: TranscriptSourcePort;
+  transcriptStore?: TranscriptStorePort;
 }
 
 export const MAX_QUESTIONS_PER_REQUEST = 8;
@@ -101,16 +108,50 @@ const NOTES_INSTRUCTIONS = `شاهد هذا المقطع التعليمي واك
 - لا مقدمات ولا خاتمة؛ النقاط فقط.
 - نص عادي فقط: بلا LaTeX ولا رموز $ ولا Markdown (اكتب الأسس هكذا: 2^0).`;
 
+const TRANSCRIPT_NOTES_SYSTEM_PROMPT = `أنت تكتب «ملاحظات مصدر» بالعربية من نص مفرّغ لمقطع تعليمي، لتُبنى عليها أسئلة اختبار.
+
+قواعد صارمة:
+- اكتب ما ورد في النص فقط. لا تضف معلومة من خارجه ولو كانت صحيحة.
+- النص مفرّغ آليًا وقد يحوي أخطاء إملائية أو كلمات مشوّهة؛ لا تبنِ نقطة على كلمة غير مفهومة.
+- نقاط قصيرة: التعريفات الدقيقة، الحقائق، الأرقام، الأمثلة التي ذُكرت.
+- إن كان النص غير واضح أو بلا محتوى تعليمي فأعد قائمة فارغة بدل اختلاق شيء.
+- نص عادي فقط: بلا LaTeX ولا رموز $ ولا Markdown (اكتب الأسس هكذا: 2^0).`;
+
+const TRANSCRIPT_NOTES_SCHEMA = {
+  type: 'object',
+  properties: { points: { type: 'array', items: { type: 'string' } } },
+  required: ['points'],
+};
+
 /**
- * يقرأ مقطع الدرس عبر المزوّد ويحفظ «مسودة ملاحظات» تُراجَع. الملاحظات تُبنى على ما قيل في الفيديو فقط
- * (لا نص مفرّغ)، وأي سؤال يُولَّد منها يبقى مسودة حتى يعتمده المالك بعد المشاهدة.
+ * نص الفترة المطلوبة من درس: المخزَّن أولًا، وإلا نجلبه ونخزنه (نجلب مرة واحدة لكل فيديو). أي فشل في الجلب
+ * (حظر، لا ترجمة، خطأ شبكة) يعيد null فيكمل المستدعي بالاحتياط ولا يتوقف.
+ */
+export async function transcriptForLesson(
+  deps: Pick<QuizAdminDeps, 'transcriptSource' | 'transcriptStore'>,
+  lesson: Lesson,
+): Promise<string | null> {
+  const videoId = lesson.youtubeVideoId;
+  if (!videoId) return null;
+  let segments = (await deps.transcriptStore?.find(videoId).catch(() => null)) ?? null;
+  if (!segments && deps.transcriptSource) {
+    segments = await deps.transcriptSource.fetch(videoId, lesson.language).catch(() => null);
+    if (segments && segments.length > 0) await deps.transcriptStore?.save(videoId, segments).catch(() => undefined);
+  }
+  if (!segments) return null;
+  const text = transcriptTextForRange(segments, lesson.segment.startSeconds, lesson.segment.endSeconds);
+  return text.length > 0 ? text : null;
+}
+
+/**
+ * يكتب «مسودة ملاحظات» تُراجَع. المصدر الأول النص المفرّغ للفيديو (سريع وخفيف على الحصة)؛ وإن غاب أو فشل
+ * يقرأ المزوّد المقطع بنفسه (بطيء) إن كان يدعم ذلك. وأي سؤال يُولَّد منها يبقى مسودة حتى يعتمده المالك.
  */
 export class DraftLessonNotesUseCase {
   constructor(private readonly deps: QuizAdminDeps) {}
 
   async execute(request: AdminRequest & { pathId: string; lessonId: string }): Promise<void> {
     requireAdmin(this.deps.policy, request.actor);
-    if (!this.deps.llm.describeVideo) throw new Error('المزوّد الحالي لا يقرأ الفيديو. استخدم Gemini أو اكتب الملاحظات بنفسك');
 
     const path = await loadPath(this.deps.paths, request.pathId);
     const found = path.findLesson(createLessonId(request.lessonId));
@@ -120,14 +161,7 @@ export class DraftLessonNotesUseCase {
     // المزوّد يقرأ روابط يوتيوب العامة فقط؛ الفيديو المرفوع (Cloudinary) تكتب ملاحظاته بنفسك
     if (lesson.mediaUrl) throw new Error('الفيديو المرفوع لا يقرؤه النموذج تلقائيًا. اكتب ملاحظاته بنفسك في «بيانات الدرس»');
 
-    const text = (
-      await this.deps.llm.describeVideo({
-        videoUrl: lesson.sourceUrl,
-        startSeconds: lesson.segment.startSeconds,
-        endSeconds: lesson.segment.endSeconds,
-        instructions: NOTES_INSTRUCTIONS,
-      })
-    ).trim();
+    const text = ((await this.fromTranscript(lesson)) ?? (await this.fromVideo(lesson))).trim();
     if (!text) throw new Error('لم يُرجع النموذج ملاحظات لهذا المقطع');
 
     // الاستدعاء بطيء وقد يعدّل المالك المسار خلاله: نعيد قراءته الآن ونطبّق الملاحظات على الحالة الحديثة
@@ -139,6 +173,37 @@ export class DraftLessonNotesUseCase {
     const updated = current.lesson.update({ notes: text, reviewedByHuman: false });
     current.module.replaceLesson(updated);
     await persistLesson(this.deps.paths, fresh, updated.id);
+  }
+
+  /** من النص المفرّغ؛ null إن لم يتوفر أو فشل التوليد منه (فنعود لقراءة الفيديو) */
+  private async fromTranscript(lesson: Lesson): Promise<string | null> {
+    const transcript = await transcriptForLesson(this.deps, lesson);
+    if (!transcript) return null;
+    try {
+      const raw = await this.deps.llm.generateJson({
+        system: TRANSCRIPT_NOTES_SYSTEM_PROMPT,
+        schema: TRANSCRIPT_NOTES_SCHEMA,
+        user: [`عنوان الدرس: ${lesson.title}`, `القناة: ${lesson.channelName}`, '', 'النص المفرّغ:', transcript].join('\n'),
+      });
+      const points = (raw as { points?: unknown })?.points;
+      if (!Array.isArray(points)) return null;
+      const lines = points.filter((p): p is string => typeof p === 'string' && p.trim().length > 0);
+      return lines.length > 0 ? lines.map((p, i) => `${i + 1}. ${p.trim().replace(/^\d+[.)]\s*/, '')}`).join('\n') : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private async fromVideo(lesson: Lesson): Promise<string> {
+    if (!this.deps.llm.describeVideo) {
+      throw new Error('لا نص مفرّغ لهذا الفيديو والمزوّد الحالي لا يقرأ الفيديو. استخدم Gemini أو اكتب الملاحظات بنفسك');
+    }
+    return this.deps.llm.describeVideo({
+      videoUrl: lesson.sourceUrl,
+      startSeconds: lesson.segment.startSeconds,
+      endSeconds: lesson.segment.endSeconds,
+      instructions: NOTES_INSTRUCTIONS,
+    });
   }
 }
 

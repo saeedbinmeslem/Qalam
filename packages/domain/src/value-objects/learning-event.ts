@@ -14,6 +14,8 @@ export const LEARNING_EVENT_TYPES = [
   'goal_set',
   /** خطة دراسة شخصية أُنشئت (أسابيع ودروس وأسبابها)؛ آخرها هو الحالية */
   'plan_created',
+  /** حذف نسخة من سجل الخطط (الأحداث لا تُعدَّل فنسجّل الحذف): payload.planId = وقت إنشاء النسخة ISO */
+  'plan_deleted',
 ] as const;
 
 export type LearningEventType = (typeof LEARNING_EVENT_TYPES)[number];

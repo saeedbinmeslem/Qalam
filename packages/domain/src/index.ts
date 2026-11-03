@@ -6,6 +6,7 @@
 // كائنات القيمة (Value Objects)
 export * from './value-objects/identifiers.js';
 export * from './value-objects/video-segment.js';
+export * from './value-objects/transcript.js';
 export * from './value-objects/mastery-state.js';
 
 // الكيانات (Entities)

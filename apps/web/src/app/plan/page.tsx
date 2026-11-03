@@ -52,6 +52,66 @@ function LessonRow({ pathId, lesson }: { pathId: string; lesson: { id: string; t
   );
 }
 
+const hourNames = ['الأولى', 'الثانية', 'الثالثة', 'الرابعة', 'الخامسة', 'السادسة', 'السابعة', 'الثامنة', 'التاسعة', 'العاشرة', 'الحادية عشرة', 'الثانية عشرة'];
+
+type HourSlot = { hour: number; minutes: number; items: Array<{ lessonId: string; title: string; minutes: number; starts: boolean }> };
+
+// لون لكل درس داخل الساعة يربط قطعته في الشريط بسطره في القائمة
+const tones = [
+  { bar: 'bg-secondary', edge: 'border-secondary' },
+  { bar: 'bg-violet', edge: 'border-violet' },
+  { bar: 'bg-highlighter', edge: 'border-highlighter' },
+  { bar: 'bg-primary', edge: 'border-primary' },
+];
+
+/**
+ * اليوم خطًّا زمنيًا رأسيًا: عقدة لكل ساعة («الساعة الأولى») وبطاقة فيها شريط مقسّم بألوان الدروس بحسب دقائقها
+ * من أصل 60، ثم الدروس بألوانها. الدرس الممتد على ساعتين يظهر في كلتيهما بوسم «تكملة».
+ */
+function HourList({ pathId, hours, lessons }: { pathId: string; hours: HourSlot[]; lessons: Array<{ id: string; title: string; status: LessonStatus }> }) {
+  const byId = new Map(lessons.map((l) => [l.id, l]));
+  return (
+    <ol className="relative space-y-3 before:absolute before:inset-y-4 before:start-4 before:w-px before:bg-outline-variant">
+      {hours.map((h) => {
+        const finished = h.items.every((i) => ['done', 'skipped'].includes(byId.get(i.lessonId)?.status ?? ''));
+        return (
+          <li key={h.hour} className="relative flex items-start gap-3">
+            <span
+              className={`relative z-10 grid size-8 shrink-0 place-items-center rounded-full font-display text-sm font-bold ${finished ? 'bg-secondary-strong text-on-primary' : 'bg-primary text-on-primary'}`}
+            >
+              {finished ? '✓' : h.hour}
+            </span>
+            <div className="min-w-0 flex-1 rounded-md border border-outline-variant bg-surface-container-lowest p-3">
+              <div className="mb-2 flex items-baseline justify-between gap-2">
+                <p className="text-sm font-semibold text-on-surface">الساعة {hourNames[h.hour - 1] ?? h.hour}</p>
+                <p className="text-xs text-on-surface-variant">{h.minutes} من 60 د</p>
+              </div>
+              <div className="mb-3 flex h-2 overflow-hidden rounded-full bg-surface-container-high" role="img" aria-label={`${h.minutes} دقيقة من ساعة`}>
+                {h.items.map((item, i) => (
+                  <span key={`${item.lessonId}-${i}`} className={`${tones[i % tones.length]?.bar} border-e border-surface-container-lowest`} style={{ width: `${(item.minutes / 60) * 100}%` }} />
+                ))}
+              </div>
+              <ul className="space-y-2">
+                {h.items.map((item, i) => {
+                  const lesson = byId.get(item.lessonId);
+                  return lesson ? (
+                    <li key={`${item.lessonId}-${i}`} className={`flex items-start gap-2 border-s-4 ps-3 ${tones[i % tones.length]?.edge}`}>
+                      <div className="min-w-0 flex-1">
+                        <LessonRow pathId={pathId} lesson={lesson} />
+                      </div>
+                      <span className="chip shrink-0 !text-xs">{item.starts ? `${item.minutes} د` : `تكملة · ${item.minutes} د`}</span>
+                    </li>
+                  ) : null;
+                })}
+              </ul>
+            </div>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
 export default async function PlanPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const { error } = await searchParams;
   const user = await (await getAuth()).getCurrentUser.execute();
@@ -102,7 +162,7 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
           <div className="flex flex-wrap items-center gap-2">
             <span className="chip">{goal.field}</span>
             <span className="chip">{levelLabels[goal.level] ?? goal.level}</span>
-            <span className="chip">{goal.hoursPerWeek} ساعات أسبوعيًا</span>
+            <span className="chip">{goal.hoursPerDay} ساعة يوميًا</span>
             <Link href="/start" title="تُختبر من جديد عند تغيير الهدف" className="ms-auto text-sm text-primary underline">
               غيّر هدفي
             </Link>
@@ -129,11 +189,7 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
                 الأسبوع {plan.today.week} · اليوم {plan.today.day} · نحو {plan.today.minutes} دقيقة
               </p>
             </div>
-            <ul className="space-y-2">
-              {plan.today.lessons.map((lesson) => (
-                <LessonRow key={lesson.id} pathId={goal.pathId} lesson={lesson} />
-              ))}
-            </ul>
+            <HourList pathId={goal.pathId} hours={plan.today.hours} lessons={plan.today.lessons} />
           </section>
         ) : null}
 
@@ -170,20 +226,19 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
                     </summary>
                     <div className="space-y-3 border-t border-outline-variant p-4">
                       {week.focus ? <p className="text-sm text-on-surface-variant">{week.focus}</p> : null}
-                      <ol className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      <ol className="space-y-4">
                         {week.days.map((day) => {
                           const isToday = plan.today?.week === week.week && plan.today.day === day.day;
                           return (
-                            <li key={day.day} className={`rounded-md p-3 ${isToday ? 'bg-primary-container/40 ring-1 ring-primary' : 'bg-surface-container-low'}`}>
-                              <p className="mb-2 flex justify-between text-xs text-on-surface-variant">
-                                <span className="font-semibold text-on-surface">{isToday ? 'اليوم' : `اليوم ${day.day}`}</span>
-                                <span>{day.minutes} د</span>
-                              </p>
-                              <ul className="space-y-1.5">
-                                {day.lessons.map((lesson) => (
-                                  <LessonRow key={lesson.id} pathId={goal.pathId} lesson={lesson} />
-                                ))}
-                              </ul>
+                            <li key={day.day} className={`rounded-lg p-4 ${isToday ? 'bg-primary-container/40 ring-1 ring-primary' : 'bg-surface-container-low'}`}>
+                              <div className="mb-3 flex flex-wrap items-center gap-2">
+                                <h3 className="font-display text-lg font-semibold text-on-surface">اليوم {day.day}</h3>
+                                {isToday ? <span className="chip">اليوم</span> : null}
+                                <span className="ms-auto text-xs text-on-surface-variant">
+                                  {day.hours.length} ساعات · {day.minutes} د
+                                </span>
+                              </div>
+                              <HourList pathId={goal.pathId} hours={day.hours} lessons={day.lessons} />
                             </li>
                           );
                         })}
@@ -201,7 +256,7 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
             <summary className="cursor-pointer p-4 font-display text-title text-on-surface">عدّل خطتك</summary>
             <div className="space-y-4 border-t border-outline-variant p-4">
               <PlanChat revisions={revisions} />
-              <PlanManualEditor plan={plan} catalog={catalog} currentPathId={goal.pathId} hoursPerWeek={goal.hoursPerWeek} />
+              <PlanManualEditor plan={plan} catalog={catalog} currentPathId={goal.pathId} hoursPerDay={goal.hoursPerDay} />
             </div>
           </details>
         ) : null}

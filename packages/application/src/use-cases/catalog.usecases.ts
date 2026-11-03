@@ -7,7 +7,7 @@
  * الصفحات تستدعيها فقط ولا تحمل منطقًا.
  */
 
-import type { ConceptId, LearningPath, PathId, PathProgress } from '@qalam/domain';
+import type { Concept, ConceptId, Course, LearningPath, PathId, PathProgress } from '@qalam/domain';
 import { calculatePathProgress } from '@qalam/domain';
 import type { AgentAdvice } from '../agent/learning-agent.js';
 import type { ConceptRepositoryPort } from '../ports/concept-repository.port.js';
@@ -96,8 +96,23 @@ export interface ConceptMapItem {
   pathId: PathId;
   pathTitle: string;
   prerequisites: { id: ConceptId; name: string }[];
-  /** دروس كورسات المفهوم، لربط الخريطة بالمسارات */
-  lessons: { id: string; title: string; pathId: PathId }[];
+  /** عدد كورسات المفهوم ودروسها (الخريطة تعرض العدد فقط؛ الكورسات في صفحة المفهوم) */
+  courseCount: number;
+  lessonCount: number;
+}
+
+function toItem(c: Concept, names: ReadonlyMap<string, string>, pathTitles: ReadonlyMap<string, string>, courses: readonly Course[]): ConceptMapItem {
+  return {
+    id: c.id,
+    name: c.name,
+    description: c.description,
+    level: c.level,
+    pathId: c.pathId,
+    pathTitle: pathTitles.get(c.pathId as string) ?? '',
+    prerequisites: c.prerequisiteIds.map((id) => ({ id, name: names.get(id as string) ?? (id as string) })),
+    courseCount: courses.length,
+    lessonCount: courses.reduce((sum, course) => sum + course.lessonsCount, 0),
+  };
 }
 
 export class GetConceptMapUseCase {
@@ -111,27 +126,12 @@ export class GetConceptMapUseCase {
     const [concepts, paths] = await Promise.all([this.concepts.findAll(), this.paths.findAll()]);
     const names = new Map(concepts.map((c) => [c.id as string, c.name]));
     const pathTitles = new Map(paths.map((p) => [p.id as string, p.title]));
-    const taught = new Map<string, ConceptMapItem['lessons']>();
-    for (const path of paths) {
-      const conceptOf = path.lessonConceptMap();
-      for (const lesson of path.modules.flatMap((m) => m.lessons)) {
-        const conceptId = conceptOf.get(lesson.id) as string;
-        const list = taught.get(conceptId) ?? [];
-        list.push({ id: lesson.id as string, title: lesson.title, pathId: path.id });
-        taught.set(conceptId, list);
-      }
+    const coursesOf = new Map<string, Course[]>();
+    for (const course of paths.flatMap((p) => p.courses)) {
+      coursesOf.set(course.conceptId as string, [...(coursesOf.get(course.conceptId as string) ?? []), course]);
     }
 
-    const items: ConceptMapItem[] = concepts.map((c) => ({
-      id: c.id,
-      name: c.name,
-      description: c.description,
-      level: c.level,
-      pathId: c.pathId,
-      pathTitle: pathTitles.get(c.pathId as string) ?? '',
-      prerequisites: c.prerequisiteIds.map((id) => ({ id, name: names.get(id as string) ?? (id as string) })),
-      lessons: taught.get(c.id as string) ?? [],
-    }));
+    const items: ConceptMapItem[] = concepts.map((c) => toItem(c, names, pathTitles, coursesOf.get(c.id as string) ?? []));
 
     const byLevel = new Map<number, ConceptMapItem[]>();
     for (const item of items) byLevel.set(item.level, [...(byLevel.get(item.level) ?? []), item]);
@@ -139,6 +139,25 @@ export class GetConceptMapUseCase {
       .sort(([a], [b]) => a - b)
       .map(([level, list]) => ({ level, concepts: list.sort((a, b) => a.name.localeCompare(b.name, 'ar')) }));
     return { levels, total: items.length };
+  }
+}
+
+/** صفحة مفهوم واحد: بياناته ومتطلباته وكورساته (مرتبة كما في المسار). null إن لم يوجد المفهوم */
+export class GetConceptDetailUseCase {
+  constructor(
+    private readonly concepts: ConceptRepositoryPort,
+    private readonly paths: PathRepositoryPort,
+  ) {}
+
+  async execute(request: { conceptId: ConceptId }): Promise<{ concept: ConceptMapItem; courses: Course[] } | null> {
+    const concept = await this.concepts.findById(request.conceptId);
+    if (!concept) return null;
+    const [all, path] = await Promise.all([this.concepts.findAll(), this.paths.findById(concept.pathId)]);
+    const courses = (path?.courses ?? []).filter((c) => c.conceptId === concept.id);
+    return {
+      concept: toItem(concept, new Map(all.map((c) => [c.id as string, c.name])), new Map(path ? [[path.id as string, path.title]] : []), courses),
+      courses,
+    };
   }
 }
 

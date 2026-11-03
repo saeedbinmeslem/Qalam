@@ -72,6 +72,14 @@ export default async function ProfilePage() {
           <StatTile value={totals.quizAveragePercent === null ? '—' : `${totals.quizAveragePercent}%`} label="متوسط الاختبارات" />
         </section>
 
+        <Link href="/profile/plans" className="card-outlined card-interactive flex items-center justify-between gap-4 p-5">
+          <span>
+            <span className="block font-display text-title text-on-surface">سجل خططي</span>
+            <span className="block text-sm text-on-surface-variant">كل خطة أنشأتها أو عدّلتها محفوظة هنا.</span>
+          </span>
+          <span aria-hidden="true" className="text-primary">←</span>
+        </Link>
+
         <p className="text-sm text-on-surface-variant">
           نخزّن بريدك وأحداث تعلّمك فقط. التفاصيل في{' '}
           <Link href="/about#privacy" className="text-primary underline underline-offset-2">

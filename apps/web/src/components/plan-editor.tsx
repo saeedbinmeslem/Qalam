@@ -57,7 +57,7 @@ export function PlanChat({ revisions }: { revisions: PersonalPlanView['revisions
 }
 
 /** تعديل يدوي شامل: المسار، والكورسات والمفاهيم والدروس المشمولة، والمدة، وتوزيع الأسابيع */
-export function PlanManualEditor({ plan, catalog, currentPathId, hoursPerWeek }: { plan: Plan; catalog: PersonalPlanView['catalog']; currentPathId: string; hoursPerWeek: number }) {
+export function PlanManualEditor({ plan, catalog, currentPathId, hoursPerDay }: { plan: Plan; catalog: PersonalPlanView['catalog']; currentPathId: string; hoursPerDay: number }) {
   const otherPaths = catalog.paths.filter((p) => p.id !== currentPathId);
   return (
     <details className="card-outlined p-5">
@@ -82,7 +82,7 @@ export function PlanManualEditor({ plan, catalog, currentPathId, hoursPerWeek }:
         </form>
       ) : null}
 
-      <PlanManualForm action={editPlanAction} catalog={catalog} plan={plan} hoursPerWeek={hoursPerWeek} />
+      <PlanManualForm action={editPlanAction} catalog={catalog} plan={plan} hoursPerDay={hoursPerDay} />
     </details>
   );
 }

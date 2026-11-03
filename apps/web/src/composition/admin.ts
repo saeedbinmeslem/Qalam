@@ -61,11 +61,14 @@ import { AdminPolicy } from '@qalam/domain';
 import {
   CloudinaryUploadSigner,
   InMemoryBackgroundJobRepository,
+  InMemoryTranscriptStore,
   SupabaseBackgroundJobRepository,
   SupabaseConceptRepository,
   SupabasePathRepository,
   SupabaseQuestionRepository,
+  SupabaseTranscriptStore,
   YouTubePlaylistCatalog,
+  YoutubeTranscriptSource,
   randomIdGenerator,
 } from '@qalam/infrastructure';
 import { getAuth, isSupabaseConfigured } from './auth';
@@ -82,6 +85,10 @@ export function isAdminUser(user: AuthUser | null): boolean {
   return user !== null && buildPolicy().isAdmin(user.email);
 }
 
+/** النص المفرّغ مصدر أول لإعداد الدروس؛ إن حُظر الجلب من الخادم تعود الملاحظات لقراءة الفيديو (أو شغّل fetch-transcripts محليًا) */
+const transcriptSource = new YoutubeTranscriptSource();
+const localTranscripts = new InMemoryTranscriptStore();
+
 async function buildDeps(): Promise<QuizAdminDeps> {
   const policy = buildPolicy();
   const llm = getLlmClient();
@@ -94,6 +101,8 @@ async function buildDeps(): Promise<QuizAdminDeps> {
       ids: randomIdGenerator,
       policy,
       llm,
+      transcriptSource,
+      transcriptStore: new SupabaseTranscriptStore(client),
     };
   }
   const local = await getLocalStore();
@@ -104,6 +113,8 @@ async function buildDeps(): Promise<QuizAdminDeps> {
     ids: randomIdGenerator,
     policy,
     llm,
+    transcriptSource,
+    transcriptStore: localTranscripts,
   };
 }
 

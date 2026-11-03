@@ -28,3 +28,6 @@ export * from './llm/fallback-llm-client.js';
 export * from './persistence/local-snapshot.js';
 export * from './media/cloudinary-upload-signer.js';
 export * from './youtube/youtube-playlist-catalog.js';
+export * from './youtube/youtube-transcript-source.js';
+export * from './persistence/in-memory-transcript.store.js';
+export * from './persistence/supabase-transcript.store.js';

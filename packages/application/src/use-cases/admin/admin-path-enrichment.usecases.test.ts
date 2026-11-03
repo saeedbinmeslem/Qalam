@@ -188,6 +188,125 @@ describe('EnrichPathUseCase (إكمال الدروس تلقائيًا)', () => {
     expect(saved.findLesson(lessonId as never)?.lesson.notes).toBe('1. نقطة');
   });
 
+  describe('النص المفرّغ مصدرًا أول للملاحظات', () => {
+    const segments = [
+      { startSeconds: 0, text: 'المتغير مكان في الذاكرة' },
+      { startSeconds: 20, text: 'له اسم ونوع' },
+      { startSeconds: 900, text: 'خارج المقطع' },
+    ];
+    /** يميّز طلب الملاحظات من النص (points) عن الملخص والأسئلة؛ ويعدّ قراءات الفيديو */
+    function transcriptLlm() {
+      const calls = { video: 0, notesPrompt: '' };
+      const llm: LlmClient = {
+        describeVideo: async () => {
+          calls.video += 1;
+          return '1. من الفيديو';
+        },
+        generateJson: async ({ system, user }) => {
+          if (system.includes('نص مفرّغ')) {
+            calls.notesPrompt = user;
+            return { points: ['المتغير مكان في الذاكرة', ' 2) له اسم ونوع'] };
+          }
+          return system.includes('يلخّص') ? guideAnswer : questionsAnswer;
+        },
+      };
+      return { llm, calls };
+    }
+    const store = (found: typeof segments | null) => {
+      const saved: unknown[] = [];
+      return {
+        saved,
+        port: {
+          find: async () => found,
+          save: async (_id: string, s: unknown) => void saved.push(s),
+        },
+      };
+    };
+
+    it('يستعمل النص المخزَّن دون قراءة الفيديو، ويحصره بفترة الدرس', async () => {
+      const { llm, calls } = transcriptLlm();
+      const { deps, pathId } = await setup(['aaaaaaaaaaa'], llm);
+      const result = await new EnrichPathUseCase({ ...deps, transcriptStore: store(segments).port }).execute({ actor: admin, pathId });
+
+      expect(result.completed).toBe(1);
+      expect(calls.video).toBe(0);
+      expect(calls.notesPrompt).toContain('له اسم ونوع');
+      expect(calls.notesPrompt).not.toContain('خارج المقطع');
+      expect((await lessonsOf(deps, pathId))[0]!.notes).toBe('1. المتغير مكان في الذاكرة\n2. له اسم ونوع');
+    });
+
+    it('يجلب النص من المصدر ويخزنه حين لا يكون محفوظًا', async () => {
+      const { llm, calls } = transcriptLlm();
+      const { deps, pathId } = await setup(['aaaaaaaaaaa'], llm);
+      const s = store(null);
+      await new EnrichPathUseCase({
+        ...deps,
+        transcriptStore: s.port,
+        transcriptSource: { fetch: async () => segments },
+      }).execute({ actor: admin, pathId });
+      expect(s.saved).toEqual([segments]);
+      expect(calls.video).toBe(0);
+    });
+
+    it('يعود لقراءة الفيديو إن فشل الجلب أو لم يوجد نص', async () => {
+      for (const source of [
+        { fetch: async () => { throw new Error('حظر'); } },
+        { fetch: async () => null },
+      ]) {
+        const { llm, calls } = transcriptLlm();
+        const { deps, pathId } = await setup(['aaaaaaaaaaa'], llm);
+        const result = await new EnrichPathUseCase({ ...deps, transcriptStore: store(null).port, transcriptSource: source }).execute({ actor: admin, pathId });
+        expect(result.completed).toBe(1);
+        expect(calls.video).toBe(1);
+        expect((await lessonsOf(deps, pathId))[0]!.notes).toBe('1. من الفيديو');
+      }
+    });
+
+    it('يعود لقراءة الفيديو إن فشل النموذج النصي', async () => {
+      const { llm, calls } = transcriptLlm();
+      const flaky: LlmClient = {
+        ...llm,
+        generateJson: async (req) => {
+          if (req.system.includes('نص مفرّغ')) throw new Error('حد المعدل');
+          return llm.generateJson(req);
+        },
+      };
+      const { deps, pathId } = await setup(['aaaaaaaaaaa'], flaky);
+      const result = await new EnrichPathUseCase({ ...deps, transcriptStore: store(segments).port }).execute({ actor: admin, pathId });
+      expect(result.completed).toBe(1);
+      expect(calls.video).toBe(1);
+    });
+
+    it('بلا نص وبلا مزوّد فيديو: يفشل الدرس برسالة واضحة', async () => {
+      const textOnly: LlmClient = { generateJson: transcriptLlm().llm.generateJson };
+      const { deps, pathId } = await setup(['aaaaaaaaaaa'], textOnly);
+      const result = await new EnrichPathUseCase(deps).execute({ actor: admin, pathId });
+      expect(result.completed).toBe(0);
+      expect(result.failures[0]?.message).toContain('لا نص مفرّغ');
+    });
+  });
+
+  it('الملخص والأسئلة يجريان معًا، وفشل أحدهما لا يترك الآخر معلّقًا', async () => {
+    const order: string[] = [];
+    const llm: LlmClient = {
+      describeVideo: async () => '1. نقطة',
+      generateJson: async ({ system }) => {
+        const isGuide = system.includes('يلخّص');
+        order.push(`start:${isGuide ? 'guide' : 'questions'}`);
+        await new Promise((r) => setTimeout(r, 10));
+        order.push(`end:${isGuide ? 'guide' : 'questions'}`);
+        if (isGuide) throw new Error('فشل الملخص');
+        return questionsAnswer;
+      },
+    };
+    const { deps, pathId } = await setup(['aaaaaaaaaaa'], llm);
+    const result = await new EnrichPathUseCase(deps).execute({ actor: admin, pathId });
+    // بدآ كلاهما قبل أن ينتهي أي منهما، والأسئلة اكتملت وحُفظت رغم فشل الملخص
+    expect(order.slice(0, 2).sort()).toEqual(['start:guide', 'start:questions']);
+    expect(result.failures[0]?.message).toBe('فشل الملخص');
+    expect((deps.questions as Questions).store.size).toBe(1);
+  });
+
   it('للمدير فقط', async () => {
     const { deps, pathId } = await setup(['aaaaaaaaaaa'], fakeLlm());
     await expect(new EnrichPathUseCase(deps).execute({ actor: { id: 'u2', email: 'x@x.com' }, pathId })).rejects.toBeInstanceOf(ForbiddenError);

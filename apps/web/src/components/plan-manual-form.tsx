@@ -3,7 +3,7 @@
 /**
  * @file plan-manual-form.tsx
  * @description نموذج التعديل اليدوي الشامل لخطة المتعلم: الدروس المشمولة (باختيار كورس أو مفهوم كامل أو درس درسًا)،
- * الساعات الأسبوعية، وتوزيع الدروس على الأسابيع بعناوينها وأسبابها. الحالة هنا للعرض فقط؛
+ * الساعات اليومية، وتوزيع الدروس على الأسابيع بعناوينها وأسبابها. الحالة هنا للعرض فقط؛
  * التصحيح والحفظ في use case (`EditPersonalPlanUseCase`) عبر الإجراء الممرَّر من الصفحة.
  */
 import { useMemo, useState } from 'react';
@@ -16,10 +16,10 @@ interface Props {
   action: (data: FormData) => Promise<void>;
   catalog: Catalog;
   plan: Plan;
-  hoursPerWeek: number;
+  hoursPerDay: number;
 }
 
-export function PlanManualForm({ action, catalog, plan, hoursPerWeek }: Props) {
+export function PlanManualForm({ action, catalog, plan, hoursPerDay }: Props) {
   const lessonWeek = useMemo(() => {
     const map = new Map<string, string>();
     for (const w of plan.weeks) for (const l of w.lessons) map.set(l.id, String(w.week));
@@ -56,8 +56,8 @@ export function PlanManualForm({ action, catalog, plan, hoursPerWeek }: Props) {
       <fieldset className="space-y-3 rounded-md border border-outline-variant p-4">
         <legend className="px-2 text-label text-primary">المدة</legend>
         <label className="flex flex-wrap items-center gap-3 text-sm text-on-surface">
-          كم ساعة تتفرغ أسبوعيًا؟
-          <input name="hoursPerWeek" type="number" min={1} max={40} defaultValue={hoursPerWeek} className="field !w-24" />
+          كم ساعة تتفرغ يوميًا؟
+          <input name="hoursPerDay" type="number" min={0.5} max={12} step={0.5} defaultValue={hoursPerDay} className="field !w-24" />
         </label>
         <label className="flex items-start gap-3 text-sm text-on-surface">
           <input type="checkbox" name="redistribute" checked={redistribute} onChange={(e) => setRedistribute(e.target.checked)} className="mt-1 size-4 accent-[var(--color-primary)]" />

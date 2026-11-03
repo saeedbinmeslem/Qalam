@@ -24,7 +24,7 @@ export async function startOnboardingAction(data: FormData): Promise<void> {
       interest: field(data, 'interest'),
       field: field(data, 'field'),
       level: field(data, 'level') as 'beginner' | 'intermediate' | 'advanced',
-      hoursPerWeek: Number(field(data, 'hoursPerWeek')),
+      hoursPerDay: Number(field(data, 'hoursPerDay')),
     });
     const questions = await getDiagnostic.execute({ pathId: chosen.pathId }).catch(() => []);
     if (questions.length > 0) destination = `/paths/${chosen.pathId}/diagnostic`;
@@ -74,7 +74,7 @@ export async function revisePlanAction(data: FormData): Promise<void> {
 }
 
 /**
- * التعديل اليدوي الشامل: `include` الدروس المشمولة (من كورسات المسار ومفاهيمه)، `hoursPerWeek` المدة الأسبوعية،
+ * التعديل اليدوي الشامل: `include` الدروس المشمولة (من كورسات المسار ومفاهيمه)، `hoursPerDay` الساعات اليومية،
  * `redistribute` توزيع تلقائي بحسب الساعات، وإلا `order` ترتيب الدروس الحالي مع `lesson_<id>` رقم الأسبوع
  * (`new` لأسبوع جديد) و`title_<n>` / `focus_<n>`. التجميع هنا شكلي فقط؛ التصحيح في use case.
  */
@@ -96,7 +96,7 @@ export async function editPlanAction(data: FormData): Promise<void> {
     focus: field(data, `focus_${key}`).trim(),
     lessonIds: groups.get(key) ?? [],
   }));
-  const hours = field(data, 'hoursPerWeek').trim();
+  const hours = field(data, 'hoursPerDay').trim();
 
   const { editPersonalPlan } = await getContainer();
   let destination = '/plan';
@@ -104,7 +104,7 @@ export async function editPlanAction(data: FormData): Promise<void> {
     await editPersonalPlan.execute({
       userId: user.id,
       includeLessonIds: [...include],
-      hoursPerWeek: hours ? Number(hours) : undefined,
+      hoursPerDay: hours ? Number(hours) : undefined,
       redistribute: field(data, 'redistribute') === 'on',
       weeks,
     });
