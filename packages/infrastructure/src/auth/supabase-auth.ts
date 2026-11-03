@@ -41,7 +41,7 @@ export interface SupabaseAuthClient {
     getUser(): Promise<{
       data: { user: { id: string; email?: string | undefined } | null };
     }>;
-    signOut(): Promise<{ error: AuthError }>;
+    signOut(args?: { scope?: 'local' | 'global' | 'others' }): Promise<{ error: AuthError }>;
   };
 }
 
@@ -55,7 +55,7 @@ export class SupabaseAuth implements AuthPort {
     if (data.user?.identities?.length === 0) throw new EmailAlreadyRegisteredError();
     if (data.session) {
       // «Confirm email» معطّل: فُتحت جلسة بلا رمز بريد. نغلقها ونرفض بدل أن نتجاوز العامل الثاني
-      await this.client.auth.signOut();
+      await this.client.auth.signOut({ scope: 'local' });
       throw new Error('تعذّر إنشاء الحساب: تأكيد البريد غير مفعّل في Supabase');
     }
     return { signedIn: false };
@@ -65,7 +65,7 @@ export class SupabaseAuth implements AuthPort {
     const { error: passwordError } = await this.client.auth.signInWithPassword({ email: email.value, password });
     if (passwordError) throw new InvalidCredentialsError();
     // كلمة المرور صحيحة، لكن الجلسة لا تُفتح إلا بعد الرمز: نغلق جلسة كلمة المرور فورًا
-    await this.client.auth.signOut();
+    await this.client.auth.signOut({ scope: 'local' });
     // بلا emailRedirectTo: يرسل Supabase قالب «رمز الدخول» ({{ .Token }}) لا الرابط السحري
     const { error } = await this.client.auth.signInWithOtp({
       email: email.value,
@@ -110,7 +110,7 @@ export class SupabaseAuth implements AuthPort {
     if (verifyError) throw new Error(`رمز الاستعادة خاطئ أو منتهي: ${verifyError.message}`);
     const { error } = await this.client.auth.updateUser({ password: newPassword.value });
     // جلسة الاستعادة مؤقتة: نغلقها في الحالتين ليمرّ المتعلم بالدخول الكامل (كلمة المرور ثم الرمز)
-    await this.client.auth.signOut();
+    await this.client.auth.signOut({ scope: 'local' });
     if (error) throw new Error(`تعذّر تغيير كلمة المرور: ${error.message}`);
   }
 
@@ -122,7 +122,7 @@ export class SupabaseAuth implements AuthPort {
   }
 
   async signOut(): Promise<void> {
-    const { error } = await this.client.auth.signOut();
+    const { error } = await this.client.auth.signOut({ scope: 'local' });
     if (error) throw new Error(`تعذّر تسجيل الخروج: ${error.message}`);
   }
 }

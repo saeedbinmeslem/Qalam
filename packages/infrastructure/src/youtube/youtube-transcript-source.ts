@@ -25,12 +25,24 @@ const NO_TRANSCRIPT_ERRORS = new Set([
   'YoutubeTranscriptVideoUnavailableError',
 ]);
 
+/** المكتبة بلا مهلة: طلب معلّق واحد يوقف الدفعة كلها، فنحدّ كل فيديو بهذه المدة */
+const FETCH_TIMEOUT_MS = 25_000;
+
 export class YoutubeTranscriptSource implements TranscriptSourcePort {
-  constructor(private readonly fetchImpl: FetchFn = fetchTranscript as unknown as FetchFn) {}
+  constructor(
+    private readonly fetchImpl: FetchFn = fetchTranscript as unknown as FetchFn,
+    private readonly timeoutMs: number = FETCH_TIMEOUT_MS,
+  ) {}
 
   async fetch(videoId: string, language?: string): Promise<TranscriptSegment[] | null> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
     try {
-      const raw = await this.fetchImpl(videoId, language ? { lang: language } : undefined);
+      const raw = await Promise.race([
+        this.fetchImpl(videoId, language ? { lang: language } : undefined),
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(() => reject(new Error('انتهت مهلة جلب النص من يوتيوب')), this.timeoutMs);
+        }),
+      ]);
       const segments = raw
         .map((s) => ({ startSeconds: s.offset, text: s.text }))
         .filter((s) => s.text.trim().length > 0);
@@ -42,6 +54,8 @@ export class YoutubeTranscriptSource implements TranscriptSourcePort {
         throw new Error('يوتيوب رفض الطلبات مؤقتًا (كثرة طلبات أو حظر عنوان الخادم). شغّل جلب النصوص من جهازك أو أعد المحاولة لاحقًا');
       }
       throw error;
+    } finally {
+      clearTimeout(timer);
     }
   }
 }

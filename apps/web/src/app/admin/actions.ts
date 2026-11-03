@@ -371,6 +371,29 @@ export async function enrichPathAction(data: FormData): Promise<void> {
   );
 }
 
+/**
+ * يجلب النصوص المفرّغة لدروس كورس ويخزنها فتصير الملاحظات أسرع وأخف على حصة Gemini. إن حظر يوتيوب الخادم
+ * (يتكرر على Vercel) فالعملية تفشل برسالة تدل على السكربت المحلي `npm run fetch-transcripts`.
+ */
+export async function fetchTranscriptsAction(data: FormData): Promise<void> {
+  const pathId = text(data, 'pathId');
+  const courseId = text(data, 'courseId');
+  await runInBackground(
+    coursePage(pathId, courseId),
+    { key: `transcripts:${pathId}:${courseId}`, label: 'جلب النصوص المفرّغة للدروس' },
+    async (admin) => {
+      const r = await admin.fetchTranscripts.execute({ actor: admin.actor, pathId, courseId });
+      const summary = `جُلب ${r.fetched} نصًا، و${r.unavailable} بلا ترجمة على يوتيوب (تبقى على قراءة الفيديو)`;
+      if (r.failures.length > 0 && r.fetched === 0) {
+        throw new Error(`رفض يوتيوب الجلب من الخادم (${r.failures[0]?.message ?? ''}). شغّل «npm run fetch-transcripts» على جهازك`);
+      }
+      return r.stoppedEarly || r.failures.length > 0
+        ? `${summary}. تعثّر ${r.failures.length}؛ شغّل «npm run fetch-transcripts» على جهازك لإكمال الباقي`
+        : summary;
+    },
+  );
+}
+
 /** يترجم عناوين الدروس الإنجليزية في كورس إلى العربية (لكورسات استُوردت قبل الترجمة التلقائية) */
 export async function translateTitlesAction(data: FormData): Promise<void> {
   const pathId = text(data, 'pathId');

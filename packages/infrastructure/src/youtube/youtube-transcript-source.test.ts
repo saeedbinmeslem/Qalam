@@ -20,6 +20,11 @@ describe('YoutubeTranscriptSource', () => {
     }
   });
 
+  it('لا ينتظر طلبًا معلّقًا إلى الأبد', async () => {
+    const hung = new YoutubeTranscriptSource((() => new Promise(() => undefined)) as never, 20);
+    await expect(hung.fetch('aaaaaaaaaaa')).rejects.toThrow('انتهت مهلة');
+  });
+
   it('يرمي رسالة عربية عند رفض يوتيوب للطلبات، ويمرّر غيره كما هو', async () => {
     const limited = source(async () => { throw named('YoutubeTranscriptTooManyRequestError'); });
     await expect(limited.fetch('aaaaaaaaaaa')).rejects.toThrow('يوتيوب رفض الطلبات');

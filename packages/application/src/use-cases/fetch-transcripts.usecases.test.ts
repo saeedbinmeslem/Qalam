@@ -41,6 +41,7 @@ async function setup(videoIds: string[]) {
   const saved = new Map<string, TranscriptSegment[]>();
   const store: TranscriptStorePort = {
     find: async (id) => saved.get(id) ?? null,
+    existing: async (ids) => new Set(ids.filter((id) => saved.has(id))),
     save: async (id, s) => void saved.set(id, s),
   };
   return { paths: deps.paths, pathId, saved, store };

@@ -20,3 +20,4 @@ coverage/
 
 # لقطة المخزن المحلي (وضع التطوير)
 .data/
+.fetch-transcripts.log

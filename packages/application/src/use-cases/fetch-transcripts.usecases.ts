@@ -31,11 +31,17 @@ export class FetchTranscriptsUseCase {
   ) {}
 
   /** `pathId` يحصر العمل في مسار؛ بدونه يشمل كل المسارات */
-  async execute(request: { pathId?: string; delayMs?: number } = {}): Promise<FetchTranscriptsResult> {
+  async execute(
+    request: { pathId?: string; courseId?: string; delayMs?: number; onProgress?: (done: number, total: number, videoId: string) => void } = {},
+  ): Promise<FetchTranscriptsResult> {
     const paths: LearningPath[] = request.pathId
       ? [await this.load(request.pathId)]
       : await this.deps.paths.findAll();
-    const lessons = paths.flatMap((p) => p.modules.flatMap((m) => m.lessons));
+    const lessons = paths.flatMap((p) =>
+      (request.courseId ? p.courses.filter((c) => c.id === request.courseId) : p.courses).flatMap((c) =>
+        c.modules.flatMap((m) => m.lessons),
+      ),
+    );
     const videos = new Map<string, string | undefined>();
     for (const lesson of lessons) {
       if (lesson.youtubeVideoId) videos.set(lesson.youtubeVideoId, lesson.language);
@@ -44,8 +50,11 @@ export class FetchTranscriptsUseCase {
     const result: FetchTranscriptsResult = { fetched: 0, skipped: 0, unavailable: 0, failures: [], stoppedEarly: false };
     let consecutive = 0;
     let first = true;
+    const stored = await this.deps.store.existing([...videos.keys()]);
+    let index = 0;
     for (const [videoId, language] of videos) {
-      if (await this.deps.store.find(videoId)) {
+      request.onProgress?.(++index, videos.size, videoId);
+      if (stored.has(videoId)) {
         result.skipped += 1;
         continue;
       }

@@ -12,7 +12,7 @@ import { JobLoader } from '../../../../../../components/background-jobs';
 import { InlinePending, PendingButton } from '../../../../../../components/inline-pending';
 import { getAdminContainer } from '../../../../../../composition/admin';
 import { needsArabicTitle } from '@qalam/application';
-import { enrichPathAction, importPlaylistAction, translateTitlesAction } from '../../../../actions';
+import { enrichPathAction, fetchTranscriptsAction, importPlaylistAction, translateTitlesAction } from '../../../../actions';
 
 /** إكمال الملاحظات والملخصات يعمل تحت هذه المهلة */
 export const maxDuration = 300;
@@ -40,6 +40,7 @@ export default async function AdminCoursePage({
   const englishTitles = course.modules.flatMap((m) => m.lessons).filter((l) => needsArabicTitle(l.title)).length;
   const concepts = await admin.listConcepts.execute({ actor: admin.actor, pathId: path.id });
   const conceptOptions = concepts.map((c) => ({ id: c.id as string, name: c.name }));
+  const coverage = await admin.countTranscripts.execute({ actor: admin.actor, pathId: path.id, courseId: course.id });
   const draftQuizzes = await admin.countDraftQuestions.execute({ actor: admin.actor, pathId: path.id, courseId: course.id });
   const conceptName =concepts.find((c) => c.id === course.conceptId)?.name;
 
@@ -57,6 +58,25 @@ export default async function AdminCoursePage({
           عرض كما يراه المتعلم
         </Link>
       </div>
+
+      {coverage.total > coverage.stored ? (
+        <form action={fetchTranscriptsAction} data-inline-loader className="mb-6 card-outlined p-5">
+          <input type="hidden" name="pathId" value={path.id} />
+          <input type="hidden" name="courseId" value={course.id} />
+          <p className="mb-2 text-sm text-on-surface">
+            النصوص المفرّغة: <strong>{coverage.stored}</strong> من {coverage.total} درسًا. الدروس بلا نص تقرؤها Gemini بالفيديو، وهذا الأبطأ والأكثر استهلاكًا للحصة.
+          </p>
+          <p className="mb-3 text-sm text-on-surface-variant">
+            <strong>متى تستخدمه؟</strong> اضغطه <strong>قبل</strong> «أكمل الملاحظات والملخصات والأسئلة». إن فشل برسالة رفض من يوتيوب (يحجب خوادم الاستضافة أحيانًا)
+            فشغّل هذا الأمر من الطرفية على جهازك ثم ارجع: <code dir="ltr">npm run fetch-transcripts</code>
+          </p>
+          <PendingButton className={ghostButton}>اجلب النصوص المفرّغة</PendingButton>
+          <InlinePending label="جارٍ بدء العملية…" />
+          <JobLoader matchKey={`transcripts:${path.id}:${course.id}`} label="جارٍ جلب النصوص المفرّغة…" />
+        </form>
+      ) : coverage.total > 0 ? (
+        <p className="mb-6 text-sm text-on-surface-variant">النصوص المفرّغة مكتملة لدروس هذا الكورس ({coverage.total}).</p>
+      ) : null}
 
       {pendingText > 0 ? (
         <form action={enrichPathAction} data-inline-loader className="mb-6 card-outlined p-5">

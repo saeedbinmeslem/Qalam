@@ -44,6 +44,7 @@ export * from './use-cases/admin/admin-playlist-import.usecases.js';
 export * from './use-cases/admin/admin-videos-import.usecases.js';
 export * from './use-cases/admin/admin-path-enrichment.usecases.js';
 export * from './use-cases/fetch-transcripts.usecases.js';
+export * from './use-cases/admin/admin-transcripts.usecases.js';
 export * from './use-cases/admin/admin-background-jobs.usecases.js';
 export * from './use-cases/admin/admin-title-translation.usecases.js';
 export * from './ports/media-upload.port.js';

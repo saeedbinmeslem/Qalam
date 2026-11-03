@@ -14,5 +14,7 @@ export interface TranscriptSourcePort {
 
 export interface TranscriptStorePort {
   find(videoId: string): Promise<TranscriptSegment[] | null>;
+  /** أي من هذه الفيديوهات له نص محفوظ (بلا تحميل المقاطع نفسها: للعدّ السريع) */
+  existing(videoIds: string[]): Promise<Set<string>>;
   save(videoId: string, segments: TranscriptSegment[]): Promise<void>;
 }

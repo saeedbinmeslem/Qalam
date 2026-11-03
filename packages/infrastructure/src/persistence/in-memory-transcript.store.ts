@@ -12,6 +12,10 @@ export class InMemoryTranscriptStore implements TranscriptStorePort {
     return this.items.get(videoId) ?? null;
   }
 
+  async existing(videoIds: string[]): Promise<Set<string>> {
+    return new Set(videoIds.filter((id) => this.items.has(id)));
+  }
+
   async save(videoId: string, segments: TranscriptSegment[]): Promise<void> {
     this.items.set(videoId, segments);
   }

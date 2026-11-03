@@ -218,6 +218,7 @@ describe('EnrichPathUseCase (إكمال الدروس تلقائيًا)', () => {
         saved,
         port: {
           find: async () => found,
+          existing: async () => new Set<string>(),
           save: async (_id: string, s: unknown) => void saved.push(s),
         },
       };

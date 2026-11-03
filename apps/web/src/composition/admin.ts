@@ -14,7 +14,9 @@ import {
   ApproveLessonsUseCase,
   ApproveQuestionUseCase,
   ApproveQuizzesUseCase,
+  CountCourseTranscriptsUseCase,
   CountDraftQuestionsUseCase,
+  FetchCourseTranscriptsUseCase,
   CheckAdminUseCase,
   CreateUploadTicketUseCase,
   DeleteQuestionUseCase,
@@ -25,6 +27,7 @@ import {
   StartBackgroundJobUseCase,
   TranslateLessonTitlesUseCase,
   type BackgroundJobPort,
+  type TranscriptStorePort,
   GenerateQuestionsUseCase,
   GenerateStudyGuideUseCase,
   ImportPlaylistUseCase,
@@ -89,6 +92,10 @@ export function isAdminUser(user: AuthUser | null): boolean {
 const transcriptSource = new YoutubeTranscriptSource();
 const localTranscripts = new InMemoryTranscriptStore();
 
+function buildTranscriptStore(): TranscriptStorePort {
+  return isSupabaseConfigured() ? new SupabaseTranscriptStore(getServiceClient()) : localTranscripts;
+}
+
 async function buildDeps(): Promise<QuizAdminDeps> {
   const policy = buildPolicy();
   const llm = getLlmClient();
@@ -102,7 +109,7 @@ async function buildDeps(): Promise<QuizAdminDeps> {
       policy,
       llm,
       transcriptSource,
-      transcriptStore: new SupabaseTranscriptStore(client),
+      transcriptStore: buildTranscriptStore(),
     };
   }
   const local = await getLocalStore();
@@ -176,6 +183,8 @@ export interface AdminContainer {
   importPlaylist: ImportPlaylistUseCase;
   importVideos: ImportVideosUseCase;
   enrichPath: EnrichPathUseCase;
+  countTranscripts: CountCourseTranscriptsUseCase;
+  fetchTranscripts: FetchCourseTranscriptsUseCase;
   translateTitles: TranslateLessonTitlesUseCase;
   startJob: StartBackgroundJobUseCase;
   finishJob: FinishBackgroundJobUseCase;
@@ -194,6 +203,7 @@ export async function getAdminContainer(): Promise<AdminContainer> {
   const actor = await (await getAuth()).getCurrentUser.execute();
   const deps = await buildDeps();
   const jobDeps = { ...deps, jobs: buildJobs() };
+  const transcriptDeps = { ...deps, transcriptSource, transcriptStore: buildTranscriptStore() };
   return {
     actor,
     checkAdmin: new CheckAdminUseCase(deps),
@@ -237,6 +247,8 @@ export async function getAdminContainer(): Promise<AdminContainer> {
       videos: new YouTubePlaylistCatalog(process.env.YOUTUBE_API_KEY),
     }),
     enrichPath: new EnrichPathUseCase(deps),
+    countTranscripts: new CountCourseTranscriptsUseCase(transcriptDeps),
+    fetchTranscripts: new FetchCourseTranscriptsUseCase(transcriptDeps),
     translateTitles: new TranslateLessonTitlesUseCase(deps),
     startJob: new StartBackgroundJobUseCase(jobDeps),
     finishJob: new FinishBackgroundJobUseCase(jobDeps),

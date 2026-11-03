@@ -43,7 +43,12 @@ const useCase = new app.FetchTranscriptsUseCase({
 
 const pathId = process.argv[2];
 console.log(pathId ? `المسار: ${pathId}` : 'كل المسارات');
-const result = await useCase.execute({ pathId });
+const result = await useCase.execute({
+  pathId,
+  onProgress: (done, total, videoId) => {
+    if (done % 10 === 0 || done === total) console.log(`  ... ${done}/${total} (${videoId})`);
+  },
+});
 console.log(`جُلب: ${result.fetched} | محفوظ سابقًا: ${result.skipped} | بلا نص: ${result.unavailable} | فشل: ${result.failures.length}`);
 for (const f of result.failures) console.log(`  - ${f.videoId}: ${f.message}`);
 if (result.stoppedEarly) console.log('توقف مبكرًا بعد إخفاقات متتالية (حظر محتمل). أعد المحاولة لاحقًا ولا تُلحّ.');
