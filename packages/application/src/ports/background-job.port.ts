@@ -18,6 +18,8 @@ export interface BackgroundJob {
   message: string;
   startedAt: Date;
   finishedAt?: Date;
+  /** تقدّم العمل الجاري حيث يُعرف حجمه (دروس معالَجة من الكل)؛ غائب فيظهر مؤشر بلا نسبة */
+  progress?: { done: number; total: number };
 }
 
 export interface BackgroundJobPort {

@@ -5,6 +5,7 @@ import type { BackgroundJob, BackgroundJobPort } from '../../ports/background-jo
 import {
   FinishBackgroundJobUseCase,
   ListBackgroundJobsUseCase,
+  ReportJobProgressUseCase,
   STALE_JOB_MS,
   StartBackgroundJobUseCase,
   type BackgroundJobDeps,
@@ -66,6 +67,21 @@ describe('العمليات الخلفية', () => {
     await expect(start.execute({ actor: admin, key: 'k', label: 'عمل' })).resolves.toBeDefined();
     const listed = await new ListBackgroundJobsUseCase(deps, () => clock).execute({ actor: admin });
     expect(listed.find((j) => j.status === 'failed')?.message).toContain('توقفت');
+  });
+
+  it('يسجّل التقدّم للجارية فقط، ولا يطغى تقدّم متأخر على عملية انتهت', async () => {
+    const deps = setup();
+    const { jobId } = await new StartBackgroundJobUseCase(deps).execute({ actor: admin, key: 'k', label: 'ع' });
+    const report = new ReportJobProgressUseCase(deps);
+
+    await report.execute({ jobId, done: 3, total: 10 });
+    expect((await deps.jobs.findById(jobId))?.progress).toEqual({ done: 3, total: 10 });
+
+    await new FinishBackgroundJobUseCase(deps).execute({ jobId, status: 'done', message: 'تم' });
+    await report.execute({ jobId, done: 9, total: 10 });
+    const job = await deps.jobs.findById(jobId);
+    expect(job?.status).toBe('done');
+    expect(job?.progress).toEqual({ done: 3, total: 10 });
   });
 
   it('للمدير فقط', async () => {

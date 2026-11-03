@@ -19,6 +19,7 @@ interface JobView {
   label: string;
   status: 'running' | 'done' | 'failed';
   message: string;
+  progress: { done: number; total: number } | null;
   startedAt: string;
   finishedAt: string | null;
 }
@@ -32,6 +33,24 @@ const KEEP_FINISHED_MS = 10 * 60_000;
 const AFTER_SUBMIT_POLLS_MS = [1200, 3000, 6000];
 /** أطول انتظار لظهور العملية في السجل بعد الإرسال قبل أن نعدّ أنها لم تبدأ */
 const EXPECT_JOB_MS = 8000;
+
+/** شريط تقدّم بنسبة مئوية حقيقية (للعمليات التي يُعرف حجمها) */
+function ProgressBar({ progress }: { progress: { done: number; total: number } }) {
+  const percent = Math.min(100, Math.round((progress.done / progress.total) * 100));
+  return (
+    <div className="mt-2" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}>
+      <div className="mb-1 flex justify-between text-xs text-on-surface-variant">
+        <span>
+          {progress.done} من {progress.total}
+        </span>
+        <span dir="ltr">{percent}%</span>
+      </div>
+      <div className="h-1.5 overflow-hidden rounded-full bg-outline-variant">
+        <div className="h-full bg-primary transition-[width]" style={{ width: `${percent}%` }} />
+      </div>
+    </div>
+  );
+}
 
 export function BackgroundJobs() {
   const router = useRouter();
@@ -90,17 +109,20 @@ export function BackgroundJobs() {
             job.status === 'failed' ? 'bg-error-container text-on-error-container' : 'bg-surface-container text-on-surface'
           }`}
         >
-          <div className="flex items-start gap-3">
+          <div className="flex min-w-0 flex-1 items-start gap-3">
             {job.status === 'running' ? (
               <div className="shrink-0" aria-hidden="true">
                 <QalamLoader scale={0.4} label="" />
               </div>
             ) : null}
-            <p>
-              {job.status === 'done' ? '✓ ' : job.status === 'failed' ? '⚠ ' : ''}
-              <span className="font-medium">{job.label}</span>
-              {job.status === 'running' ? ' — تعمل في الخلفية، يمكنك التنقل والتعديل بحرية.' : job.message ? ` — ${job.message}` : ''}
-            </p>
+            <div className="min-w-0 flex-1">
+              <p>
+                {job.status === 'done' ? '✓ ' : job.status === 'failed' ? '⚠ ' : ''}
+                <span className="font-medium">{job.label}</span>
+                {job.status === 'running' ? ' — تعمل في الخلفية، يمكنك التنقل والتعديل بحرية.' : job.message ? ` — ${job.message}` : ''}
+              </p>
+              {job.status === 'running' && job.progress ? <ProgressBar progress={job.progress} /> : null}
+            </div>
           </div>
           {job.status !== 'running' ? (
             <button
@@ -127,6 +149,7 @@ export function JobLoader({ matchKey, label }: { matchKey: string; label: string
   const submittedAt = useRef(0);
   const [active, setActive] = useState(false);
   const [expecting, setExpecting] = useState(false);
+  const [progress, setProgress] = useState<JobView['progress']>(null);
 
   useEffect(() => {
     const onSubmit = (event: Event) => {
@@ -138,7 +161,9 @@ export function JobLoader({ matchKey, label }: { matchKey: string; label: string
     };
     const onJobs = (event: Event) => {
       const jobs = (event as CustomEvent<JobView[]>).detail;
-      const match = jobs.some((j) => j.key === matchKey && j.status === 'running');
+      const running = jobs.find((j) => j.key === matchKey && j.status === 'running');
+      const match = running !== undefined;
+      setProgress(running?.progress ?? null);
       setActive(match);
       if (match) setExpecting(false);
       else if (Date.now() - submittedAt.current > EXPECT_JOB_MS) setExpecting(false);
@@ -156,6 +181,7 @@ export function JobLoader({ matchKey, label }: { matchKey: string; label: string
       {!pending && (active || expecting) ? (
         <div className="mt-4">
           <QalamLoader scale={0.6} label={label} />
+          {progress ? <ProgressBar progress={progress} /> : null}
         </div>
       ) : null}
     </div>

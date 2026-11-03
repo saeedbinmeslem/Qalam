@@ -24,6 +24,7 @@ import {
   EnrichPathUseCase,
   FinishBackgroundJobUseCase,
   ListBackgroundJobsUseCase,
+  ReportJobProgressUseCase,
   StartBackgroundJobUseCase,
   TranslateLessonTitlesUseCase,
   type BackgroundJobPort,
@@ -188,6 +189,7 @@ export interface AdminContainer {
   translateTitles: TranslateLessonTitlesUseCase;
   startJob: StartBackgroundJobUseCase;
   finishJob: FinishBackgroundJobUseCase;
+  reportJobProgress: ReportJobProgressUseCase;
   listJobs: ListBackgroundJobsUseCase;
   addQuestion: AddQuestionUseCase;
   generateQuestions: GenerateQuestionsUseCase;
@@ -252,6 +254,7 @@ export async function getAdminContainer(): Promise<AdminContainer> {
     translateTitles: new TranslateLessonTitlesUseCase(deps),
     startJob: new StartBackgroundJobUseCase(jobDeps),
     finishJob: new FinishBackgroundJobUseCase(jobDeps),
+    reportJobProgress: new ReportJobProgressUseCase(jobDeps),
     listJobs: new ListBackgroundJobsUseCase(jobDeps),
     addQuestion: new AddQuestionUseCase(deps),
     generateQuestions: new GenerateQuestionsUseCase(deps),

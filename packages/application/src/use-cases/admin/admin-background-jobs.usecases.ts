@@ -59,6 +59,17 @@ export class FinishBackgroundJobUseCase {
   }
 }
 
+export class ReportJobProgressUseCase {
+  constructor(private readonly deps: Pick<BackgroundJobDeps, 'jobs'>) {}
+
+  /** تُستدعى من الخلفية؛ لا تلمس عملية انتهت (حتى لا يطغى تقدّم متأخر على حالة النجاح أو الفشل) */
+  async execute(request: { jobId: string; done: number; total: number }): Promise<void> {
+    const job = await this.deps.jobs.findById(request.jobId);
+    if (!job || job.status !== 'running') return;
+    await this.deps.jobs.save({ ...job, progress: { done: request.done, total: request.total } });
+  }
+}
+
 export class ListBackgroundJobsUseCase {
   constructor(
     private readonly deps: BackgroundJobDeps,

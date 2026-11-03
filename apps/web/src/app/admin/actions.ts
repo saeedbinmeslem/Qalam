@@ -247,11 +247,18 @@ const MIN_ENRICH_BUDGET_MS = 20_000;
 async function runInBackground(
   returnTo: string,
   job: { key: string; label: string },
-  work: (admin: AdminContainer) => Promise<string>,
+  work: (admin: AdminContainer, report: (done: number, total: number) => void) => Promise<string>,
 ): Promise<never> {
   return run(returnTo, async (admin) => {
     const { jobId } = await admin.startJob.execute({ actor: admin.actor, ...job });
     after(async () => {
+      // كتابات التقدّم متسلسلة وتُنتظر قبل إنهاء العملية، فلا تسبق كتابةٌ متأخرة حالةَ النجاح أو الفشل
+      let writes: Promise<void> = Promise.resolve();
+      const report = (done: number, total: number) => {
+        writes = writes
+          .then(() => admin.reportJobProgress.execute({ jobId, done, total }))
+          .catch(() => undefined);
+      };
       try {
         let timer: ReturnType<typeof setTimeout> | undefined;
         const timeout = new Promise<never>((_, reject) => {
@@ -260,11 +267,13 @@ async function runInBackground(
             JOB_LIMIT_MS,
           );
         });
-        const message = await Promise.race([work(admin), timeout]).finally(() => clearTimeout(timer));
+        const message = await Promise.race([work(admin, report), timeout]).finally(() => clearTimeout(timer));
+        await writes;
         await admin.finishJob.execute({ jobId, status: 'done', message });
       } catch (error) {
         const message = error instanceof Error ? error.message : 'خطأ غير معروف';
         console.error(`[job] فشلت «${job.label}»`, error);
+        await writes;
         await admin.finishJob.execute({ jobId, status: 'failed', message }).catch(() => undefined);
       }
     });
@@ -277,11 +286,12 @@ async function enrichAndSummarize(
   pathId: string,
   courseId: string | undefined,
   startedAt: number,
+  report?: (done: number, total: number) => void,
 ): Promise<string> {
   // ما استُهلك في الخطوات السابقة (كالاستيراد) يُخصم، ونُبقي هامشًا للدروس الجارية وقت النفاد
   const budgetMs = JOB_LIMIT_MS - IN_FLIGHT_MARGIN_MS - (Date.now() - startedAt);
   if (budgetMs < MIN_ENRICH_BUDGET_MS) return 'لم يبقَ زمن للتوليد، اضغط «أكمل الملاحظات والملخصات والأسئلة»';
-  const result = await admin.enrichPath.execute({ actor: admin.actor, pathId, courseId, budgetMs });
+  const result = await admin.enrichPath.execute({ actor: admin.actor, pathId, courseId, budgetMs, onProgress: report });
   if (result.remaining > 0 && result.failures.length > 0) {
     throw new Error(`اكتمل ${result.completed} وتعثّر ${result.failures.length}: ${result.failures[0]?.message ?? ''}`);
   }
@@ -301,10 +311,10 @@ export async function importPlaylistAction(data: FormData): Promise<void> {
   await runInBackground(
     courseId ? coursePage(pathId, courseId) : pathPage(pathId),
     { key: `import:${pathId}:${courseId ?? 'new'}`, label: courseId ? 'إكمال دروس القائمة' : 'استيراد قائمة يوتيوب' },
-    async (admin) => {
+    async (admin, report) => {
       const startedAt = Date.now();
       const imported = await admin.importPlaylist.execute({ actor: admin.actor, pathId, courseId, playlistUrl });
-      const generated = await enrichAndSummarize(admin, pathId, courseId, startedAt).catch((e: Error) => `الاستيراد تم لكن التوليد تعثّر: ${e.message}`);
+      const generated = await enrichAndSummarize(admin, pathId, courseId, startedAt, report).catch((e: Error) => `الاستيراد تم لكن التوليد تعثّر: ${e.message}`);
       return `أُضيف ${imported.lessons} درسًا إلى «${imported.courseTitle}». ${generated}`;
     },
   );
@@ -367,7 +377,7 @@ export async function enrichPathAction(data: FormData): Promise<void> {
   await runInBackground(
     courseId ? coursePage(pathId, courseId) : pathPage(pathId),
     { key: `enrich:${pathId}:${courseId ?? 'all'}`, label: 'توليد الملاحظات والملخصات والأسئلة' },
-    (admin) => enrichAndSummarize(admin, pathId, courseId, Date.now()),
+    (admin, report) => enrichAndSummarize(admin, pathId, courseId, Date.now(), report),
   );
 }
 
@@ -381,8 +391,8 @@ export async function fetchTranscriptsAction(data: FormData): Promise<void> {
   await runInBackground(
     coursePage(pathId, courseId),
     { key: `transcripts:${pathId}:${courseId}`, label: 'جلب النصوص المفرّغة للدروس' },
-    async (admin) => {
-      const r = await admin.fetchTranscripts.execute({ actor: admin.actor, pathId, courseId });
+    async (admin, report) => {
+      const r = await admin.fetchTranscripts.execute({ actor: admin.actor, pathId, courseId, onProgress: report });
       const summary = `جُلب ${r.fetched} نصًا، و${r.unavailable} بلا ترجمة على يوتيوب (تبقى على قراءة الفيديو)`;
       if (r.failures.length > 0 && r.fetched === 0) {
         throw new Error(`رفض يوتيوب الجلب من الخادم (${r.failures[0]?.message ?? ''}). شغّل «npm run fetch-transcripts» على جهازك`);

@@ -15,12 +15,25 @@ interface JobRow {
   finished_at: string | null;
 }
 
+/**
+ * التقدّم يُخزَّن في عمود message ما دامت العملية جارية بصيغة «@@progress:12/80» (فلا هجرة جديدة)،
+ * ويُستبدل بنص النتيجة عند الانتهاء.
+ */
+const PROGRESS_PREFIX = '@@progress:';
+
+function parseProgress(message: string): BackgroundJob['progress'] {
+  if (!message.startsWith(PROGRESS_PREFIX)) return undefined;
+  const [done, total] = message.slice(PROGRESS_PREFIX.length).split('/').map(Number);
+  return Number.isFinite(done) && Number.isFinite(total) && total! > 0 ? { done: done!, total: total! } : undefined;
+}
+
 const toJob = (row: JobRow): BackgroundJob => ({
   id: row.id,
   key: row.job_key,
   label: row.label,
   status: row.status as BackgroundJobStatus,
-  message: row.message ?? '',
+  message: row.message?.startsWith(PROGRESS_PREFIX) ? '' : (row.message ?? ''),
+  progress: parseProgress(row.message ?? ''),
   startedAt: new Date(row.started_at),
   finishedAt: row.finished_at ? new Date(row.finished_at) : undefined,
 });
@@ -35,7 +48,7 @@ export class SupabaseBackgroundJobRepository implements BackgroundJobPort {
         job_key: job.key,
         label: job.label,
         status: job.status,
-        message: job.message,
+        message: job.status === 'running' && job.progress ? `${PROGRESS_PREFIX}${job.progress.done}/${job.progress.total}` : job.message,
         started_at: job.startedAt.toISOString(),
         finished_at: job.finishedAt?.toISOString() ?? null,
       },

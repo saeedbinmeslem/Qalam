@@ -49,7 +49,13 @@ export class EnrichPathUseCase {
   }
 
   /** `courseId` يحصر العمل في كورس واحد؛ بدونه يشمل المسار كله */
-  async execute(request: AdminRequest & { pathId: string; courseId?: string; budgetMs?: number }): Promise<EnrichmentResult> {
+  async execute(request: AdminRequest & {
+      pathId: string;
+      courseId?: string;
+      budgetMs?: number;
+      /** بعد كل درس يُعالَج (نجح أو تعثّر): المعالَج من إجمالي ما يحتاج توليدًا */
+      onProgress?: (done: number, total: number) => void;
+    }): Promise<EnrichmentResult> {
     requireAdmin(this.deps.policy, request.actor);
     const deadline = this.now() + (request.budgetMs ?? DEFAULT_ENRICH_BUDGET_MS);
     const base = { actor: request.actor, pathId: request.pathId };
@@ -65,6 +71,7 @@ export class EnrichPathUseCase {
     const result: EnrichmentResult = { completed: 0, remaining: 0, failures: [] };
     let consecutive = 0;
     let cursor = 0;
+    let processed = 0;
 
     // عمّال متوازون يسحبون الدروس من الطابور؛ كل عامل يتوقف عند نفاد الزمن أو توالي الإخفاق
     const worker = async () => {
@@ -96,6 +103,7 @@ export class EnrichPathUseCase {
           consecutive += 1;
           result.failures.push({ title: target.title, message: error instanceof Error ? error.message : 'خطأ غير معروف' });
         }
+        request.onProgress?.(++processed, targets.length);
       }
     };
     await Promise.all(Array.from({ length: Math.min(ENRICH_CONCURRENCY, targets.length) }, worker));

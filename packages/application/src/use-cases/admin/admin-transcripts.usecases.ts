@@ -54,8 +54,14 @@ export class FetchCourseTranscriptsUseCase {
     );
   }
 
-  async execute(request: AdminRequest & { pathId: string; courseId: string }): Promise<FetchTranscriptsResult> {
+  async execute(
+    request: AdminRequest & { pathId: string; courseId: string; onProgress?: (done: number, total: number) => void },
+  ): Promise<FetchTranscriptsResult> {
     requireAdmin(this.deps.policy, request.actor);
-    return this.fetcher.execute({ pathId: request.pathId, courseId: request.courseId });
+    return this.fetcher.execute({
+      pathId: request.pathId,
+      courseId: request.courseId,
+      onProgress: (done, total) => request.onProgress?.(done, total),
+    });
   }
 }

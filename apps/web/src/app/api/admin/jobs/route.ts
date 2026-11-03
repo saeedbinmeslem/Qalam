@@ -19,6 +19,7 @@ export async function GET() {
         label: j.label,
         status: j.status,
         message: j.message,
+        progress: j.progress ?? null,
         startedAt: j.startedAt.toISOString(),
         finishedAt: j.finishedAt?.toISOString() ?? null,
       })),

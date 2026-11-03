@@ -686,3 +686,10 @@ Qalam/
 - **الزر:** في صفحة الكورس `/admin/paths/<مسار>/courses/<كورس>` بطاقة «النصوص المفرّغة: X من Y» مع زر «اجلب النصوص المفرّغة» (عملية خلفية `transcripts:<مسار>:<كورس>`) وشرح متى يُستعمل (قبل «أكمل الملاحظات…»؛ وإن رفض يوتيوب الخادم فالسكربت المحلي). تختفي البطاقة وتظهر «مكتملة» حين يكتمل الكورس.
 - **الكود:** `TranscriptStorePort.existing(ids)` للعدّ السريع بلا تحميل المقاطع؛ `CountCourseTranscriptsUseCase` و`FetchCourseTranscriptsUseCase` (للمدير فقط) في `admin-transcripts.usecases.ts`؛ `FetchTranscriptsUseCase` يقبل `courseId`؛ `fetchTranscriptsAction` في `admin/actions.ts`.
 - **الاختبارات:** 331 ناجحة، tsc وESLint نظيفان. لم تُعاين البطاقة في المتصفح (لوحة التحكم تتطلب دخولًا بكلمة مرور).
+
+## الخطوة 27: نسبة تقدّم حقيقية للعمليات الخلفية (2026-11-03)
+- **المشكلة:** مؤشر القلم يدور دون أن يعرف المالك كم أُنجز ولا كم بقي.
+- **الحل:** `BackgroundJob.progress` (done/total) و`ReportJobProgressUseCase` (يتجاهل العملية المنتهية فلا يطغى تقدم متأخر على النجاح أو الفشل). `runInBackground` يمرّر `report(done, total)` للعمل، وكتابات التقدم متسلسلة وتُنتظر قبل إنهاء العملية. `EnrichPathUseCase` و`FetchCourseTranscriptsUseCase` يبلّغان بعد كل درس/فيديو.
+- **بلا هجرة:** تخزين التقدم أثناء العمل في عمود `message` بصيغة `@@progress:12/80` داخل `SupabaseBackgroundJobRepository` فقط، وتحل رسالة النتيجة محله عند الانتهاء.
+- **الواجهة:** `background-jobs.tsx` يعرض شريطًا ونسبة مئوية و«12 من 80» في شريط العمليات وتحت زر الإكمال/الجلب (`ProgressBar`، و`/api/admin/jobs` يعيد `progress`). العمليات التي لا يُعرف حجمها (استيراد قائمة، ترجمة العناوين) تبقى بمؤشر دوّار بلا نسبة.
+- **الاختبارات:** 335 ناجحة، tsc وESLint نظيفان. لم تُعاين الواجهة في المتصفح (تتطلب دخولًا).
